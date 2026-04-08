@@ -1,0 +1,327 @@
+:root {
+  /* Light Theme Colors */
+  --light-bg-primary: #FFFFFF;
+  --light-bg-secondary: #F9FAFB;
+  --light-bg-gradient-start: #FDF2F8;
+  --light-bg-dropdown-start: #FCE0EF;
+  --light-bg-dropdown-end: #FCE0EF;
+
+  --light-border-pink: #FCE7F3;
+  --light-border-strong: #F9BBD6;
+  --light-border-section: #D9E1E7;
+
+  --light-text-primary: #374151;
+  --light-text-muted: rgba(55, 65, 81, 0.44);
+
+  --light-scrollbar-track: #FDF2F8;
+  --light-scrollbar-thumb-start: #EC4899;
+  --light-scrollbar-thumb-end: #FFFFFF;
+
+  --light-box-shadow: 0 4px 15px rgba(236, 72, 153, 0.15);
+
+  /* Hover states */
+  --light-hover-bg: rgba(236, 72, 153, 0.5);
+  /* #EC489950 */
+
+  --main-color: var(--light-scrollbar-thumb-start);
+
+  --dark-bg-primary: #1C1C1C;
+  --dark-bg-secondary: #262626;
+}
+
+.App {
+  width: 100%;
+  height: 100%;
+  font-family: "Poppins", sans-serif;
+}
+
+/* Dark Mode Theme */
+#dark-mode {
+  background-color: var(--dark-bg-primary);
+  color: var(--text-white) !important;
+}
+
+/* Light Mode Theme */
+#light-mode {
+  background-color: var(--light-bg-primary) !important;
+  color: var(--light-text-primary) !important;
+}
+
+/* Light Mode - Logo */
+#light-mode .sidenav__logo,
+#light-mode .application-logo {
+  color: var(--light-text-primary);
+}
+
+/* Light Mode - Sidenav Background */
+#light-mode .sidenav {
+  background: linear-gradient(to bottom,
+      var(--light-bg-gradient-start) 0%,
+      var(--light-bg-primary) 100%);
+  border-right: 1.7px solid var(--light-border-pink);
+}
+
+#light-mode .mobile-bottom-nav {
+  background: var(--light-bg-dropdown-start);
+  border-top: 1.5px solid var(--light-border-strong);
+}
+
+#light-mode .mobile-bottom-nav .mobile-nav-icon path {
+  fill: var(--light-text-primary);
+}
+
+#light-mode .mobile-bottom-nav .mobile-nav-icon path:nth-child(2) {
+  stroke: var(--light-text-primary);
+}
+
+#light-mode .mobile-bottom-nav .mobile-nav-icon path {
+  stroke: var(--light-text-primary);
+}
+
+#light-mode .mobile-bottom-nav .middle-item .mobile-nav-icon path {
+  fill: var(--light-bg-primary);
+  stroke: var(--light-bg-primary);
+}
+
+/* Light Mode - Borders */
+#light-mode .sidenav .logo-container,
+#light-mode .sidenav nav ul.optional-items {
+  border-bottom: 1.5px solid var(--light-border-pink);
+}
+
+#light-mode .topbar-wrapper {
+  border-bottom: 1.5px solid var(--light-border-section);
+}
+
+#light-mode .sidenav nav ul.optional-items {
+  border-top: 1.5px solid var(--light-border-pink);
+}
+
+#light-mode .sidenav .link.active,
+#light-mode .settings-link.active {
+    background-color: var(--main-color);
+    color: var(--light-bg-primary);
+    box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3); 
+}
+
+#light-mode .sidenav .link.active span,
+#light-mode .settings-link.active>span {
+    color: var(--light-bg-primary);
+} 
+
+#light-mode .sidenav .link.active .nav-icon path,
+#light-mode .settings-link.active>.nav-icon path {
+    fill: var(--light-bg-primary) !important;
+}
+
+#light-mode .sidenav .link.active .nav-icon path:nth-child(2) {
+    stroke: var(--light-bg-primary);
+}
+
+/* Light Mode - Text Colors */
+#light-mode .sidenav .link,
+#light-mode .sidenav .more_btn .link,
+#light-mode .sidenav span {
+  color: var(--light-text-primary);
+}
+
+/* Light Mode - Icons */
+#light-mode .sidenav .link .nav-icon path,
+#light-mode .sidenav .more-container .link .nav-icon path,
+#light-mode .sidenav .settings-link .nav-icon path {
+  fill: var(--light-text-primary);
+}
+
+#light-mode .sidenav .link .nav-icon path:nth-child(2) {
+  stroke: var(--light-text-primary);
+}
+
+#light-mode .sidenav .link:not(.active):hover .nav-icon path:nth-child(2) {
+  stroke: var(--light-bg-primary);
+}
+
+/* Light Mode - Hover States */
+#light-mode .sidenav .link:not(.active):hover,
+#light-mode .sidenav .more-container .link:hover,
+#light-mode .sidenav .settings-link:not(.active):hover {
+  background-color: var(--light-hover-bg);
+}
+
+#light-mode .sidenav .link:not(.active):hover span,
+#light-mode .sidenav .more-container .link:hover span,
+#light-mode .sidenav .settings-link:not(.active):hover>span {
+  color: var(--light-bg-primary) !important;
+}
+
+#light-mode .sidenav .link:hover .nav-icon path,
+#light-mode .sidenav .settings-link:not(.active):hover>.nav-icon path {
+  fill: var(--light-bg-primary);
+}
+
+/* Light Mode - Logout Button (Muted) */
+#light-mode .sidenav .more_btn.logout .link span,
+#light-mode .sidenav .more_btn.logout .link .nav-icon path {
+  color: var(--light-text-muted);
+  fill: var(--light-text-muted);
+}
+
+#light-mode .sidenav .more_btn.logout .link:hover {
+  background-color: transparent;
+}
+
+/* Light Mode - Scrollbar */
+#light-mode .sidenav nav::-webkit-scrollbar-track {
+  background: var(--light-scrollbar-track);
+  border-radius: var(--radius-lg);
+}
+
+#light-mode .sidenav nav::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom,
+      var(--light-scrollbar-thumb-start),
+      var(--light-scrollbar-thumb-end));
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--light-scrollbar-track);
+}
+
+#light-mode .sidenav nav::-webkit-scrollbar-thumb:hover {
+  background: var(--light-scrollbar-thumb-start);
+}
+
+/* Firefox support for Light Mode */
+#light-mode .sidenav nav {
+  scrollbar-width: thin;
+  scrollbar-color: var(--light-scrollbar-thumb-start) var(--light-scrollbar-track);
+}
+
+/* Light Mode - Dropdown Containers */
+#light-mode .sidenav .more-container,
+#light-mode .switch-appear-container,
+#light-mode .switch-language-container {
+  background: linear-gradient(to bottom,
+      var(--light-bg-dropdown-start) 0%,
+      var(--light-bg-dropdown-end) 70%,
+      var(--light-bg-primary) 100%);
+  border: 1.5px solid var(--light-border-strong);
+  box-shadow: var(--light-box-shadow);
+}
+
+/* Light Mode - Dropdown Decorations */
+#light-mode .sidenav .more-container .line-decoration {
+  background-color: var(--light-border-strong);
+}
+
+#light-mode .sidenav .switch-appear-container .switch-title,
+#light-mode .sidenav .switch-language-container .switch-title {
+  border-bottom: 0.5px solid var(--light-border-strong);
+}
+
+#light-mode .sidenav .switch-appear-container .nav-icon,
+#light-mode .sidenav .switch-language-container .nav-icon {
+  color: var(--light-text-primary);
+}
+
+#light-mode .topbar-wrapper .menu-icon path {
+  stroke: var(--light-text-primary);
+}
+
+#light-mode .topbar-wrapper .notification-icon path {
+  fill: var(--main-color);
+}
+
+/* Main Layout */
+
+@keyframes shrinkNav {
+  0% {
+    grid-template-columns: 260px auto;
+  }
+
+  100% {
+    grid-template-columns: 80px auto;
+  }
+}
+
+@keyframes expandNav {
+  0% {
+    grid-template-columns: 80px auto;
+  }
+
+  100% {
+    grid-template-columns: 260px auto;
+  }
+}
+
+.main-layout {
+  width: 100%;
+  height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(245px, 260px) auto;
+  grid-template-rows: minmax(50px, 65px) 1fr;
+  position: relative;
+}
+
+.main-layout .main-container {
+  height: calc(100vh - 65px);
+  overflow-y: auto;
+  position: relative;
+  background-color: var(--dark-bg-secondary);
+}
+
+#light-mode .main-layout .main-container {
+  background-color: var(--light-bg-secondary);
+}
+
+.main-container::-webkit-scrollbar {
+  display: none;
+}
+
+.main-layout.shrink-nav {
+  animation: shrinkNav 0.5s ease-in-out forwards;
+}
+
+.main-layout:not(.shrink-nav) {
+  animation: expandNav 0.5s ease-in-out forwards;
+}
+
+
+
+
+/*------Rtl Case-------*/
+
+.App.app-rtl .sidenav .more-container,
+.App.app-rtl .switch-appear-container,
+.App.app-rtl .switch-language-container {
+  right: 103%;
+  left: 0;
+}
+
+.App.app-rtl .sidenav .link .nav-icon,
+.App.app-rtl .sidenav .settings-link .nav-icon {
+  margin-left: 0.75rem;
+  margin-right: 0;
+}
+
+
+/* Large Screens */
+@media screen and (min-width: 1700px) {
+  .main-layout {
+    grid-template-columns: minmax(19%, 250px) auto !important;
+  }
+
+  html {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-layout {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    min-height: 100vh;
+  }
+
+  .main-container {
+    flex: 1;
+  }
+}

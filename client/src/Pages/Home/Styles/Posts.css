@@ -1,0 +1,368 @@
+:root {
+    --light-border-section: #D9E1E7;
+    --pink-text-color: #831843;
+    --light-bg-secondary: #F9FAFB;
+    --blue-bg-color: #0095F6;
+    --grey-text-color: #8E8E8E;
+    --dark-text-color: #262626;
+    --main-color-light: #EC489980;
+
+    --lg-text: 1.1rem;
+    --sm-text: 0.7rem;
+}
+
+.postsfeed-container {
+    width: 100%;
+    height: 100%;
+}
+
+.postsfeed-container .postsfeed-wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    gap: 1rem;
+    position: relative;
+}
+
+.postsfeed-wrapper .posts-column {
+    flex: 1 1 70%;
+    display: flex;
+    justify-content: center;
+}
+
+.postsfeed-container button {
+    border: 0;
+    background-color: transparent;
+    cursor: pointer;
+}
+
+.postsfeed-wrapper .posts-column .postsfeed-flex-column {
+    width: 80%;
+    height: 100%;
+    background-color: #fff;
+    padding: 0 1rem;
+    overflow-y: auto;
+}
+
+.postsfeed-flex-column::-webkit-scrollbar {
+    display: none;
+}
+
+/*--------------Post Card---------------*/
+
+.postsfeed-flex-column .post-card-wrapper {
+    width: 100%;
+    padding: 0.7rem 0;
+    border-bottom: 1px solid var(--light-border-section);
+}
+
+.post-card-wrapper .post-card {
+    display: flex;
+    flex-direction: column;
+    padding: 0 1.5rem;
+    gap: 1rem;
+}
+
+
+.post-card .post-owner-infos {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.post-owner-infos .owner-infos {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer !important;
+}
+
+.post-card .owner-infos .post-user-img {
+    width: 43px;
+    height: 43px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.post-card .owner-infos .user-credentials {
+    display: flex;
+    flex-direction: column;
+    font-family: "Nunito", sans-serif;
+}
+
+.post-card .owner-infos .user-credentials h5 {
+    font-size: var(--lg-text);
+    color: #000;
+}
+
+.post-card .owner-infos .user-credentials .coordinates {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.post-card .owner-infos .user-credentials .coordinates span {
+    font-size: var(--sm-text);
+    font-weight: 600;
+}
+
+.post-img-container {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.post-img-container>.post-img {
+    width: 100%;
+    min-width: 100%;
+    border-radius: 10px;
+    object-fit: cover;
+    object-position: center;
+    border: 1.5px solid rgba(255, 255, 255, 0.128);
+    cursor: pointer;
+    border-radius: 10px;
+}
+
+.post-card .post-text {
+    font-family: "Geologica", sans-serif;
+    font-size: 0.9rem;
+}
+
+.post-card .post-text-without-img {
+    font-family: "Geologica", sans-serif;
+    color: #000;
+    padding: 0.5rem 1rem;
+    line-height: 1.5;
+}
+
+.post-card .post-text span {
+    color: var(--pink-text-color);
+    font-family: "Nunito", sans-serif;
+    font-size: var(--lg-text);
+    font-weight: 650;
+    margin-right: 6px;
+}
+
+.post-card .read-more {
+    color: var(--blue-bg-color) !important;
+    cursor: pointer;
+    margin-left: 5px;
+    font-family: "Geologica", sans-serif !important;
+    font-weight: 500 !important;
+}
+
+.post-card .icons-line {
+    display: flex;
+    gap: 1rem;
+    color: var(--pink-text-color);
+    font-family: "Nunito", sans-serif;
+}
+
+.post-card .icons-line .icon-flex {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    font-weight: 600;
+}
+
+.post-card .icons-line .post-icon {
+    width: 28px;
+    height: 28px;
+}
+
+.post-card .icons-line .post-icon path {
+    fill: var(--pink-text-color);
+}
+
+.post-options-container {
+    position: absolute;
+    width: 200px;
+    height: auto;
+    top: 100%;
+    right: -10px;
+    z-index: 20;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--light-bg-secondary);
+}
+
+.post-options-container ul {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.post-options-container ul li {
+    width: 100%;
+    border-bottom: 1px solid var(--light-border-section);
+    padding: 8px 0;
+}
+
+.post-options-container ul li p {
+    font-size: 1rem;
+    font-weight: 500;
+    margin: 0;
+    font-family: "Plus Jakarta Sans", sans-serif;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/*---------------Suggestions column------------*/
+
+.postsfeed-wrapper .new-post-btn-wrapper {
+    position: absolute;
+    right: 2rem;
+    bottom: 2rem;
+    overflow: visible;
+}
+
+/* Button */
+.postsfeed-wrapper .new-post-btn {
+    background-color: var(--main-color-light);
+    color: #fff;
+    padding: 0.6rem 1.4rem;
+    border-radius: 30px;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    font-size: var(--lg-text);
+    font-weight: 600;
+    cursor: pointer;
+    overflow: visible;
+    position: relative;
+    transition: transform 0.12s ease-out;
+}
+
+/* Button hover pop */
+.new-post-btn:hover {
+    transform: scale(1.06);
+}
+
+/* Stars container */
+.new-post-btn .stars {
+    position: absolute;
+    pointer-events: none;
+    inset: 0;
+}
+
+/* Each star */
+.new-post-btn .stars span::before {
+    content: "✦";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    font-size: 1.3rem;
+    opacity: 0;
+    color: #fff;
+    text-shadow: 0 0 10px rgba(255,255,255,1),
+                 0 0 20px rgba(255,255,255,0.9);
+    transform: translate(-50%, -50%) scale(0.4);
+}
+
+/* On hover → trigger burst */
+.new-post-btn:hover .stars span::before {
+    animation: starBurst 0.85s ease-out forwards;
+}
+
+/* Multiple stars → delay & directions */
+.new-post-btn .stars span:nth-child(1)::before { animation-delay: 0s;     transform-origin: -30px -40px; }
+.new-post-btn .stars span:nth-child(2)::before { animation-delay: 0.05s;  transform-origin: 40px -30px; }
+.new-post-btn .stars span:nth-child(3)::before { animation-delay: 0.1s;   transform-origin: -35px 35px; }
+.new-post-btn .stars span:nth-child(4)::before { animation-delay: 0.15s;  transform-origin: 35px 28px; }
+.new-post-btn .stars span:nth-child(5)::before { animation-delay: 0.2s;   transform-origin: 0px -60px; }
+.new-post-btn .stars span:nth-child(6)::before { animation-delay: 0.25s;  transform-origin: 0px 60px; }
+
+/* Star animation: rotation + explosion */
+@keyframes starBurst {
+    0% {
+        opacity: 0;
+        transform: scale(0.4) rotate(0deg);
+    }
+    20% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform:
+            translate(var(--dx), var(--dy))
+            scale(1.6)
+            rotate(70deg);
+    }
+}
+
+/* Direction values per star */
+.new-post-btn .stars span:nth-child(1)::before { --dx: -45px; --dy: -60px; }
+.new-post-btn .stars span:nth-child(2)::before { --dx: 55px;  --dy: -50px; }
+.new-post-btn .stars span:nth-child(3)::before { --dx: -50px; --dy: 40px; }
+.new-post-btn .stars span:nth-child(4)::before { --dx: 55px;  --dy: 35px; }
+.new-post-btn .stars span:nth-child(5)::before { --dx: 0px;   --dy: -80px; }
+.new-post-btn .stars span:nth-child(6)::before { --dx: 0px;   --dy: 70px; }
+
+.saved-success {
+    position: absolute;
+    width: 260px;
+    height: 70px;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #FCFAFA;
+    box-shadow: 2px 8px 30px rgba(0, 0, 0, 0.3);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    padding: 0 0.5rem;
+    justify-content: space-around;
+}
+
+.saved-success.animated {
+    animation: fadeInOutBounce 3s ease-in-out;
+}
+
+@keyframes fadeInOutBounce {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, 20px);
+        /* start below */
+    }
+
+    10% {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+
+    20% {
+        transform: translate(-50%, -5px);
+    }
+
+    30% {
+        transform: translate(-50%, 0);
+    }
+
+    90% {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translate(-50%, 20px);
+    }
+}
+
+.owner-infos .demande-follow {
+    color: var(--blue-font-color);
+    font-weight: 600;
+    align-self: flex-start;
+    margin-top: 0.4rem;
+    margin-left: 1rem;
+}

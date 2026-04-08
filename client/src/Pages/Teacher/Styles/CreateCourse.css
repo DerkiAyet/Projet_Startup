@@ -1,0 +1,756 @@
+:root {
+    --main-color: #EC4899;
+    --light-pink-bg-color: #FDF2F8;
+    --white-bg-color: #FFFFFF;
+    --dark-font-color: #1E293B;
+    --light-border-color: #A7A7A7;
+    --main-color-light: #EC489980;
+    --light-grey-font-color: #8E8E8E;
+    --grey-bg-color: #E2E4E5;
+
+    --lg-font-size: 1.2rem;
+    --h1-font-size: 2rem;
+
+}
+
+.create-course-container {
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    overflow-y: auto; /* allow scrolling */
+}
+
+.create-course-wrapper {
+    flex: 1 1 70%;
+    max-width: 70%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: var(--white-bg-color);
+    min-height: 100vh;
+}
+
+.create-course-wrapper .create-course-header {
+    width: 100%;
+    padding: 1.5rem;
+    background-color: var(--light-pink-bg-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.create-course-header h1 {
+    font-family: "Pacifico", cursive;
+    font-size: var(--h1-font-size);
+}
+
+.create-course-header p {
+    font-family: 'Nunito', sans-serif;
+    font-size: var(--lg-font-size);
+    font-weight: 600;
+    margin-top: 0.5rem;
+}
+
+.create-course-wrapper .create-course-form {
+    width: 100%;
+    height: auto;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.create-course-form .form-group {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+
+}
+
+.create-course-form .form-group span {
+    font-family: 'Nunito', sans-serif;
+    font-size: var(--lg-font-size);
+    font-weight: 500;
+    color: var(--dark-font-color);
+}
+
+.create-course-form .input-wrapper,
+.create-course-form .drop-zone-wrapper {
+    position: relative;
+    padding-left: 1rem;
+}
+
+.create-course-form .form-group input,
+.create-course-form .form-group textarea {
+    width: 100%;
+    padding: 0.8rem 1.2rem;
+    border-radius: 10px;
+    border: 1.5px solid var(--light-border-color);
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: var(--dark-font-color);
+    background-color: transparent;
+    outline: none;
+    resize: none;
+}
+
+.create-course-form .form-group textarea {
+    min-height: 100px;
+}
+
+.create-course-form .form-group textarea::-webkit-scrollbar {
+    display: none;
+}
+
+.create-course-form .form-group input:focus,
+.create-course-form .form-group textarea:focus {
+    border-color: var(--main-color-light);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.create-course-form .form-group textarea::placeholder,
+.create-course-form .form-group input::placeholder {
+    font-family: 'Nunito', sans-serif;
+    color: var(--light-grey-font-color);
+    font-size: 0.95rem;
+}
+
+.create-course-form .select-flex {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    align-items: flex-end;
+    padding-left: 1rem;
+}
+
+.create-course-form .select-flex-line {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+}
+
+.create-course-form .select-flex-line select {
+    /*---to hide the default arrow---*/
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.95rem;
+}
+
+.create-course-form .select-flex-line option {
+    font-family: 'Nunito', sans-serif;
+}
+
+
+.create-course-form .custom-select {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 180px;
+    height: 42px;
+    padding: 0 10px;
+    border-radius: 20px;
+    border: 1px solid var(--light-border-color);
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: #8A8A8A;
+    background-color: white;
+    cursor: pointer;
+    outline: none;
+}
+
+.create-course-form .select-icon {
+    color: #8A8A8A;
+    width: 10px;
+    height: 6px;
+    position: absolute;
+    right: 100px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: "none";
+}
+
+.create-course-form .course-btn-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    align-self: flex-end;
+    margin-top: 3rem;
+}
+
+.create-course-form .course-btn-actions button {
+    height: 50px;
+    padding: 0 1.5rem;
+    border-radius: 30px;
+    border: none;
+    font-weight: 500;
+    color: white;
+    background-color: var(--main-color-light);
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-size: 1.05rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 600;
+    border: 3px solid transparent;
+    transition: border-color 0.3s, color 0.3s, background-color 0.3s;
+}
+
+.course-btn-actions .create-course-button:hover {
+    border: 3px solid var(--main-color-light);
+    color: var(--dark-font-color);
+    background-color: transparent;
+}
+
+.course-btn-actions .create-course-button:hover svg path {
+    fill: var(--dark-font-color);
+}
+
+
+.create-course-form .course-btn-actions .draft-btn {
+    background-color: var(--grey-bg-color);
+    color: var(--dark-font-color);
+}
+
+.course-btn-actions .draft-btn:hover {
+    background-color: transparent;
+    border: 3px solid var(--grey-bg-color);
+    color: var(--dark-font-color);
+}
+
+.create-course-form .input-error,
+#light-mode .create-course-form .input-error {
+    border: 1px solid #ff4444 !important;
+    background: #ffecec;
+    color: #1E293B;
+}
+
+.create-course-form .input-error::placeholder,
+#light-mode .create-course-form .input-error::placeholder {
+    color: #1E293B;
+}
+
+
+.create-course-form .error-text,
+#light-mode .create-course-form .error-text {
+    font-size: 0.85rem;
+    color: #ff4444;
+    margin-top: 4px;
+    margin-left: 4px;
+}
+
+
+
+.thumbnail-upload-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.thumbnail-upload-section span {
+    font-family: 'Nunito', sans-serif;
+    font-size: var(--lg-font-size);
+    font-weight: 500;
+    color: var(--dark-font-color);
+}
+
+.thumbnail-dropzone {
+    position: relative;
+    width: 100%;
+    height: 230px;
+    border: 2px dashed var(--light-border-color);
+    border-radius: 15px;
+    cursor: pointer;
+    background-color: var(--white-bg-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: border-color .2s ease;
+}
+
+.thumbnail-dropzone:hover {
+    border-color: var(--main-color-light);
+}
+
+.thumbnail-placeholder {
+    text-align: center;
+    color: var(--light-grey-font-color);
+    font-family: "Nunito", sans-serif;
+    font-size: 1rem;
+}
+
+.thumbnail-preview {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 15px;
+}
+
+/* Floating buttons */
+.thumb-btn {
+    position: absolute;
+    top: 12px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(4px);
+    border: 1px solid var(--light-border-color);
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background-color .2s ease;
+}
+
+.thumb-btn:hover {
+    background: var(--grey-bg-color);
+}
+
+.change-btn {
+    right: 95px;
+}
+
+.delete-btn {
+    right: 20px;
+    color: #d43d3d;
+}
+
+/* ── Lesson editor step ─────────────────────────────── */
+
+.lesson-editor-container {
+    width: 100%;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.lesson-editor-header {
+    width: 100%;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.lesson-editor-header .header-left,
+.lesson-editor-header .header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.lesson-editor-header .header-right {
+    align-self: flex-end;
+}
+
+.lesson-editor-header .header-right button {
+    padding: 0.3rem 0.8rem;
+    border-radius: 10px;
+    border: none;
+    font-weight: 500;
+    color: var(--dark-font-color);
+    background-color: transparent;
+    cursor: pointer;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 1.05rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 600;
+    border: 3px solid transparent;
+    transition: border-color 0.3s, color 0.3s, background-color 0.3s;
+}
+
+.lesson-editor-header .header-right .submit-btn {
+    border: 2px solid var(--main-color);
+    color: var(--main-color);
+}
+
+.lesson-editor-header .header-right .submit-btn:hover {
+    border-color: var(--main-color);
+    color: white;
+    background-color: var(--main-color);
+}
+
+.lesson-editor-header .header-right .print-btn:hover {
+    border-color: var(--main-color);
+    color: white;
+    background-color: var(--main-color);
+}
+
+.lesson-editor-header .header-right .draft-btn {
+    background-color: transparent;
+    border: 3px solid var(--grey-bg-color);
+    color: var(--dark-font-color);
+}
+
+.lesson-editor-header .header-right .draft-btn:hover {
+    background-color: var(--grey-bg-color);
+    border: 3px solid transparent;
+    color: var(--dark-font-color);
+}
+
+.lesson-editor-header h5 {
+    font-family: "Pacifico", cursive;
+    font-size: 1.2rem;
+}
+
+.lesson-nav-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 14px;
+    border: 1px solid var(--light-border-color);
+    background-color: var(--light-pink-bg-color);
+}
+
+.lesson-nav-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    flex: 1;
+}
+
+.lesson-counter {
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--light-grey-font-color);
+    letter-spacing: 0.03em;
+}
+
+.lesson-title-input {
+    width: 100%;
+    max-width: 340px;
+    padding: 0.45rem 0.9rem;
+    border-radius: 8px;
+    border: 1.5px solid var(--light-border-color);
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--dark-font-color);
+    background-color: white;
+    outline: none;
+    text-align: center;
+    transition: border-color 0.2s;
+}
+
+.lesson-title-input:focus {
+    border-color: var(--main-color-light);
+}
+
+.lesson-title-input::placeholder {
+    font-weight: 400;
+    color: var(--light-grey-font-color);
+}
+
+.lesson-nav-btn {
+    height: 42px;
+    padding: 0 1.2rem;
+    border-radius: 30px;
+    border: 1.5px solid var(--light-border-color);
+    background-color: white;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--dark-font-color);
+    cursor: pointer;
+    transition: border-color 0.2s, background-color 0.2s, opacity 0.2s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+.lesson-nav-btn:hover:not(:disabled) {
+    border-color: var(--main-color-light);
+    background-color: #FDF2F8;
+}
+
+.lesson-nav-bar .lesson-icon.rotate-180{
+    transform: rotate(180deg);
+}
+
+.lesson-nav-bar .lesson-icon.rotate-180 path {
+    fill: #fff;
+}
+
+.lesson-nav-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.lesson-nav-btn--next {
+    background-color: var(--main-color-light);
+    border-color: var(--main-color-light);
+    color: white;
+}
+
+.lesson-nav-btn--next:hover:not(:disabled) {
+    background-color: transparent;
+    color: var(--dark-font-color);
+}
+
+.jodit-container .jodit-workplace{
+    min-height: 50vh !important;
+}
+
+/* ── Bottom action bar ──────────────────────────────── */
+
+.lesson-editor-actions {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.lesson-editor-actions-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.lesson-back-btn {
+    align-self: flex-start;
+    height: 50px;
+    padding: 0 1.5rem;
+    border-radius: 30px;
+    border: 3px solid transparent;
+    background-color: var(--grey-bg-color);
+    color: var(--dark-font-color);
+    font-family: 'Nunito', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.3s, background-color 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.lesson-back-btn:hover {
+    background-color: transparent;
+    border: 3px solid var(--grey-bg-color);
+}
+
+/* ── Lesson progress dots ───────────────────────────── */
+
+.lesson-dots {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.lesson-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--light-border-color);
+    background-color: transparent;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s, transform 0.15s;
+}
+
+.lesson-dot:hover {
+    border-color: var(--main-color-light);
+    transform: scale(1.2);
+}
+
+.lesson-dot--filled {
+    border-color: var(--main-color-light);
+    background-color: #EC489940;
+}
+
+.lesson-dot--active {
+    border-color: var(--main-color-light);
+    background-color: var(--main-color-light);
+    transform: scale(1.25);
+}
+
+
+
+/* ── Overlay ─────────────────────────────────────────── */
+.popup-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(1px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: overlayIn 0.25s ease;
+}
+
+@keyframes overlayIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* ── Card ────────────────────────────────────────────── */
+.popup-card {
+    position: relative;
+    background: #fff;
+    border-radius: 24px;
+    padding: 3rem 2.5rem 2.5rem;
+    width: 420px;
+    max-width: 90vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    animation: cardPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    overflow: hidden;
+}
+
+@keyframes cardPop {
+    from { opacity: 0; transform: scale(0.82) translateY(20px); }
+    to   { opacity: 1; transform: scale(1)    translateY(0);    }
+}
+
+/* ── Confetti dots ───────────────────────────────────── */
+.popup-confetti {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.confetti-dot {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    animation: confettiFall 1.2s ease-out forwards;
+}
+
+.confetti-dot--0  { background: #EC4899; top: 10%; left: 15%;  animation-delay: 0.1s; width: 10px; height: 10px; }
+.confetti-dot--1  { background: #F9A8D4; top: 5%;  left: 35%;  animation-delay: 0.2s; }
+.confetti-dot--2  { background: #FBBF24; top: 8%;  left: 60%;  animation-delay: 0.05s; width: 6px; height: 6px; }
+.confetti-dot--3  { background: #34D399; top: 12%; left: 80%;  animation-delay: 0.15s; width: 9px; height: 9px; }
+.confetti-dot--4  { background: #EC4899; top: 20%; left: 90%;  animation-delay: 0.3s; }
+.confetti-dot--5  { background: #818CF8; top: 5%;  left: 50%;  animation-delay: 0.25s; width: 7px; height: 7px; }
+.confetti-dot--6  { background: #F9A8D4; top: 18%; left: 5%;   animation-delay: 0.18s; }
+.confetti-dot--7  { background: #FBBF24; top: 3%;  left: 75%;  animation-delay: 0.08s; width: 11px; height: 11px; }
+.confetti-dot--8  { background: #34D399; top: 15%; left: 45%;  animation-delay: 0.35s; width: 6px; height: 6px; }
+.confetti-dot--9  { background: #EC4899; top: 6%;  left: 22%;  animation-delay: 0.22s; }
+.confetti-dot--10 { background: #818CF8; top: 20%; left: 65%;  animation-delay: 0.12s; width: 8px; height: 8px; }
+.confetti-dot--11 { background: #F9A8D4; top: 10%; left: 88%;  animation-delay: 0.28s; width: 7px; height: 7px; }
+
+@keyframes confettiFall {
+    0%   { opacity: 1; transform: translateY(0) rotate(0deg);     }
+    100% { opacity: 0; transform: translateY(60px) rotate(180deg); }
+}
+
+/* ── Check icon ──────────────────────────────────────── */
+.popup-icon-wrap {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.5rem;
+}
+
+.popup-icon-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: #FDF2F8;
+    animation: ringPulse 2s ease-in-out infinite;
+}
+
+@keyframes ringPulse {
+    0%, 100% { transform: scale(1);    opacity: 1;   }
+    50%       { transform: scale(1.12); opacity: 0.6; }
+}
+
+.popup-icon-circle {
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #EC4899, #f472b6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 24px rgba(236, 72, 153, 0.4);
+    z-index: 1;
+}
+
+/* ── Text ────────────────────────────────────────────── */
+.popup-title {
+    font-family: "Pacifico", cursive;
+    font-size: 1.6rem;
+    color: #1E293B;
+    margin: 0;
+    text-align: center;
+}
+
+.popup-subtitle {
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.95rem;
+    color: #8E8E8E;
+    text-align: center;
+    margin: 0;
+    line-height: 1.6;
+}
+
+.popup-subtitle strong {
+    color: #1E293B;
+}
+
+/* ── Buttons ─────────────────────────────────────────── */
+.popup-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    width: 100%;
+    margin-top: 0.5rem;
+}
+
+.popup-btn {
+    width: 100%;
+    height: 50px;
+    border-radius: 30px;
+    border: none;
+    font-family: 'Nunito', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.popup-btn--quiz {
+    background: linear-gradient(135deg, #EC4899, #f472b6);
+    color: white;
+    box-shadow: 0 6px 20px rgba(236, 72, 153, 0.35);
+}
+
+.popup-btn--quiz:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 28px rgba(236, 72, 153, 0.45);
+}
+
+.popup-btn--close {
+    background: #F1F5F9;
+    color: #8E8E8E;
+}
+
+.popup-btn--close:hover {
+    background: #E2E4E5;
+    color: #1E293B;
+}

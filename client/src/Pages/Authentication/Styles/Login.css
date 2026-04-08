@@ -1,0 +1,314 @@
+:root {
+
+    --main-color: #EC4899;
+    --main-bg-color: #FDF2F8;
+    --white-bg-gradiant-color: #fff;
+
+    --stroke-form-color: #CBD5E1;
+    --dark-font-color: #1E293B;
+    --light-font-color: #475569;
+    --role-font-color: #0F172A;
+    --btn-submit-color: #FFB6C1;
+    --logo-size: 40px;
+
+    /* Border radius */
+    --radius-sm: 10px;
+    --radius-md: 15px;
+    --radius-lg: 20px;
+    --radius-xl: 30px;
+    --radius-full: 50%;
+
+    /* dark mode */
+    --bg-primary: linear-gradient(to bottom,
+            #1b1b1b 0%,
+            #121212 100%);
+    --bg-secondary: #1A1A1A;
+    --border-light: rgba(255, 255, 255, 0.128);
+    --text-primary: #E0E0E0;
+    --text-secondary: #cacaca;
+    --text-white: #FFFFFF;
+    --text-dark: #374151;
+    --accent-pink-light: #FCE7F3;
+
+}
+
+.login-container {
+    width: 100%;
+    height: 100%;
+    min-height: 100vh;
+}
+
+.login-container .login-wrapper {
+    width: 100%;
+    height: 100%;
+    min-height: 100vh;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    background: var(--bg-secondary);
+    font-family: "Plus Jakarta Sans", sans-serif;
+    padding: 3rem 0;
+}
+
+.img-wrapper {
+    flex: 1 1 40%;
+    max-width: 40%;
+    display: flex;
+    flex-direction: column;
+}
+
+.img-wrapper img {
+    width: 100%;
+    height: auto;
+}
+
+.login-wrapper .form-container {
+     background: var(--bg-primary);
+    border: 1.5px solid var(--border-light);
+    padding: 1rem 1.5rem;
+    border-radius: 32px;
+    min-width: 410px;
+    max-width: 420px;
+    min-height: 550px;
+    display: flex;
+    flex-direction: column;
+    /* box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2); */
+}
+
+.form-container .login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    justify-content: space-between;
+    flex: 1;
+}
+
+.login-form .title-box {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+}
+
+.title-box .top-line span:hover {
+    text-decoration: underline;
+}
+
+.login-form .title-box img {
+    width: 370px;
+}
+
+.login-form .logo-content {
+    width: var(--logo-size);
+    height: var(--logo-size);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    background-color: var(--main-color);
+    border-radius: var(--radius-md);
+}
+
+.login-form .title-line {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    flex-grow: 0;
+    flex-shrink: 0;
+}
+
+.login-form .title-line span {
+    font-size: 1.6rem;
+    color: var(--text-primary);
+    font-weight: bold;
+}
+
+.login-form .title-line p {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    white-space: normal;
+    word-wrap: break-word;
+    max-width: 100%;
+}
+
+.login-form .signup-line {
+    width: 100%;
+    text-align: center;
+    color: var(--text-secondary);
+    font-weight: 600;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+.login-form .signup-line .auth-link {
+    color: var(--main-color);
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.auth-link:hover {
+    text-decoration: underline;
+}
+
+.login-wrapper .auth-icon path {
+    fill: var(--role-font-color);
+}
+
+.login-form .inputs-box {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.login-form .inputs-box .form-input {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.inputs-box .form-input label {
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.inputs-box .form-input .input-icon path {
+    fill: var(--text-secondary);
+}
+
+.inputs-box .form-input .input-line {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1.2px solid var(--stroke-form-color);
+    display: flex;
+    border-radius: var(--radius-xl);
+    gap: 6px;
+}
+
+.form-input .input-line input {
+    width: 100%;
+    outline: none;
+    border: 0;
+    background-color: transparent;
+    font-family: "Plus Jakarta Sans", sans-serif;
+    color: var(--text-white);
+}
+
+.form-input .input-line input ::placeholder {
+    color: var(--light-font-color);
+    font-family: "Plus Jakarta Sans", sans-serif;
+
+}
+
+.login-wrapper button {
+    font-weight: 600;
+    border-radius: var(--radius-xl);
+    font-family: "Plus Jakarta Sans", sans-serif;
+    padding: 0.6rem 0;
+    cursor: pointer;
+}
+
+.inputs-box .submit-btn {
+    border: 0;
+    width: 100%;
+    margin-top: 0.5rem;
+    background-color: var(--btn-submit-color);
+    color: var(--white-bg-gradiant-color);
+    font-size: 1.1rem;
+    border: 2px solid transparent;
+    transition: 0.3s;
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+    justify-content: center;
+}
+
+.inputs-box .submit-btn:hover {
+    background-color: transparent;
+    border: 2px solid var(--btn-submit-color);
+    color: var(--btn-submit-color);
+}
+
+.inputs-box .submit-btn:hover svg path {
+    fill: var(--btn-submit-color);
+}
+
+.social-auth-btn {
+    border: 1.5px solid var(--stroke-form-color);
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    background-color: transparent;
+}
+
+.input-error,
+#light-mode .input-error {
+    border: 1px solid #ff4444 !important;
+    background: #ffecec;
+}
+
+.input-error input,
+#light-mode .input-error input {
+    background: #ffecec;
+    color: #1E293B;
+}
+
+.error-text,
+#light-mode .error-text {
+    font-size: 0.85rem;
+    color: #ff4444;
+    margin-top: 4px;
+    margin-left: 4px;
+}
+
+/*--------light-mode-------*/
+
+#light-mode .login-container .login-wrapper {
+    background: linear-gradient(to bottom, var(--main-bg-color) 0%, var(--white-bg-gradiant-color) 100%);
+}
+
+#light-mode .login-wrapper .form-container {
+    background: var(--white-bg-gradiant-color);
+    border: 1.5px solid var(--stroke-form-color);
+    box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.1);
+}
+
+#light-mode .login-form .title-line span,
+#light-mode .success-box span {
+    color: var(--dark-font-color);
+}
+
+#light-mode .login-form .title-line p,
+#light-mode .success-box p {
+    color: var(--light-font-color);
+}
+
+#light-mode .login-form .lsignup-line {
+    color: var(--dark-font-color);
+}
+
+#light-mode .inputs-box .form-input label {
+    color: var(--dark-font-color);
+}
+
+#light-mode .inputs-box .form-input .input-icon path {
+    fill: var(--light-font-color);
+}
+
+#light-mode .form-input .input-line input {
+    color: var(--dark-font-color);
+}
+
+#light-mode .inputs-box .form-input .input-birth-icon path {
+    stroke: var(--dark-font-color);
+}
+
+#light-mode .social-auth-btn {
+    color: var(--dark-font-color);
+}

@@ -1,0 +1,1006 @@
+:root {
+    --cd-pink: #EC4899;
+    --cd-pink-light: #EC489920;
+    --cd-pink-mid: #EC489950;
+    --cd-pink-bg: #FDF2F8;
+    --cd-dark: #1E293B;
+    --cd-grey: #8E8E8E;
+    --cd-dark-grey: #4A4A4A;
+    --cd-border: #D9E1E7;
+    --cd-white: #FFFFFF;
+    --cd-page-bg: #F4F6F8;
+    --modal-bg-color: #F9FAFB;
+    --light-border-section: #D9E1E7;
+    --blue-font-color: #0095F6;
+    --pink-text-color: #831843;
+    --light-grey-font-color: #8E8E8E;
+    --light-border-pink: #FCE7F3;
+}
+
+
+.course-display-container {
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    padding: 0 1.5rem;
+}
+
+.cd-header {
+    width: 100%;
+    margin: 0 auto;
+    padding-top: 2rem;
+    border-bottom: 2px solid var(--light-border-pink);
+}
+
+.cd-header .link-line {
+    font-size: 1.2rem;
+    font-family: "Plus Jakarta Sans", sans-serif;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    color: var(--cd-dark);
+}
+
+.cd-header .link-line span{
+    color: var(--cd-pink);
+}
+
+.cd-header .link-line a{
+    color: var(--cd-dark);
+    
+}
+
+.cd-header .link-line a:hover{
+    text-decoration: underline;
+}
+
+.cd-header h1 {
+    font-family: 'Pacifico', cursive;
+    font-size: 1.35rem;
+    color: var(--cd-dark);
+    margin: 0 0 1.2rem;
+}
+
+.cd-header .course-features {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.4rem;
+    justify-content: space-between;
+}
+
+.cd-header .cd-header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.course-features .feature-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--cd-dark-grey);
+}
+
+.cd-header .cd-icon-header {
+    width: 18px;
+    height: 18px;
+}
+
+.cd-header .cd-icon-header path {
+    fill: var(--pink-text-color);
+}
+
+.stars-rating {
+    display: flex;
+    gap: 4px;
+}
+
+.stars-rating svg {
+    width: 16px;
+    height: 16px;
+    color: gold;
+}
+
+.recipe-wrapper .stars-rating span {
+    align-self: center;
+}
+
+.cd-header .options-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-right: 2rem;
+}
+
+.options-header-right .option-box {
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--light-border-section);
+    border-radius: 5px;
+}
+
+.options-header-right .option-box .option-cd-icon path {
+    fill: var(--pink-text-color);
+}
+
+.cd-page {
+    display: flex;
+    gap: 1.5rem;
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 2rem 0;
+    font-family: 'Geologica', sans-serif;
+    font-weight: 300;
+    align-items: flex-start;
+}
+
+/* ── Main column ────────────────────────────────────── */
+
+.cd-main {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* ── Nav Bar ────────────────────────────────────────── */
+
+.cd-nav-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    background: var(--cd-white);
+    border: 1.5px solid var(--cd-border);
+    border-radius: 16px;
+    padding: 0.8rem 1.2rem;
+}
+
+.cd-lesson-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--cd-dark);
+}
+
+.cd-lesson-sep {
+    color: var(--cd-grey);
+    font-weight: 400;
+}
+
+.cd-lesson-name {
+    font-weight: 600;
+    color: var(--cd-pink);
+    font-size: 0.88rem;
+    padding-left: 0.3rem;
+    border-left: 2px solid var(--cd-pink-mid);
+    margin-left: 0.3rem;
+}
+
+.cd-nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.cd-done-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    height: 38px;
+    padding: 0 1rem;
+    border-radius: 20px;
+    border: 1.5px solid var(--cd-border);
+    background: var(--cd-white);
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--cd-grey);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cd-done-btn:hover {
+    border-color: var(--cd-pink);
+    color: var(--cd-pink);
+}
+
+.cd-done-btn--active {
+    background: var(--cd-pink-bg);
+    border-color: var(--cd-pink-mid);
+    color: var(--cd-pink);
+}
+
+.cd-nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    height: 38px;
+    padding: 0 1rem;
+    border-radius: 20px;
+    border: 1.5px solid var(--cd-border);
+    background: var(--cd-white);
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--cd-dark);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cd-nav-btn:hover:not(:disabled) {
+    border-color: var(--cd-pink);
+    color: var(--cd-pink);
+}
+
+.cd-nav-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.cd-nav-btn--next {
+    background: var(--cd-pink);
+    border-color: var(--cd-pink);
+    color: #fff;
+}
+
+.cd-nav-btn--next:hover:not(:disabled) {
+    background: transparent;
+    color: var(--cd-pink);
+}
+
+/* ── PDF Viewer ─────────────────────────────────────── */
+
+.cd-viewer {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    max-height: 72vh;
+    overflow-y: auto;
+    padding: 0.5rem 0.25rem;
+    scroll-behavior: smooth;
+}
+
+.cd-viewer::-webkit-scrollbar {
+    width: 6px;
+}
+
+.cd-viewer::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.cd-viewer::-webkit-scrollbar-thumb {
+    background: var(--cd-border);
+    border-radius: 99px;
+}
+
+/* Page card — looks like a physical page */
+.cd-page-card {
+    background: var(--cd-white);
+    border-radius: 16px;
+    box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.06),
+        0 4px 20px rgba(0, 0, 0, 0.07),
+        0 1px 0 rgba(0, 0, 0, 0.03) inset;
+    padding: 2.5rem 3rem;
+    position: relative;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    animation: cd-fadein 0.35s ease both;
+}
+
+@keyframes cd-fadein {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.cd-page-number {
+    position: absolute;
+    top: 1.2rem;
+    right: 1.5rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--cd-grey);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+/* Content typography */
+.cd-page-content h2 {
+    font-family: 'Pacifico', cursive;
+    font-size: 1.35rem;
+    color: var(--cd-dark);
+    margin: 0 0 1.2rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 2px solid var(--cd-pink-bg);
+}
+
+.cd-page-content p {
+    font-size: 0.97rem;
+    line-height: 1.85;
+    color: #334155;
+    margin: 0 0 1rem;
+}
+
+.cd-page-content ul {
+    padding-left: 1.4rem;
+    margin: 0 0 1rem;
+}
+
+.cd-page-content li {
+    font-size: 0.97rem;
+    line-height: 1.85;
+    color: #334155;
+    margin-bottom: 0.4rem;
+}
+
+.cd-page-content strong {
+    color: var(--cd-dark);
+    font-weight: 700;
+}
+
+.cd-page-content em {
+    color: var(--cd-pink);
+    font-style: normal;
+    font-weight: 500;
+}
+
+/* Math display block */
+.math-block {
+    background: var(--cd-pink-bg);
+    border-left: 3px solid var(--cd-pink);
+    border-radius: 0 10px 10px 0;
+    padding: 0.85rem 1.2rem;
+    font-family: 'Courier New', monospace;
+    font-size: 1rem;
+    color: var(--cd-dark);
+    margin: 1rem 0;
+    letter-spacing: 0.02em;
+}
+
+.cd-page-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--cd-border);
+    font-size: 0.75rem;
+    color: var(--cd-grey);
+    font-weight: 600;
+    letter-spacing: 0.03em;
+}
+
+/* Viewer bottom nav */
+.cd-viewer-nav {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.25rem 0 0.5rem;
+}
+
+.cd-viewer-nav-btn {
+    background: var(--cd-white);
+    border: 1.5px solid var(--cd-border);
+    border-radius: 12px;
+    padding: 0.6rem 1.1rem;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--cd-dark);
+    cursor: pointer;
+    transition: all 0.2s;
+    flex: 1;
+    text-align: center;
+}
+
+.cd-viewer-nav-btn:hover {
+    border-color: var(--cd-pink);
+    color: var(--cd-pink);
+    background: var(--cd-pink-bg);
+}
+
+.cd-viewer-nav-btn--next {
+    text-align: right;
+}
+
+/* ── Comments ────────────────────────────────────────── */
+
+.cd-comments {
+    background: var(--cd-white);
+    border: 1.5px solid var(--cd-border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.cd-comments-title {
+    font-family: 'Pacifico', cursive;
+    font-size: 1.15rem;
+    color: var(--cd-dark);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.cd-comments-count {
+    background: var(--cd-pink-light);
+    color: var(--cd-pink);
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 800;
+    padding: 0.15rem 0.6rem;
+    border-radius: 20px;
+}
+
+/* Input row */
+.cd-comment-input-row {
+    display: flex;
+    gap: 0.9rem;
+    align-items: flex-start;
+}
+
+.cd-comment-avatar {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 800;
+    font-family: 'Nunito', sans-serif;
+}
+
+.cd-comment-input-wrap {
+    flex: 1;
+    position: relative;
+}
+
+.cd-comment-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.75rem 3rem 0.75rem 1rem;
+    border-radius: 12px;
+    border: 1.5px solid var(--cd-border);
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.9rem;
+    color: var(--cd-dark);
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s;
+    line-height: 1.6;
+}
+
+.cd-comment-textarea:focus {
+    border-color: var(--cd-pink-mid);
+}
+
+.cd-comment-textarea::placeholder {
+    color: #B0B0B0;
+}
+
+.cd-comment-send-btn {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: var(--cd-pink);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+}
+
+.cd-comment-send-btn:hover:not(:disabled) {
+    opacity: 0.85;
+    transform: scale(1.08);
+}
+
+.cd-comment-send-btn:disabled {
+    background: var(--cd-border);
+    cursor: not-allowed;
+}
+
+.course-comments-container {
+    max-height: 320px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.course-comments-container::-webkit-scrollbar {
+    display: none;
+}
+
+.course-comments-container .comment-line {
+    width: 100%;
+    padding: 0.5rem 1rem;
+    display: flex;
+    gap: 7px;
+}
+
+.comment-line .comment-icon {
+    width: 18px;
+    height: 18px;
+    margin-left: auto;
+}
+
+.comment-line .comment-icon path {
+    fill: #262626;
+}
+
+.comment-line .comment-user-img {
+    height: 35px;
+    width: 35px;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+.comment-line .comment-user-img img {
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+
+.comment-line .comment-content {
+    max-width: 90%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* this what fix the comment-txt problem */
+}
+
+.comment-line .add-reply-container {
+    width: 100% !important;
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.add-reply-container textarea {
+    flex-grow: 1;
+    width: 300px;
+    padding: 6px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--light-border-section);
+    color: rgb(168, 168, 168);
+    font-size: 0.9rem;
+    outline: none;
+    resize: none;
+}
+
+.add-reply-container textarea::placeholder {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.course-comments-container .add-reply-container .post-reply-btn {
+    padding: 6px 16px;
+    color: var(--blue-font-color);
+    border: none;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-weight: 600;
+    background-color: transparent;
+}
+
+.comment-content .comment-username {
+    font-weight: 500;
+    margin: 0;
+}
+
+.comment-content .comment-txt {
+    margin: 0;
+    white-space: pre-wrap;
+    /* Preserves spaces and line breaks, allows wrapping */
+    overflow-wrap: break-word;
+    /* Ensures long words break to fit within container */
+    word-break: break-word;
+    /* Forces breaks in long words */
+    max-width: 100%;
+    line-height: 1.4;
+}
+
+
+/* ── Sidebar ─────────────────────────────────────────── */
+
+.cd-sidebar {
+    width: 320px;
+    min-width: 300px;
+    max-width: 340px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    position: sticky;
+    top: 2rem;
+    max-height: calc(100vh - 4rem);
+    overflow-y: auto;
+}
+
+.cd-sidebar::-webkit-scrollbar {
+    display: none;
+}
+
+.cd-sidebar-card {
+    background: var(--cd-white);
+    border: 1.5px solid var(--cd-border);
+    border-radius: 16px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.cd-sidebar-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cd-sidebar-card-title {
+    font-family: 'Pacifico', cursive;
+    font-size: 1rem;
+    color: var(--cd-dark);
+    margin: 0;
+}
+
+.cd-course-title-text {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--cd-dark);
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* Teacher row */
+.cd-teacher-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--cd-pink-bg);
+    border-radius: 12px;
+    padding: 0.7rem 0.9rem;
+}
+
+.cd-teacher-avatar {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 800;
+    font-family: 'Nunito', sans-serif;
+}
+
+.cd-teacher-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--cd-grey);
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.cd-teacher-name {
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: var(--cd-dark);
+    margin: 0;
+}
+
+/* Progress */
+.cd-progress-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.cd-progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--cd-grey);
+}
+
+.cd-progress-pct {
+    color: var(--cd-pink);
+}
+
+.cd-progress-track {
+    height: 8px;
+    background: var(--cd-pink-light);
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.cd-progress-fill {
+    height: 100%;
+    background: var(--cd-pink);
+    border-radius: 99px;
+    transition: width 0.5s ease;
+}
+
+/* Detail grid */
+.cd-details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+.cd-detail-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #FAFAFA;
+    border: 1px solid var(--cd-border);
+    border-radius: 10px;
+    padding: 0.55rem 0.7rem;
+}
+
+.cd-detail-icon {
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.cd-detail-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--cd-grey);
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.cd-detail-val {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--cd-dark);
+    margin: 0;
+}
+
+/* Tags */
+.cd-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.cd-tag {
+    background: var(--cd-pink-light);
+    color: var(--cd-pink);
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.2rem 0.65rem;
+    border-radius: 20px;
+}
+
+/* Lesson list */
+.cd-lesson-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.cd-lesson-list-item {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    width: 100%;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    padding: 0.55rem 0.7rem;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #334155;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.18s;
+}
+
+.cd-lesson-list-item:hover {
+    background: var(--cd-pink-bg);
+    color: var(--cd-pink);
+}
+
+.cd-lesson-list-item--active {
+    background: var(--cd-pink-bg);
+    border-color: var(--cd-pink-mid);
+    color: var(--cd-pink);
+    font-weight: 800;
+}
+
+.cd-lesson-list-item--done .cd-lesson-num {
+    background: #ECFDF5;
+    color: #10B981;
+}
+
+.cd-lesson-num {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    border-radius: 50%;
+    background: var(--cd-page-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: var(--cd-grey);
+    transition: all 0.18s;
+}
+
+.cd-lesson-list-item--active .cd-lesson-num {
+    background: var(--cd-pink);
+    color: white;
+}
+
+.cd-lesson-list-title {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Recommendations */
+.cd-rec-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.cd-rec-item {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    border-radius: 12px;
+    border: 1px solid var(--cd-border);
+    padding: 0.65rem 0.75rem;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.cd-rec-item:hover {
+    border-color: var(--cd-pink-mid);
+    box-shadow: 0 2px 12px rgba(236, 72, 153, 0.07);
+}
+
+.cd-rec-thumb {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+}
+
+.cd-rec-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.cd-rec-title {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--cd-dark);
+    margin: 0 0 0.15rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cd-rec-desc {
+    font-size: 0.75rem;
+    color: var(--cd-grey);
+    margin: 0 0 0.35rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cd-rec-level {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.15rem 0.55rem;
+    border-radius: 20px;
+}
+
+/* ── Responsive ─────────────────────────────────────── */
+
+@media (max-width: 1024px) {
+    .cd-sidebar {
+        width: 260px;
+        min-width: 240px;
+    }
+
+    .cd-page-card {
+        padding: 1.75rem 2rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .cd-page {
+        flex-direction: column;
+        padding: 1rem 0.75rem;
+    }
+
+    .cd-sidebar {
+        width: 100%;
+        max-width: 100%;
+        min-width: unset;
+        position: static;
+        max-height: none;
+        overflow-y: visible;
+    }
+
+    .cd-viewer {
+        max-height: 60vh;
+    }
+
+    .cd-page-card {
+        padding: 1.5rem 1.25rem;
+    }
+
+    .cd-details-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .cd-nav-bar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .cd-lesson-name {
+        display: none;
+    }
+
+    .cd-page-card {
+        padding: 1.25rem 1rem;
+    }
+
+    .cd-page-content h2 {
+        font-size: 1.1rem;
+    }
+}
