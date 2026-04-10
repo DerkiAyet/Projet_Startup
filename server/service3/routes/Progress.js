@@ -37,6 +37,29 @@ router.post('/enrollements/:courseId', async (req, res) => {
     }
 })
 
+router.get('/enrollements/:idCourse', async(req, res) => {
+    const studentId = req.headers['x-user-id']
+    const courseId = req.params.idCourse
+
+    try {
+        const serviceAuthBaseUrl = await discoverAuthService();
+        const response = await axios.get(`${serviceAuthBaseUrl}/get_user_byId/${studentId}`, { timeout: 5000 });
+
+        const userRole = response.data.user.role;
+        if (userRole !== 'student') return res.status(403).json({ error: "Unauthorized" });
+
+        const enrollement = await EnrollementModel.findOne({ studentId: studentId, courseId: courseId })
+        if (!enrollement) return res.status(400).json({ error: "student didn't enroll the course yet" })
+
+        res.status(200).json(enrollement)
+    } catch (error) {
+
+        console.log("error while adding the enrolement", error.message)
+        res.status(500).json("Internal server error", error)
+
+    }
+})
+
 router.get('/courses-enrolled', async (req, res) => {
     const userId = req.headers['x-user-id']
 

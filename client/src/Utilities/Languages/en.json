@@ -257,7 +257,7 @@
     "about": "About",
     "logIn": "Log In",
     "signUp": "Sign Up",
-    "heroTitle": "<span className='highlight'>Swipe</span> right on <br /> education",
+    "heroTitle": "<highlight>Swipe</highlight> right on <br /> education",
     "heroDescription": "Learning feels better when it's shared. Discover a platform where studying becomes social through shared progress, group challenges, peer support, and creators who help you grow faster.",
     "startNow": "Start Now",
     "learnersOnBoard": "learners already on board",

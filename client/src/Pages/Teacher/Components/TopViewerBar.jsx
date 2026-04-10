@@ -1,6 +1,11 @@
 import React from 'react'
+import { useContext } from 'react'
+import { AppContext } from '../../../App'
 
 const TopViewerBar = ({ currentIndex, lessonsCount, title, isDone, contentType, goTo, toggleDone }) => {
+
+    const { userAuth } = useContext(AppContext)
+
     return (
         <div className="cd-nav-bar">
             <span className="cd-lesson-indicator">
@@ -12,7 +17,7 @@ const TopViewerBar = ({ currentIndex, lessonsCount, title, isDone, contentType, 
 
             <div className="cd-nav-actions" style={{}}>
                 {
-                    contentType === "course" &&
+                    userAuth.role === "student" && contentType === "course" &&
                     <button
                         className={`cd-done-btn ${isDone ? "cd-done-btn--active" : ""}`}
                         onClick={toggleDone}
@@ -22,14 +27,14 @@ const TopViewerBar = ({ currentIndex, lessonsCount, title, isDone, contentType, 
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                                     <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
-                                Done
+                                Done!
                             </>
                         ) : (
                             <>
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                                     <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
                                 </svg>
-                                Mark as done
+                                Done?
                             </>
                         )}
                     </button>

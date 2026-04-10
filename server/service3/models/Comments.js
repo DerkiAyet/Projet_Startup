@@ -14,8 +14,15 @@ const CommentSchema = new Schema(
     ],
     replies: [
       {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Comments"
+        userId: Number,
+        text: String,
+        likes: [
+          {
+            userId: Number,
+            likedAt: { type: Date, default: Date.now }
+          }
+        ],
+        createdAt: { type: Date, default: Date.now }
       }
     ],
     contentType: String
@@ -24,11 +31,11 @@ const CommentSchema = new Schema(
 );
 
 CommentSchema.methods.totalLikes = function () {
-    return this.likes.length;
+  return this.likes.length;
 };
 
 CommentSchema.statics.countForContent = async function (contentId) {
-    return await this.countDocuments({ contentId }); // to make things easier just pass the id of object to count their comments
+  return await this.countDocuments({ contentId }); // to make things easier just pass the id of object to count their comments
 };
 
 const CommentModel = mongoose.model("Comments", CommentSchema)

@@ -16,7 +16,7 @@ function CreateAssignment() {
     thumbnail: null,
     category: { id: 0, subCategory: 0 },
     level: "",
-    exercises: [{ title: "", content: "", solution: "", points: 0, hasSolution: false }],
+    exercises: [{ title: "exercise 1", content: "", solution: "", points: 0, hasSolution: false }],
   });
 
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
@@ -82,6 +82,8 @@ function CreateAssignment() {
     setStep(1);
   };
 
+  const [idPublishedAssignment, setPublishedId] = useState(0)
+
   const handlePublish = async () => {
     try {
       const formData = new FormData();
@@ -96,7 +98,8 @@ function CreateAssignment() {
       const exercisesToSend = assignmentData.exercises.map(({ hasSolution, ...rest }) => rest);
       formData.append("exercises", JSON.stringify(exercisesToSend));
 
-      await axios.post('http://localhost:8080/content/assignments', formData);
+      const response = await axios.post('http://localhost:8080/content/assignments', formData);
+      setPublishedId(response.data.assignment._id)
       setShowSuccessPopup(true);
     } catch (err) {
       console.error(err);
@@ -291,7 +294,7 @@ function CreateAssignment() {
                   if (!handleErrorExercise()) return;
                   const updated = [...assignmentData.exercises];
                   if (currentExerciseIndex === assignmentData.exercises.length - 1) {
-                    updated.push({ title: "", content: "", solution: "", points: 0, hasSolution: false });
+                    updated.push({ title: `Exercise ${currentExerciseIndex + 1}`, content: "", solution: "", points: 0, hasSolution: false });
                     setAssignmentData({ ...assignmentData, exercises: updated });
                   }
                   setCurrentExerciseIndex(prev => prev + 1);
@@ -405,9 +408,10 @@ function CreateAssignment() {
 
       {showSuccessPopup && (
         <PublishSuccessPopup
-          title={assignmentData.title}
+          courseName={assignmentData.title}
           type={"assignment"}
           onClose={() => setShowSuccessPopup(false)}
+          id={idPublishedAssignment}
         />
       )}
     </div>

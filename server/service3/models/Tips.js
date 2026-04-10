@@ -45,6 +45,13 @@ const TipSchema = new Schema({
     }
 }, {timestamps: true})
 
+TipSchema.methods.averageRating = function () {
+    if (!this.ratings.length) return 0;
+
+    const total = this.ratings.reduce((sum, r) => sum + r.rating, 0);
+    return +(total / this.ratings.length).toFixed(2);
+};
+
 const TipModel = mongoose.model("Tips", TipSchema)
 
 module.exports = TipModel

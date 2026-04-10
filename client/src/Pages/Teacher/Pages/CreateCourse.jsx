@@ -152,6 +152,8 @@ function CreatCourse() {
 
   const [addQuizSucces, setAddQuizSuccess] = useState(false)
 
+  //to fix the problem with copy/past in jodit:
+
   return (
     <div className='create-course-container'>
       <div className="create-course-wrapper">
@@ -452,6 +454,10 @@ function CreatCourse() {
                 }}
                 config={{
                   uploader: { insertImageAsBase64URI: true },
+                  clipboard: {
+                    processPasteHTML: true,
+                    processPasteFromWord: true,
+                  },
                 }}
               />
               <div className="lesson-editor-actions">

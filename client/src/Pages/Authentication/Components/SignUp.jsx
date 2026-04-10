@@ -158,7 +158,8 @@ function SignUp() {
                     familyName: userInfos.familyName,
                     givenName: userInfos.givenName,
                     userImg: userInfos.userImg,
-                    role: userInfos.role
+                    role: userInfos.role,
+                    firstAuth: true
                 });
 
                 if (userInfos.role !== "parent") {

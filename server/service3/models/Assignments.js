@@ -62,6 +62,13 @@ const AssignmentSchema = new Schema({
 
 }, { timestamps: true });
 
+AssignmentSchema.methods.averageRating = function () {
+    if (!this.ratings.length) return 0;
+
+    const total = this.ratings.reduce((sum, r) => sum + r.rating, 0);
+    return +(total / this.ratings.length).toFixed(2);
+};
+
 const AssignmentModel = mongoose.model("Assignments", AssignmentSchema)
 
 module.exports = AssignmentModel;

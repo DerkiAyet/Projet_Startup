@@ -68,7 +68,8 @@ function Login() {
           familyName: res.data.familyName,
           givenName: res.data.givenName,
           userImg: res.data.userImg,
-          role: res.data.role
+          role: res.data.role,
+          firstAuth: false
         });
 
         navigate("/");

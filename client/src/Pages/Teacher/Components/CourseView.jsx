@@ -1,28 +1,51 @@
-import { useState } from "react";
+import { useState, useEffect, useContext } from "react";
 import ContentViewer from "./ContentViewer";
 import TopViewerBar from "./TopViewerBar";
+import axios from 'axios'
+import { AppContext } from "../../../App";
 
-export function CourseView({ LESSONS, viewerRef, handleChangePct }) {
+export function CourseView({ LESSONS, viewerRef, handleChangePct, courseId, onChangeDone, initializeDone, onChangeLesson }) {
 
+    const { userAuth } = useContext(AppContext)
     const [currentLessonIdx, setCurrentLessonIdx] = useState(0);
+    const [enrollement, setEnrollement] = useState({})
     const [doneLessons, setDoneLessons] = useState(new Set());
 
+    useEffect(() => {
+        if (userAuth.role === "student") {
+            axios.get(`http://localhost:8080/content/activity/enrollements/${courseId}`)
+                .then((res) => {
+                    setEnrollement(res.data)
+                    setDoneLessons(new Set(res.data.lessonsCompleted))
+                    initializeDone(new Set(res.data.lessonsCompleted))
+                })
+        }
+    }, [ courseId, initializeDone])
+
     const lesson = LESSONS[currentLessonIdx];
-    const isDone = doneLessons.has(lesson.id);
+    const isDone = doneLessons.has(lesson._id);
 
     const goTo = (idx) => {
         setCurrentLessonIdx(idx);
+        onChangeLesson?.(idx);
         viewerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
     };
 
     const toggleDone = () => {
-        setDoneLessons((prev) => {
-            const next = new Set(prev);
-            next.has(lesson.id) ? next.delete(lesson.id) : next.add(lesson.id);
-             handleChangePct(next.size);
-            return next;
-        });
+        axios.put(`http://localhost:8080/content/activity/enrollements/${enrollement._id}/lesson-completed/${lesson._id}`, {}, {
+            headers: { "Content-Type": "application/json" }
+        })
+            .then((res) => {
+                // Build the Set from the server's source of truth
+                const updatedSet = new Set(res.data.lessonsCompleted);
+                setDoneLessons(updatedSet);
+                handleChangePct(updatedSet.size);
+                onChangeDone?.(updatedSet); 
+            })
+            .catch((err) => console.error(err.response.data))
     };
+
+    if (!LESSONS || LESSONS.length === 0) return null;
 
     return (
         <>

@@ -13,6 +13,8 @@ export function AssignementView({ PROBLEMATIQUES, viewerRef }) {
         viewerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
     };
 
+    if (!PROBLEMATIQUES || PROBLEMATIQUES.length === 0) return null;
+
     return (
         <>
                 <TopViewerBar

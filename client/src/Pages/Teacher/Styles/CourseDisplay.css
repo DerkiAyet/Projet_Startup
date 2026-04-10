@@ -42,16 +42,16 @@
     color: var(--cd-dark);
 }
 
-.cd-header .link-line span{
+.cd-header .link-line span {
     color: var(--cd-pink);
 }
 
-.cd-header .link-line a{
+.cd-header .link-line a {
     color: var(--cd-dark);
-    
+
 }
 
-.cd-header .link-line a:hover{
+.cd-header .link-line a:hover {
     text-decoration: underline;
 }
 
@@ -194,6 +194,7 @@
     display: flex;
     align-items: center;
     gap: 0.6rem;
+    align-self: flex-end;
 }
 
 .cd-done-btn {
@@ -325,13 +326,41 @@
 }
 
 /* Content typography */
-.cd-page-content h2 {
+.cd-page-content h1,
+.cd-page-content h2,
+.cd-page-content h3,
+.cd-page-content h4,
+.cd-page-content h5,
+.cd-page-content h6 {
     font-family: 'Pacifico', cursive;
-    font-size: 1.35rem;
     color: var(--cd-dark);
     margin: 0 0 1.2rem;
     padding-bottom: 0.8rem;
     border-bottom: 2px solid var(--cd-pink-bg);
+}
+
+.cd-page-content h1 {
+    font-size: 1.5rem;
+}
+
+.cd-page-content h2 {
+    font-size: 1.35rem;
+}
+
+.cd-page-content h3 {
+    font-size: 1.2rem;
+}
+
+.cd-page-content h4 {
+    font-size: 1.05rem;
+}
+
+.cd-page-content h5 {
+    font-size: 0.9rem;
+}
+
+.cd-page-content h6 {
+    font-size: 0.8rem;
 }
 
 .cd-page-content p {
@@ -771,6 +800,11 @@
     border: 1px solid var(--cd-border);
     border-radius: 10px;
     padding: 0.55rem 0.7rem;
+}
+
+.cd-detail-item .detail-item-icon{
+    width: 24px;
+    height: 24px;
 }
 
 .cd-detail-icon {

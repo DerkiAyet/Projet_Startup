@@ -167,7 +167,7 @@
     transition: 0.3s;
 }
 
-.courses-grid-container .course-card:hover{
+.courses-grid-container .course-card:hover {
     border-color: var(--main-color);
     box-shadow: 0 6px 28px rgba(236, 72, 153, 0.15);
     transform: translateY(-4px);
@@ -195,7 +195,7 @@
     top: 0.5rem;
     left: 0.5rem;
     background-color: var(--light-bg-color);
-    color: #fff;
+    color: var(--dark-font-color);
     padding: 0.3rem 0.6rem;
     border-radius: 5px;
     font-size: 0.75rem;
@@ -204,6 +204,10 @@
     display: flex;
     align-items: center;
     gap: 0.3rem;
+}
+
+.courses-grid-container .course-card .course-img-box svg path {
+    fill: var(--dark-font-color);
 }
 
 .courses-grid-container .course-card .course-img-box .menu-card-icon {
@@ -266,6 +270,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    cursor: pointer;
 }
 
 .course-card-line .card-row-left {
@@ -305,7 +310,7 @@
     margin-right: 0.5rem;
 }
 
-.course-card-line .course-infos-box .feature-card:nth-child(1) svg path{
+.course-card-line .course-infos-box .feature-card:nth-child(1) svg path {
     fill: var(--light-grey-font-color);
 }
 
@@ -352,6 +357,7 @@
         opacity: 0;
         transform: translateX(20px);
     }
+
     to {
         opacity: 1;
         transform: translateX(0);
@@ -362,7 +368,7 @@
     position: absolute;
     top: 0.7rem;
     right: 0.7rem;
-    background: rgba(255,255,255,0.85);
+    background: rgba(255, 255, 255, 0.85);
     border: none;
     border-radius: 50%;
     width: 28px;
@@ -399,7 +405,7 @@
     position: absolute;
     bottom: 0.6rem;
     left: 0.6rem;
-    background: rgba(255,255,255,0.9);
+    background: rgba(255, 255, 255, 0.9);
     padding: 0.25rem 0.6rem;
     border-radius: 6px;
     font-size: 0.75rem;
@@ -409,6 +415,10 @@
     align-items: center;
     gap: 4px;
     color: var(--dark-font-color);
+}
+
+.course-detail-panel .detail-panel-img .detail-panel-level svg path {
+    fill: var(--dark-font-color);
 }
 
 .course-detail-panel .detail-panel-body {
@@ -549,6 +559,7 @@
     cursor: pointer;
     transition: background 0.2s, transform 0.15s;
     margin-top: 0.5rem;
+    text-align: center;
 }
 
 .enroll-btn:hover {
@@ -583,6 +594,7 @@
         opacity: 0;
         transform: translateY(-8px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);

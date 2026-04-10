@@ -19,12 +19,14 @@ import PostsFeed from './Pages/Home/Pages/PostsFeed';
 import Chat from './Pages/Home/Pages/Chat';
 import CalendarPage from './Pages/Teacher/Pages/Calendar';
 import CreatCourse from './Pages/Teacher/Pages/CreateCourse';
-import Courses from './Pages/Teacher/Pages/Courses';
+import Courses from './Pages/Teacher/Pages/MyCourses';
 // import Notifications from './Pages/Home/Pages/Notifications';
 import CourseDisplay from './Pages/Teacher/Pages/CourseDisplay';
 import LandingPage from './Pages/Authentication/Components/LandingPage';
 import CreateAssignment from './Pages/Teacher/Pages/CreateAssignement';
 import CreateTip from './Pages/Teacher/Pages/CreateTip';
+import IntrestsPopup from './Pages/Authentication/Components/IntrestsPopup';
+import SearchPage from './Pages/Student/Pages/Search';
 
 export const AppContext = createContext();
 
@@ -57,7 +59,8 @@ function App() {
     familyName: "",
     givenName: "",
     userImg: "",
-    role: "anonymous"
+    role: "anonymous",
+    firstAuth: false
   })
 
   const navigate = useNavigate()
@@ -75,17 +78,19 @@ function App() {
           familyName: res.data.familyName,
           givenName: res.data.givenName,
           userImg: res.data.userImg,
-          role: res.data.role
+          role: res.data.role,
+          firstAuth: false
         });
 
       } catch (err) {
-        setUserAuth({
-          userName: "ayet_derki",
-          familyName: "Derki",
-          givenName: "Ayet",
-          userImg: null,
-          role: "teacher"
-        });
+        // setUserAuth({
+        //   userName: "ayet_derki",
+        //   familyName: "Derki",
+        //   givenName: "Ayet",
+        //   userImg: null,
+        //   role: "teacher",
+        //   firstAuth: false
+        // });
         navigate('/welcome')
         console.log(err);
       }
@@ -114,6 +119,21 @@ function App() {
     }
   };
 
+  const submitIntrests = (intrestsSelected) => {
+
+    const link = userAuth.role === "teacher" ? 'http://localhost:8080/users/infos/teacher/expertise' : 'http://localhost:8080/users/infos/student/interests'
+
+    axios.defaults.withCredentials = true
+    axios.post(link, {interests: intrestsSelected}, {
+      headers: {
+        "Content-Type": "application/json"
+      }
+    })
+    .then(() => setUserAuth({...userAuth, firstAuth: false}))
+    .catch((err) => console.error(err.response.data))
+
+  }
+
   return (
     <AppContext.Provider value={{ darkMode, setDarkMode, isRtl, setIsRtl, lang, setLang, userAuth, setUserAuth }}>
       <SocketProvider >
@@ -140,7 +160,7 @@ function App() {
               <Route path="create-assignment" element={<CreateAssignment />} />
               <Route path="create-tip" element={<CreateTip />} />
               <Route path="ai-bot" element={<section className='main-container'>AI Assistant</section>} />
-              <Route path="search" element={<section className='main-container'>Search Courses</section>} />
+              <Route path="search" element={<SearchPage />} />
               <Route path="activities" element={<section className='main-container'>My Activities</section>} />
               <Route path="progress" element={<section className='main-container'>Progress & Achievements</section>} />
               <Route path="ocr" element={<section className='main-container'>OCR Scanner</section>} />
@@ -150,11 +170,11 @@ function App() {
               <Route path="users" element={<section className='main-container'>Users</section>} />
               <Route path="reports" element={<section className='main-container'>Reports</section>} />
               <Route path="profile" element={<section className='main-container'>Profile</section>} />
-              {/* <Route path="notifications" element={<Notifications />} /> */}
               <Route path="settings" element={<section className='main-container'>Settings</section>} />
             </Route>
           </Routes>
           <ToastContainer position="top-right" autoClose={10000} />
+          {userAuth.firstAuth && <IntrestsPopup onFinish={submitIntrests} />}
         </div>
       </SocketProvider>
     </AppContext.Provider>

@@ -91,7 +91,7 @@ router.get('/teacher/:id', async (req, res) => {
     const teacherId = req.params.id
 
     try {
-        const tips = await TipModel.find({teacherId: teacherId})
+        const tips = await TipModel.find({ teacherId: teacherId })
         res.status(200).json(tips)
     } catch (error) {
         console.error("Error while fetching the teacher tips:", error.message);
@@ -103,7 +103,7 @@ router.get('/teacher-tips/', async (req, res) => {
     const teacherId = req.headers["x-user-id"]
 
     try {
-        const tips = await TipModel.find({teacherId: teacherId})
+        const tips = await TipModel.find({ teacherId: teacherId })
         res.status(200).json(tips)
     } catch (error) {
         console.error("Error while fetching the teacher tips:", error.message);
@@ -176,14 +176,17 @@ router.post('/:tipId/comment/:commentId/reply', async (req, res) => {
         const comment = await CommentModel.findById(commentId)
         if (!comment) return res.status(404).json({ error: "tip not found" })
 
-        const newReply = comment.replies.push({
+        const reply = {
             userId: userId,
             text: req.body.text,
-        })
+        }
 
+        comment.replies.push(reply)         // push returns length, ignore it
         await comment.save()
 
-        res.status(200).json(newReply)
+        // Send back the actual new reply (last item after save)
+        const savedReply = comment.replies[comment.replies.length - 1]
+        res.status(200).json(savedReply)
 
     } catch (error) {
         console.error("error while creating the comment", error.message)

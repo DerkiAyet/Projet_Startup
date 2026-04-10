@@ -3,6 +3,7 @@ const router = express.Router()
 const CommentModel = require('../models/Comments')
 const AssignmentModel = require('../models/Assignments')
 const QuizeModel = require('../models/Quizes')
+const SolvingModel = require('../models/Solving')
 const { discoverAuthService, discoverNotifService } = require('../config/discovery.service')
 const axios = require('axios')
 const multer = require('multer')
@@ -59,7 +60,7 @@ router.post('/', upload.single('thumbnail'), async (req, res) => {
             tags
         });
 
-        res.status(201).json({ message: "assignment created successfully", course: newAssignment });
+        res.status(201).json({ message: "assignment created successfully", assignment: newAssignment });
 
     } catch (error) {
         console.error("Error creating assignment:", error.message);
@@ -113,6 +114,84 @@ router.put('/:assignId', upload.single('thumbnail'), async (req, res) => {
     }
 });
 
+router.get('/', async (req, res) => {
+    try {
+
+        const assigns = await AssignmentModel.find()
+
+        const authServiceBaseUrl = await discoverAuthService()
+
+        const enrichedAssigns = await Promise.all(
+            assigns.map(async (assign) => {
+                try {
+                    const responseUser = await axios.get(`${authServiceBaseUrl}/get_user_byId/${assign.teacherId}`);
+                    const responseCategory = await axios.get(`${authServiceBaseUrl}/infos/subjects/${assign.category.id}`);
+
+                    let responseField = null;
+                    if (assign.category.subCategory) {
+                        responseField = await axios.get(`${authServiceBaseUrl}/infos/sub-subjects/${assign.category.subCategory}`);
+                    }
+
+                    const comments = await CommentModel.find({
+                        contentId: assign._id,
+                        contentType: "assignment"
+                    });
+
+                    const solutions = await SolvingModel.find({ assignment: assign._id })
+
+                    const thumbnail = assign.thumbnail
+                        ? `http://localhost:8080/content/uploads/${course.thumbnail}`
+                        : `http://localhost:8080/auth/uploads/${responseCategory.data.subImg}`;
+
+                    return {
+                        _id: assign._id,
+                        teacherId: assign.teacherId,
+                        title: assign.title,
+                        description: assign.description,
+                        thumbnail,
+                        level: assign.level,
+                        category: {
+                            idSubject: responseCategory.data.idSubject,
+                            name: responseCategory.data.name,
+                            color: responseCategory.data.color
+                        },
+                        subCategory: responseField
+                            ? {
+                                idSub: responseField.data.idSub,
+                                name: responseField.data.name
+                            }
+                            : null,
+                        exercises: assign.exercises,
+                        tags: assign.tags,
+                        ratings: assign.ratings,
+                        avgRating: assign.averageRating(),
+                        comments,
+                        commentsCount: comments.length,
+                        solveCount: solutions.length,
+                        visibility: assign.visibility,
+                        createdAt: assign.createdAt,
+                        teacher: {
+                            userId: responseUser.data.user.id,
+                            userName: responseUser.data.user.userName,
+                            familyName: responseUser.data.user.familyName,
+                            givenName: responseUser.data.user.givenName,
+                            userImg: responseUser.data.user.uerImg,
+                            role: "teacher"
+                        } || null
+                    }
+                } catch (error) {
+                    console.error("Error while fetching for the assigns", error.message)
+                }
+            })
+        )
+
+        res.status(200).json(enrichedAssigns)
+
+    } catch (error) {
+        res.status(500).json({ error: "Internal server error", message: error.message });
+    }
+})
+
 router.get('/teacher/:teacherId', async (req, res) => {
 
     const teacherId = req.params.teacherId
@@ -121,7 +200,64 @@ router.get('/teacher/:teacherId', async (req, res) => {
 
         const assigns = await AssignmentModel.find({ teacherId: teacherId })
 
-        res.status(200).json(assigns)
+        const authServiceBaseUrl = await discoverAuthService()
+
+        const enrichedAssigns = await Promise.all(
+            assigns.map(async (assign) => {
+                try {
+                    const responseCategory = await axios.get(`${authServiceBaseUrl}/infos/subjects/${assign.category.id}`);
+
+                    let responseField = null;
+                    if (assign.category.subCategory) {
+                        responseField = await axios.get(`${authServiceBaseUrl}/infos/sub-subjects/${assign.category.subCategory}`);
+                    }
+
+                    const comments = await CommentModel.find({
+                        contentId: assign._id,
+                        contentType: "assignment"
+                    });
+
+                    const solutions = await SolvingModel.find({ assignment: assign._id })
+
+                    const thumbnail = assign.thumbnail
+                        ? `http://localhost:8080/content/uploads/${course.thumbnail}`
+                        : `http://localhost:8080/auth/uploads/${responseCategory.data.subImg}`;
+
+                    return {
+                        _id: assign._id,
+                        teacherId: assign.teacherId,
+                        title: assign.title,
+                        description: assign.description,
+                        thumbnail,
+                        level: assign.level,
+                        category: {
+                            idSubject: responseCategory.data.idSubject,
+                            name: responseCategory.data.name,
+                            color: responseCategory.data.color
+                        },
+                        subCategory: responseField
+                            ? {
+                                idSub: responseField.data.idSub,
+                                name: responseField.data.name
+                            }
+                            : null,
+                        exercises: assign.exercises,
+                        tags: assign.tags,
+                        ratings: assign.ratings,
+                        avgRating: assign.averageRating(),
+                        comments,
+                        commentsCount: comments.length,
+                        solveCount: solutions.length,
+                        visibility: assign.visibility,
+                        createdAt: assign.createdAt,
+                    }
+                } catch (error) {
+                    console.error("Error while fetching for the assigns", error.message)
+                }
+            })
+        )
+
+        res.status(200).json(enrichedAssigns)
 
     } catch (error) {
         res.status(500).json({ error: "Internal server error", message: error.message });
@@ -134,11 +270,187 @@ router.get('/teacher-assigns', async (req, res) => {
     try {
 
         const assigns = await AssignmentModel.find({ teacherId: userId })
+        const authServiceBaseUrl = await discoverAuthService()
 
-        res.status(200).json(assigns)
+        const enrichedAssigns = await Promise.all(
+            assigns.map(async (assign) => {
+                try {
+                    const responseCategory = await axios.get(`${authServiceBaseUrl}/infos/subjects/${assign.category.id}`);
+
+                    let responseField = null;
+                    if (assign.category.subCategory) {
+                        responseField = await axios.get(`${authServiceBaseUrl}/infos/sub-subjects/${assign.category.subCategory}`);
+                    }
+
+                    const comments = await CommentModel.find({
+                        contentId: assign._id,
+                        contentType: "assignment"
+                    });
+
+                    const solutions = await SolvingModel.find({ assignment: assign._id })
+
+                    const thumbnail = assign.thumbnail
+                        ? `http://localhost:8080/content/uploads/${course.thumbnail}`
+                        : `http://localhost:8080/auth/uploads/${responseCategory.data.subImg}`;
+
+                    return {
+                        _id: assign._id,
+                        teacherId: assign.teacherId,
+                        title: assign.title,
+                        description: assign.description,
+                        thumbnail,
+                        level: assign.level,
+                        category: {
+                            idSubject: responseCategory.data.idSubject,
+                            name: responseCategory.data.name,
+                            color: responseCategory.data.color
+                        },
+                        subCategory: responseField
+                            ? {
+                                idSub: responseField.data.idSub,
+                                name: responseField.data.name
+                            }
+                            : null,
+                        exercises: assign.exercises,
+                        tags: assign.tags,
+                        ratings: assign.ratings,
+                        avgRating: assign.averageRating(),
+                        comments,
+                        commentsCount: comments.length,
+                        solveCount: solutions.length,
+                        visibility: assign.visibility,
+                        createdAt: assign.createdAt,
+                    }
+                } catch (error) {
+                    console.error("Error while fetching for the assigns", error.message)
+                }
+            })
+        )
+
+        res.status(200).json(enrichedAssigns)
 
     } catch (error) {
         res.status(500).json({ error: "Internal server error", message: error.message });
+    }
+})
+
+router.get('/:id', async (req, res) => {
+    const assignId = req.params.id
+    try {
+        const assignment = await AssignmentModel.findById(assignId);
+        if (!assignment) return res.status(404).json({ error: "assignment not found" });
+
+        const authServiceBaseUrl = await discoverAuthService()
+        const responseUser = await axios.get(`${authServiceBaseUrl}/get_user_byId/${assignment.teacherId}`)
+
+        const responseCategory = await axios.get(`${authServiceBaseUrl}/infos/subjects/${assignment.category.id}`);
+
+        let responseField = null;
+        if (assignment.category.subCategory) {
+            responseField = await axios.get(`${authServiceBaseUrl}/infos/sub-subjects/${assignment.category.subCategory}`);
+        }
+
+        const thumbnail = assignment.thumbnail
+            ? `http://localhost:8080/content/uploads/${assignment.thumbnail}`
+            : `http://localhost:8080/auth/uploads/${responseCategory.data.subImg}`;
+
+        const solutions = await SolvingModel.find({ assignment: assignment._id })
+
+
+        const comments = await CommentModel.find({ contentId: assignId, contentType: "assignment" })
+        let enrichedComments;
+        if (comments) {
+            enrichedComments = await Promise.all(
+                comments.map(async (c) => {
+                    const response = await axios.get(
+                        `${authServiceBaseUrl}/get_user_byId/${c.userId}`,
+                        { timeout: 5000 }
+                    );
+
+                    const replies = c.replies
+                    let enrichedReplies
+
+                    if (replies) {
+                        enrichedReplies = await Promise.all(
+                            replies.map(async (r) => {
+                                const response = await axios.get(
+                                    `${authServiceBaseUrl}/get_user_byId/${r.userId}`,
+                                    { timeout: 5000 }
+                                );
+
+                                return {
+                                    _id: r._id,
+                                    text: r.text,
+                                    likes: r.likes,
+                                    userName: response.data.user.userName,
+                                    familyName: response.data.user.familyName,
+                                    givenName: response.data.user.givenName,
+                                    userImg: response.data.user.uerImg,
+                                    role: response.data.user.role
+                                }
+                            })
+                        )
+                    }
+
+                    return {
+                        _id: c._id,
+                        text: c.text,
+                        replies: enrichedReplies,
+                        likes: c.likes,
+                        userName: response.data.user.userName,
+                        familyName: response.data.user.familyName,
+                        givenName: response.data.user.givenName,
+                        userImg: response.data.user.uerImg,
+                        role: response.data.user.role,
+                    }
+                })
+            )
+        }
+
+        const finalAssignment = {
+            assignment: {
+                _id: assignment._id,
+                teacherId: assignment.teacherId,
+                title: assignment.title,
+                description: assignment.description,
+                thumbnail,
+                level: assignment.level,
+                category: {
+                    idSubject: responseCategory.data.idSubject,
+                    name: responseCategory.data.name,
+                    color: responseCategory.data.color
+                },
+                subCategory: responseField
+                    ? {
+                        idSub: responseField.data.idSub,
+                        name: responseField.data.name
+                    }
+                    : null,
+                exercises: assignment.exercises,
+                tags: assignment.tags,
+                ratings: assignment.ratings,
+                avgRating: assignment.averageRating(),
+                comments: enrichedComments,
+                commentsCount: comments.length,
+                solveCount: solutions.length,
+                visibility: assignment.visibility,
+                createdAt: assignment.createdAt,
+            },
+            comments: enrichedComments,
+            teacher: {
+                userId: responseUser.data.user.id,
+                userName: responseUser.data.user.userName,
+                familyName: responseUser.data.user.familyName,
+                givenName: responseUser.data.user.givenName,
+                userImg: responseUser.data.user.uerImg,
+                role: "teacher"
+            } || null
+        }
+
+        res.status(200).json(finalAssignment)
+
+    } catch (error) {
+        console.log("Internal Error Server", error.message)
     }
 })
 
@@ -159,11 +471,11 @@ router.delete("/:id", async (req, res) => {
 });
 
 //-----------Comments & Rating
-router.get('/:id/comments', async(req, res) =>{
+router.get('/:id/comments', async (req, res) => {
     const courseId = req.params.id
 
     try {
-        const comments = await CommentModel.find({contentId: courseId, contentType: "assignment"})
+        const comments = await CommentModel.find({ contentId: courseId, contentType: "assignment" })
         res.status(200).json(comments)
     } catch (error) {
         console.error("error while fetching comments", error.message)
@@ -206,14 +518,17 @@ router.post('/:assignId/comment/:commentId/reply', async (req, res) => {
         const comment = await CommentModel.findById(commentId)
         if (!comment) return res.status(404).json({ error: "assignment not found" })
 
-        const newReply = comment.replies.push({
+        const reply = {
             userId: userId,
             text: req.body.text,
-        })
+        }
 
+        comment.replies.push(reply)        
         await comment.save()
 
-        res.status(200).json(newReply)
+        // Send back the actual new reply (last item after save)
+        const savedReply = comment.replies[comment.replies.length - 1]
+        res.status(200).json(savedReply)
 
     } catch (error) {
         console.error("error while creating the comment", error.message)

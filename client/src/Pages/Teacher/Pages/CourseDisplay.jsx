@@ -1,207 +1,25 @@
-import { useState, useRef, useEffect } from "react";
-import { CommentLine } from "../../Home/Components/PostPage";
+import React, { useState, useRef, useEffect } from "react";
 import "../Styles/CourseDisplay.css";
-import { useParams, useSearchParams, Link } from "react-router-dom";
+import '../../Home/Styles/PostPage.css'
+import { useParams, useSearchParams } from "react-router-dom";
 // import ReactStars from "react-rating-stars-component";
-import { ReactComponent as CalendarIcon } from '../../../Assets/icons/NavIcons/calendar.svg';
-import { ReactComponent as CommentIcon } from '../../../Assets/icons/TimelineIcons/comment-post.svg';
-import { ReactComponent as SaveIcon } from '../../../Assets/icons/TimelineIcons/bookmark.svg';
-import { ReactComponent as AuthorIcon } from '../../../Assets/icons/CourseIcons/profile-course.svg';
-// import { ReactComponent as PeopleIcon } from '../../../Assets/icons/CourseIcons/people-course.svg'
-// import { ReactComponent as EmptyStar } from '../../../Assets/icons/CourseIcons/empty-star.svg';
-// import { ReactComponent as HalfStar } from '../../../Assets/icons/CourseIcons/half-star.svg'
+import { ReactComponent as TargetIcon } from '../../../Assets/icons/CourseIcons/target-icon.svg'
+import { ReactComponent as TimerIcon } from '../../../Assets/icons/CourseIcons/timer-icon.svg';
+import { ReactComponent as DoneIcon } from '../../../Assets/icons/CourseIcons/done-icon.svg'
+import { ReactComponent as LessonIcon } from '../../../Assets/icons/CourseIcons/lessons-course.svg';
 // import { ReactComponent as FullStar } from '../../../Assets/icons/CourseIcons/full-star.svg';
-import { ReactComponent as SharIcon } from '../../../Assets/icons/TimelineIcons/share-post.svg';
+import { ReactComponent as FullHeartIcon } from '../../../Assets/icons/TimelineIcons/full-heart.svg'
+import { ReactComponent as LikeIcon } from '../../../Assets/icons/TimelineIcons/like-post.svg'
+// import { ReactComponent as SharIcon } from '../../../Assets/icons/TimelineIcons/share-post.svg';
 import HeaderContent from "../Components/HeaderContent";
 import { CourseView } from "../Components/CourseView";
 import TipView from "../Components/TipView";
 import { AssignementView } from "../Components/AssignementView";
+import { useTranslation } from "react-i18next";
+import axios from 'axios'
+import { useContext } from "react";
+import { AppContext } from "../../../App";
 
-// ── Mock Data ────────────────────────────────────────────
-const COURSE = {
-    title: "Introduction to Calculus",
-    teacher: { name: "Dr. Amina Kerboua", avatar: "AK", color: "#EC4899" },
-    completion: 35,
-    lessonCount: 12,
-    estimatedTime: "6h 40min",
-    difficulty: "Intermediate",
-    tags: ["Mathematics", "Calculus", "Algebra"],
-};
-
-const TIP = {
-    title: "How to do better in exam",
-    teacher: { name: "Dr. Amina Kerboua", avatar: "AK", color: "#EC4899" },
-    viewd: 35,
-    tags: ["Mathematics", "Calculus", "Algebra"],
-    content: `  <h2>1.1 — Introduction to Limits</h2>
-          <p>A <strong>limit</strong> describes the value that a function approaches as the input approaches some value. Limits are the foundation of calculus and are used to define derivatives and integrals.</p>
-          <p>Consider the function:</p>
-          <div class="math-block">f(x) = (x² − 1) / (x − 1)</div>
-          <p>This function is undefined at <em>x = 1</em>, yet as x gets closer and closer to 1 from either side, the function approaches the value <strong>2</strong>. We write:</p>
-          <div class="math-block">lim<sub>x→1</sub> f(x) = 2</div>
-          <p>This is the core idea behind a limit — it is about <em>approaching</em>, not reaching.</p>
-          <h2>1.2 — One-Sided Limits</h2>
-          <p>Sometimes a function approaches different values depending on which direction we approach from. These are called <strong>one-sided limits</strong>.</p>
-          <ul>
-            <li><strong>Left-hand limit:</strong> lim<sub>x→a⁻</sub> f(x) — approaching from the left</li>
-            <li><strong>Right-hand limit:</strong> lim<sub>x→a⁺</sub> f(x) — approaching from the right</li>
-          </ul>
-    `,
-    avgRating: 4.2,
-    numComments: 12
-}
-
-const LESSONS = [
-    {
-        id: 1,
-        title: "What is a Limit?",
-        content: `
-          <h2>1.1 — Introduction to Limits</h2>
-          <p>A <strong>limit</strong> describes the value that a function approaches as the input approaches some value. Limits are the foundation of calculus and are used to define derivatives and integrals.</p>
-          <p>Consider the function:</p>
-          <div class="math-block">f(x) = (x² − 1) / (x − 1)</div>
-          <p>This function is undefined at <em>x = 1</em>, yet as x gets closer and closer to 1 from either side, the function approaches the value <strong>2</strong>. We write:</p>
-          <div class="math-block">lim<sub>x→1</sub> f(x) = 2</div>
-          <p>This is the core idea behind a limit — it is about <em>approaching</em>, not reaching.</p>
-          <h2>1.2 — One-Sided Limits</h2>
-          <p>Sometimes a function approaches different values depending on which direction we approach from. These are called <strong>one-sided limits</strong>.</p>
-          <ul>
-            <li><strong>Left-hand limit:</strong> lim<sub>x→a⁻</sub> f(x) — approaching from the left</li>
-            <li><strong>Right-hand limit:</strong> lim<sub>x→a⁺</sub> f(x) — approaching from the right</li>
-          </ul>
-          <p>A limit exists at a point <em>a</em> if and only if both one-sided limits exist and are equal:</p>
-          <div class="math-block">lim<sub>x→a⁻</sub> f(x) = lim<sub>x→a⁺</sub> f(x) = L</div>
-          <p>If they differ, we say the limit <em>does not exist</em> at that point.</p>
-
-          <h2>1.1 — Introduction to Limits</h2>
-          <p>A <strong>limit</strong> describes the value that a function approaches as the input approaches some value. Limits are the foundation of calculus and are used to define derivatives and integrals.</p>
-          <p>Consider the function:</p>
-          <div class="math-block">f(x) = (x² − 1) / (x − 1)</div>
-          <p>This function is undefined at <em>x = 1</em>, yet as x gets closer and closer to 1 from either side, the function approaches the value <strong>2</strong>. We write:</p>
-          <div class="math-block">lim<sub>x→1</sub> f(x) = 2</div>
-          <p>This is the core idea behind a limit — it is about <em>approaching</em>, not reaching.</p>
-          <h2>1.2 — One-Sided Limits</h2>
-          <p>Sometimes a function approaches different values depending on which direction we approach from. These are called <strong>one-sided limits</strong>.</p>
-          <ul>
-            <li><strong>Left-hand limit:</strong> lim<sub>x→a⁻</sub> f(x) — approaching from the left</li>
-            <li><strong>Right-hand limit:</strong> lim<sub>x→a⁺</sub> f(x) — approaching from the right</li>
-          </ul>
-          <p>A limit exists at a point <em>a</em> if and only if both one-sided limits exist and are equal:</p>
-          <div class="math-block">lim<sub>x→a⁻</sub> f(x) = lim<sub>x→a⁺</sub> f(x) = L</div>
-          <p>If they differ, we say the limit <em>does not exist</em> at that point.</p>
-          <h2>1.1 — Introduction to Limits</h2>
-          <p>A <strong>limit</strong> describes the value that a function approaches as the input approaches some value. Limits are the foundation of calculus and are used to define derivatives and integrals.</p>
-          <p>Consider the function:</p>
-          <div class="math-block">f(x) = (x² − 1) / (x − 1)</div>
-          <p>This function is undefined at <em>x = 1</em>, yet as x gets closer and closer to 1 from either side, the function approaches the value <strong>2</strong>. We write:</p>
-          <div class="math-block">lim<sub>x→1</sub> f(x) = 2</div>
-          <p>This is the core idea behind a limit — it is about <em>approaching</em>, not reaching.</p>
-          <h2>1.2 — One-Sided Limits</h2>
-          <p>Sometimes a function approaches different values depending on which direction we approach from. These are called <strong>one-sided limits</strong>.</p>
-          <ul>
-            <li><strong>Left-hand limit:</strong> lim<sub>x→a⁻</sub> f(x) — approaching from the left</li>
-            <li><strong>Right-hand limit:</strong> lim<sub>x→a⁺</sub> f(x) — approaching from the right</li>
-          </ul>
-          <p>A limit exists at a point <em>a</em> if and only if both one-sided limits exist and are equal:</p>
-          <div class="math-block">lim<sub>x→a⁻</sub> f(x) = lim<sub>x→a⁺</sub> f(x) = L</div>
-          <p>If they differ, we say the limit <em>does not exist</em> at that point.</p>
-          <h2>1.1 — Introduction to Limits</h2>
-          <p>A <strong>limit</strong> describes the value that a function approaches as the input approaches some value. Limits are the foundation of calculus and are used to define derivatives and integrals.</p>
-          <p>Consider the function:</p>
-          <div class="math-block">f(x) = (x² − 1) / (x − 1)</div>
-          <p>This function is undefined at <em>x = 1</em>, yet as x gets closer and closer to 1 from either side, the function approaches the value <strong>2</strong>. We write:</p>
-          <div class="math-block">lim<sub>x→1</sub> f(x) = 2</div>
-          <p>This is the core idea behind a limit — it is about <em>approaching</em>, not reaching.</p>
-          <h2>1.2 — One-Sided Limits</h2>
-          <p>Sometimes a function approaches different values depending on which direction we approach from. These are called <strong>one-sided limits</strong>.</p>
-          <ul>
-            <li><strong>Left-hand limit:</strong> lim<sub>x→a⁻</sub> f(x) — approaching from the left</li>
-            <li><strong>Right-hand limit:</strong> lim<sub>x→a⁺</sub> f(x) — approaching from the right</li>
-          </ul>
-          <p>A limit exists at a point <em>a</em> if and only if both one-sided limits exist and are equal:</p>
-          <div class="math-block">lim<sub>x→a⁻</sub> f(x) = lim<sub>x→a⁺</sub> f(x) = L</div>
-          <p>If they differ, we say the limit <em>does not exist</em> at that point.</p>
-        `,
-
-    },
-    {
-        id: 2,
-        title: "Continuity",
-        content: `
-          <h2>2.1 — Defining Continuity</h2>
-          <p>A function f is <strong>continuous</strong> at a point a if three conditions hold:</p>
-          <ul>
-            <li>f(a) is defined</li>
-            <li>lim<sub>x→a</sub> f(x) exists</li>
-            <li>lim<sub>x→a</sub> f(x) = f(a)</li>
-          </ul>
-          <p>Intuitively, a continuous function can be drawn without lifting the pen from the paper.</p>
-          <div class="math-block">f is continuous at a ⟺ lim<sub>x→a</sub> f(x) = f(a)</div>
-        `,
-    },
-    {
-        id: 3,
-        title: "The Derivative",
-        content: `
-          <h2>3.1 — Definition of the Derivative</h2>
-          <p>The <strong>derivative</strong> of a function f at a point a is defined as:</p>
-          <div class="math-block">f′(a) = lim<sub>h→0</sub> [f(a+h) − f(a)] / h</div>
-          <p>This represents the instantaneous rate of change of f at the point a — or geometrically, the slope of the tangent line to the curve at that point.</p>
-          <p>If this limit exists, we say f is <em>differentiable</em> at a.</p>
-        `,
-    },
-];
-
-const COMMENTS = [
-    {
-        id: 1,
-        avatar: "SA",
-        color: "#8B5CF6",
-        name: "Sara Amrani",
-        time: "2 hours ago",
-        text: "This explanation of one-sided limits is so clear! I finally get it. Thank you Dr. Kerboua 🙏",
-        likes: 4,
-    },
-    {
-        id: 2,
-        avatar: "YB",
-        color: "#0EA5E9",
-        name: "Yacine Benali",
-        time: "5 hours ago",
-        text: "Could you add a visual graph showing the approach from both sides? It would really help understand the concept intuitively.",
-        likes: 7,
-    },
-    {
-        id: 3,
-        avatar: "LM",
-        color: "#10B981",
-        name: "Lina Merabet",
-        time: "1 day ago",
-        text: "The math notation is perfectly formatted. I love how each page focuses on one idea at a time.",
-        likes: 2,
-    },
-];
-
-const mockComments = [
-    {
-        commentId: 1,
-        commentText: 'Wow, looks amazing! 😍',
-        User: { userName: 'alex_99', userImg: "https://i.pravatar.cc/60?img=1" },
-        replies: [
-            { replyId: 1, replyText: 'Right?! 😄', User: { userName: 'jane_smith', userImg: null } },
-        ],
-    },
-    {
-        commentId: 2,
-        commentText: 'I need to visit this place someday. Where exactly is this? The scenery looks unreal, especially with that lighting.',
-        User: { userName: 'travel.with.sara', userImg: "https://i.pravatar.cc/60?img=1" },
-    },
-    {
-        commentId: 3,
-        commentText: 'Great shot! 📸',
-        User: { userName: 'photo_mike', userImg: "https://i.pravatar.cc/60?img=1" },
-    },
-];
 
 const RECOMMENDATIONS = [
     {
@@ -244,8 +62,220 @@ const LEVEL_COLOR = {
     Advanced: { color: "#EC4899", bg: "#FDF2F8" },
 };
 
+export const CommentLine = ({ courseId, commentId, commentTxt, commentUserName, commentUserImg, replies = [], commentUserFamily, commentUserGiven, commentBody = { likes: [], replies: [], _id: 0, userId: 0, text: "" }, userId, toggleLike, contentType }) => {
+
+    const { t } = useTranslation()
+
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [showReplies, setShowReplies] = useState(false);
+    const [replyClicked, setReplyClicked] = useState(false);
+    const [commentReplies, setCommentReplies] = useState(replies)
+    const [reply, setReply] = useState('');
+    const [isLiked, setIsLiked] = useState(commentBody.likes.some((l) => l.userId === userId))
+    const maxLength = 150;
+
+    const toggleReadMore = () => setIsExpanded(!isExpanded);
+
+    function linkify(text) {
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+
+        return text.split(urlRegex).map((part, index) =>
+            urlRegex.test(part) ? (
+                <a
+                    key={index}
+                    href={part}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: "#007bff" }}
+                >
+                    {part}
+                </a>
+            ) : (
+                part
+            )
+        );
+    }
+
+    function formatTextWithLineBreaks(text) {
+        return text.split("\n").map((line, index) => (
+            <React.Fragment key={index}>
+                {linkify(line)}
+                <br />
+            </React.Fragment>
+        ));
+    }
+
+    const addReply = async (e) => {
+        e.preventDefault();
+        const link = contentType === "course" ? "http://localhost:8080/content/courses" : contentType === "assignment" ? "http://localhost:8080/content/assignments" : "http://localhost:8080/content/tips"
+
+        try {
+            const res = await axios.post(
+                `${link}/${courseId}/comment/${commentId}/reply`,
+                { text: `@${commentUserName} ${reply}` },
+                {
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                }
+            );
+
+            const newReply = {
+                userId: res.data.userId,
+                text: `@${commentUserName} ${reply}`,
+                userName: commentUserName,
+                familyName: commentUserFamily,
+                givenName: commentUserGiven,
+                userImg: commentUserImg
+            };
+
+            // setPosts((prev) =>
+            //     prev.map((p) =>
+            //         p._id === postId
+            //             ? {
+            //                 ...p,
+            //                 comments: p.comments.map((c) =>
+            //                     c._id === commentId
+            //                         ? { ...c, replies: [...c.replies, newReply] }
+            //                         : c
+            //                 ),
+            //                 commentsCount: p.commentsCount + 1
+            //             }
+            //             : p
+            //     )
+            // );
+
+            // onAddReply?.(newReply, commentId);
+
+            setCommentReplies([...commentReplies, newReply]);
+
+            setReplyClicked(false);
+
+            setReply('')
+
+        } catch (err) {
+            console.error(err?.response?.data || err);
+        }
+    };
+
+    const toggleLikeReply = (replyId, setLiked) => {
+
+        const link = contentType === "course" ? "http://localhost:8080/content/courses" : contentType === "assignment" ? "http://localhost:8080/content/assignments/" : "http://localhost:8080/content/tips"
+
+        axios.post(`${link}/${courseId}/comment/${commentId}/reply/${replyId}/like`, {},
+            { headers: { "Content-Type": "application/json" } })
+            .then((res) => {
+                const updatedComment = res.data.comments.find(c => c._id === commentId);
+                const updatedReply = updatedComment?.replies.find(r => r._id === replyId);
+                const nowLiked = updatedReply?.likes.some(l => l.userId === userId) ?? false;
+
+                setCommentReplies((prev) =>
+                    prev.map((r) => r._id === replyId ? updatedReply : r)
+                );
+
+                setLiked(nowLiked); // ✅ truth from server
+            })
+            .catch((err) => console.error(err));
+    };
+
+    return (
+        <div className="comment-line">
+            <div className="comment-user-img" style={{ flexShrink: 0 }}>
+                {
+                    commentUserImg ?
+                        <img src={commentUserImg || '/default_picture.jpeg'} alt="comment user" /> :
+                        <div className="user-initials-avatar" style={{ backgroundColor: 'var(--accent-pink)' }}>
+                            {commentUserFamily?.charAt(0).toUpperCase()}
+                            {commentUserGiven?.charAt(0).toUpperCase()}
+                        </div>
+                }
+            </div>
+            <div className="comment-content">
+                <span className="comment-username">{commentUserName}</span>
+                <span className="comment-txt" style={{ fontWeight: '350' }}>
+                    {commentTxt.length > maxLength && !isExpanded
+                        ? `${commentTxt.substring(0, maxLength)}...`
+                        : formatTextWithLineBreaks(commentTxt)}
+                    {commentTxt.length > maxLength && (
+                        <span className="read-more" onClick={toggleReadMore}>
+                            {isExpanded ? ` ${t('posts.readLess')}` : ` ${t('posts.readMore')}`}
+                        </span>
+                    )}
+                </span>
+
+                {/* ── Like + View replies row ── */}
+                <div className="comment-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '6px' }}>
+                    {commentReplies.length > 0 && (
+                        <span
+                            className="view-replies"
+                            onClick={() => setShowReplies(!showReplies)}
+                            style={{ cursor: 'pointer', fontSize: '0.85rem', color: '#aaa', display: 'flex', alignItems: 'center', gap: '6px' }}
+                        >
+                            <span style={{ display: 'inline-block', width: '24px', borderTop: '1px solid #aaa' }} />
+                            {showReplies ? t('posts.hideReplies') : `${t('posts.viewReplies')} (${commentReplies.length})`}
+                        </span>
+                    )}
+                    <span
+                        className="view-replies"
+                        style={{ cursor: 'pointer', fontSize: '0.85rem', color: '#aaa', display: 'flex', alignItems: 'center', gap: '6px' }}
+                        onClick={() => setReplyClicked(!replyClicked)}
+                    >
+                        {t('posts.reply')}
+                    </span>
+                </div>
+
+                {/* ── Replies ── */}
+                {showReplies && (
+                    <div className="replies-container" style={{ marginTop: '10px', paddingLeft: '12px', borderLeft: '2px solid var(--color-border-tertiary)', width: "100%" }}>
+                        {commentReplies.map((reply) => (
+                            <CommentLine
+                                key={reply._id}
+                                postId={commentId}
+                                commentId={commentId}
+                                commentTxt={reply.text}
+                                commentUserName={reply.userName}
+                                commentUserImg={reply.userImg}
+                                commentUserFamily={reply.familyName}
+                                commentUserGiven={reply.givenName}
+                                replies={[]}
+                                userId={userId}
+                                commentBody={reply}
+                                toggleLike={(replyId, setLiked) => toggleLikeReply(replyId, setLiked)}
+                            />
+                        ))}
+                    </div>
+                )}
+
+                {
+                    replyClicked && (
+                        <div className="add-reply-container">
+                            <textarea
+                                type="text"
+                                placeholder={t('posts.writeReply')}
+                                className="add-reply-input"
+                                value={reply}
+                                onChange={(e) => setReply(e.target.value)}
+                            />
+                            <button className="post-reply-btn" onClick={addReply} style={{ cursor: "pointer" }}>{t('posts.post')}</button>
+                        </div>
+                    )
+                }
+            </div>
+
+            {/* ── Heart icon (right side) ── */}
+            {
+                isLiked ?
+                    <FullHeartIcon className="comment-icon" style={{ flexShrink: 0 }} onClick={() => toggleLike(commentBody._id, (nowLiked) => setIsLiked(nowLiked))} /> :
+                    <LikeIcon className="comment-icon" style={{ flexShrink: 0 }} onClick={() => toggleLike(commentBody._id, (nowLiked) => setIsLiked(nowLiked))} />
+            }
+        </div>
+    );
+};
+
 // ── Component ────────────────────────────────────────────
 export default function CourseDisplay() {
+
+    const { userAuth } = useContext(AppContext)
 
     const { id } = useParams();
     const [searchParams] = useSearchParams();
@@ -253,87 +283,132 @@ export default function CourseDisplay() {
     const type = searchParams.get("type");
     // "course" | "assignment" | "tip"
 
+    const [topic, setTopic] = useState(null)
+    const [content, setContent] = useState(null)
+    const [comments, setComments] = useState(topic?.comments);
+
+    useEffect(() => {
+        const link = type === "course" ? "http://localhost:8080/content/courses" : type === "assignment" ? "http://localhost:8080/content/assignments" : "http://localhost:8080/content/tips";
+        axios.get(`${link}/${id}`)
+            .then((res) => {
+                setTopic(res.data);
+                const content = res.data.course ?? res.data.assignment ?? res.data.topic
+                setComments(res.data.comments)
+                setContent(content)
+            })
+            .catch((err) => console.error(err.response.data))
+    }, [id, type])
+
     const [currentLessonIdx, setCurrentLessonIdx] = useState(0);
     const [doneLessons, setDoneLessons] = useState(new Set());
-    const [comments, setComments] = useState(COMMENTS);
     const [commentInput, setCommentInput] = useState("");
-    const [likedComments, setLikedComments] = useState(new Set());
     const viewerRef = useRef(null);
 
-    const lesson = LESSONS[currentLessonIdx];
-    const isDone = doneLessons.has(lesson.id);
+    const initializeDone = (data) => setDoneLessons(data)
+
+    const onChangeDone = (value) => setDoneLessons(value) 
 
     const goTo = (idx) => {
         setCurrentLessonIdx(idx);
         viewerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
     };
 
-    const toggleDone = () => {
-        setDoneLessons((prev) => {
-            const next = new Set(prev);
-            next.has(lesson.id) ? next.delete(lesson.id) : next.add(lesson.id);
-            return next;
-        });
+    const sendComment = async () => {
+        if (!commentInput.trim()) return;
+
+        axios.defaults.withCredentials = true
+        const link = type === "course" ? "http://localhost:8080/content/courses" : type === "assignment" ? "http://localhost:8080/content/assignments/" : "http://localhost:8080/content/tips"
+
+        try {
+
+            const res = await axios.post(`${link}/${id}/comment`,
+                { text: commentInput },
+                {
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                }
+            )
+
+            const newComment = {
+                userId: res.data.userId,
+                text: commentInput,
+                userName: userAuth.userName,
+                familyName: userAuth.familyName,
+                givenName: userAuth.givenName,
+                userImg: userAuth.userImg
+            };
+
+            setComments([...comments, newComment])
+            setCommentInput("");
+        } catch (error) {
+            console.error(error.response.data)
+        }
     };
 
-    const sendComment = () => {
-        const text = commentInput.trim();
-        if (!text) return;
-        setComments((prev) => [
-            {
-                id: Date.now(),
-                avatar: "ME",
-                color: "#EC4899",
-                name: "You",
-                time: "Just now",
-                text,
-                likes: 0,
-            },
-            ...prev,
-        ]);
-        setCommentInput("");
+    const toggleLikeComment = (commentId, setLiked) => {
+        const link = type === "course" ? "http://localhost:8080/content/courses" : type === "assignment" ? "http://localhost:8080/content/assignments/" : "http://localhost:8080/content/tips"
+        axios
+            .post(`${link}/${id}/comment/${commentId}/like`, {},
+                { headers: { "Content-Type": "application/json" } })
+            .then((res) => {
+                const updatedComment = res.data.comments.find(c => c._id === commentId);
+                const nowLiked = updatedComment?.likes.some(l => l.userId === userAuth.userId) ?? false;
+
+                setComments((prev) => ({
+                    ...prev,
+                    comments: prev.comments.map((c) =>
+                        c._id === commentId ? updatedComment : c
+                    )
+                }));
+
+                setLiked(nowLiked); // pass the actual value
+            })
+            .catch((err) => console.error(err));
     };
 
-    const toggleLike = (id) => {
-        setLikedComments((prev) => {
-            const next = new Set(prev);
-            next.has(id) ? next.delete(id) : next.add(id);
-            return next;
-        });
-    };
+    // const toggleLike = (id) => {
+    //     setLikedComments((prev) => {
+    //         const next = new Set(prev);
+    //         next.has(id) ? next.delete(id) : next.add(id);
+    //         return next;
+    //     });
+    // };
 
     const [completionPct, setCompletionPct] = useState(0)
 
     const handleChangePct = (doneLessonsCount) => {
-        setCompletionPct(Math.round((doneLessonsCount / LESSONS.length) * 100))
+        setCompletionPct(Math.round((doneLessonsCount / content?.lessons.length) * 100))
     }
 
     // const completionPct = Math.round((doneLessons.size / LESSONS.length) * 100);
-
+    const dateOnly = content?.createdAt
+        ? new Date(content.createdAt).toLocaleDateString()
+        : null;
     return (
         <div className="course-display-container">
             <HeaderContent
-                title={COURSE.title}
-                creatorName={COURSE.teacher.name}
-                commentCount={3}
-                creationDate={"2024-03-23"}
+                title={content?.title}
+                creatorName={`${topic?.teacher.givenName} ${topic?.teacher.familyName}`}
+                commentCount={content?.commentsCount}
+                creationDate={dateOnly}
                 saveCount={9}
-                ratingAvg={4.3}
+                ratingAvg={content?.avgRating}
             />
             <div className="cd-page">
                 {/* ── Main area ── */}
                 <div className="cd-main">
 
-                    {type === "course" && <CourseView LESSONS={LESSONS} viewerRef={viewerRef} handleChangePct={handleChangePct} />}
-                    {type === "tip" && <TipView content={TIP.content} />}
-                    {type === "assignment" && <AssignementView PROBLEMATIQUES={LESSONS} viewerRef={viewerRef} />}
+                    {type === "course" && topic?.course?.lessons && <CourseView LESSONS={topic.course.lessons} viewerRef={viewerRef} handleChangePct={handleChangePct} courseId={topic.course._id} onChangeDone={onChangeDone} onChangeLesson={(idx) => setCurrentLessonIdx(idx)} initializeDone={initializeDone} />}
+                    {type === "tip" && topic?.content && <TipView content={topic.content} />}
+                    {type === "assignment" && topic?.assignment?.exercises && <AssignementView PROBLEMATIQUES={topic.assignment.exercises} viewerRef={viewerRef} />}
 
 
                     {/* Comments */}
                     <div className="cd-comments">
                         <h3 className="cd-comments-title">
                             Discussion
-                            <span className="cd-comments-count">{mockComments.length}</span>
+                            <span className="cd-comments-count">{comments?.length}</span>
                         </h3>
 
                         {/* Input */}
@@ -359,13 +434,21 @@ export default function CourseDisplay() {
                         {/* Thread */}
                         <div className="cd-comment-list">
                             <div className="cd-comment-list course-comments-container">
-                                {mockComments.map((comment) => (
+                                {comments?.map((comment) => (
                                     <CommentLine
-                                        key={comment.commentId}
-                                        commentTxt={comment.commentText || ''}
+                                        key={comment._id}
+                                        commentId={comment._id}
+                                        commentBody={comment}   // ← add this
+                                        courseId={id}
+                                        contentType={type}
+                                        userId={userAuth?.userId}
+                                        commentTxt={comment.text || ''}
                                         commentUserName={comment.userName}
+                                        commentUserFamily={comment.familyName}
+                                        commentUserGiven={comment.givenName}
                                         commentUserImg={comment.userImg}
                                         replies={comment.replies || []}
+                                        toggleLike={toggleLikeComment}
                                     />
                                 ))}
                             </div>
@@ -379,92 +462,107 @@ export default function CourseDisplay() {
                     {/* Course Details */}
                     <div className="cd-sidebar-card">
                         <div className="cd-sidebar-card-header">
-                            <h4 className="cd-sidebar-card-title">Course Details</h4>
+                            <h4 className="cd-sidebar-card-title" style={{ textTransform: "capitalize" }}>{type} Details</h4>
                         </div>
 
-                        <p className="cd-course-title-text">{COURSE.title}</p>
+                        <p className="cd-course-title-text">{content?.title}</p>
 
                         <div className="cd-teacher-row">
-                            <div className="cd-teacher-avatar" style={{ background: COURSE.teacher.color + "22", color: COURSE.teacher.color }}>
-                                {COURSE.teacher.avatar}
+                            <div className="cd-teacher-avatar" style={{ background: "#EC489922", color: "#EC4899" }}>
+                                {`${topic?.teacher.familyName.charAt(0).toUpperCase()}${topic?.teacher.givenName.charAt(0).toUpperCase()}`}
+                                
                             </div>
                             <div>
                                 <p className="cd-teacher-label">Instructor</p>
-                                <p className="cd-teacher-name">{COURSE.teacher.name}</p>
+                                <p className="cd-teacher-name">Dr. {topic?.teacher.givenName} {topic?.teacher.familyName}</p>
                             </div>
                         </div>
 
                         {/* Progress */}
-                        <div className="cd-progress-section">
-                            <div className="cd-progress-label">
-                                <span>Your progress</span>
-                                <span className="cd-progress-pct">{completionPct}%</span>
+                        {
+                            userAuth.role === "student" &&
+                            <div className="cd-progress-section">
+                                <div className="cd-progress-label">
+                                    <span>Your progress</span>
+                                    <span className="cd-progress-pct">{completionPct}%</span>
+                                </div>
+                                <div className="cd-progress-track">
+                                    <div className="cd-progress-fill" style={{ width: `${completionPct}%` }} />
+                                </div>
                             </div>
-                            <div className="cd-progress-track">
-                                <div className="cd-progress-fill" style={{ width: `${completionPct}%` }} />
-                            </div>
-                        </div>
+                        }
 
-                        <div className="cd-details-grid">
-                            <div className="cd-detail-item">
-                                <span className="cd-detail-icon">📚</span>
-                                <div>
-                                    <p className="cd-detail-label">Lessons</p>
-                                    <p className="cd-detail-val">{COURSE.lessonCount}</p>
+                        {
+                            type !== "tip" &&
+                            <div className="cd-details-grid">
+                                <div className="cd-detail-item">
+                                    <LessonIcon className="detail-item-icon" />
+                                    <div>
+                                        <p className="cd-detail-label">{type === "course" ? "Lessons" : "Exercises"}</p>
+                                        <p className="cd-detail-val">{type === "course" ? content?.lessons.length : content?.exercises.length}</p>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="cd-detail-item">
-                                <span className="cd-detail-icon">⏱️</span>
-                                <div>
-                                    <p className="cd-detail-label">Duration</p>
-                                    <p className="cd-detail-val">{COURSE.estimatedTime}</p>
+                                <div className="cd-detail-item">
+                                    <TimerIcon />
+                                    <div>
+                                        <p className="cd-detail-label">Duration</p>
+                                        <p className="cd-detail-val">6h 40min</p>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="cd-detail-item">
-                                <span className="cd-detail-icon">🎯</span>
-                                <div>
-                                    <p className="cd-detail-label">Level</p>
-                                    <p className="cd-detail-val">{COURSE.difficulty}</p>
+                                <div className="cd-detail-item">
+                                    <TargetIcon />
+                                    <div>
+                                        <p className="cd-detail-label">Level</p>
+                                        <p className="cd-detail-val">{content?.level}</p>
+                                    </div>
                                 </div>
+                                {
+                                    userAuth.role === "student" &&
+                                    <div className="cd-detail-item">
+                                        <DoneIcon />
+                                        <div>
+                                            <p className="cd-detail-label">Completed</p>
+                                            <p className="cd-detail-val">{doneLessons.size} / {content?.lessons.length}</p>
+                                        </div>
+                                    </div>
+                                }
                             </div>
-                            <div className="cd-detail-item">
-                                <span className="cd-detail-icon">✅</span>
-                                <div>
-                                    <p className="cd-detail-label">Completed</p>
-                                    <p className="cd-detail-val">{doneLessons.size} / {LESSONS.length}</p>
-                                </div>
-                            </div>
-                        </div>
+                        }
 
                         <div className="cd-tags">
-                            {COURSE.tags.map((tag) => (
+                            {/* {COURSE.tags.map((tag) => (
                                 <span className="cd-tag" key={tag}>{tag}</span>
-                            ))}
+                            ))} */}
+                            <span className="cd-tag" >{content?.category.name}</span>
+                            <span className="cd-tag" >{content?.subCategory?.name}</span>
                         </div>
                     </div>
 
                     {/* Lesson list */}
-                    <div className="cd-sidebar-card">
-                        <h4 className="cd-sidebar-card-title">Lessons</h4>
-                        <div className="cd-lesson-list">
-                            {LESSONS.map((l, i) => (
-                                <button
-                                    key={l.id}
-                                    className={`cd-lesson-list-item ${i === currentLessonIdx ? "cd-lesson-list-item--active" : ""} ${doneLessons.has(l.id) ? "cd-lesson-list-item--done" : ""}`}
-                                    onClick={() => goTo(i)}
-                                >
-                                    <span className="cd-lesson-num">
-                                        {doneLessons.has(l.id) ? (
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                                                <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-                                            </svg>
-                                        ) : i + 1}
-                                    </span>
-                                    <span className="cd-lesson-list-title">{l.title}</span>
-                                </button>
-                            ))}
+                    {
+                        type === "course" &&
+                        <div className="cd-sidebar-card">
+                            <h4 className="cd-sidebar-card-title">{type === "course" ? "Lessons" : "Exercises"}</h4>
+                            <div className="cd-lesson-list">
+                                {content?.lessons?.map((l, i) => (
+                                    <button
+                                        key={l.id}
+                                        className={`cd-lesson-list-item ${i === currentLessonIdx ? "cd-lesson-list-item--active" : ""} ${doneLessons.has(l.id) ? "cd-lesson-list-item--done" : ""}`}
+                                        onClick={() => goTo(i)}
+                                    >
+                                        <span className="cd-lesson-num">
+                                            {doneLessons.has(l.id) ? (
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                                                    <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                                                </svg>
+                                            ) : i + 1}
+                                        </span>
+                                        <span className="cd-lesson-list-title">{l.title}</span>
+                                    </button>
+                                ))}
+                            </div>
                         </div>
-                    </div>
+                    }
 
                     {/* Recommendations */}
                     <div className="cd-sidebar-card">

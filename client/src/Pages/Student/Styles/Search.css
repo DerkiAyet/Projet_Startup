@@ -1,0 +1,360 @@
+/* ─── Search Page ──────────────────────────────────────────────────────────── */
+
+.search-page {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.search-page::-webkit-scrollbar { display: none; }
+
+/* ─── Hero ─────────────────────────────────────────────────────────────────── */
+
+.search-hero {
+    width: 100%;
+    padding: 1rem 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.search-title {
+    font-family: 'Geologica', sans-serif;
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--dark-font-color);
+    margin: 0;
+    text-align: center;
+}
+
+.search-subtitle {
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.95rem;
+    color: var(--light-grey-font-color);
+    margin: 0 0 1rem;
+    text-align: center;
+}
+
+/* ─── Search bar wrapper ────────────────────────────────────────────────────── */
+
+.search-bar-wrapper {
+    width: 100%;
+    max-width: 680px;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1.5px solid var(--light-border-section);
+    overflow: visible;
+    transition: box-shadow 0.25s ease, border-color 0.25s ease;
+    position: relative;
+}
+
+.search-bar-wrapper.expanded {
+    border-color: var(--light-pink-accent-color);
+    box-shadow: 0 6px 28px rgba(242, 157, 182, 0.22);
+    border-radius: 20px 20px 0 0;
+}
+
+/* ─── Input row ─────────────────────────────────────────────────────────────── */
+
+.search-input-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.75rem 1rem;
+}
+
+.search-bar-icon {
+    flex-shrink: 0;
+    opacity: 0.45;
+    width: 18px;
+    height: 18px;
+}
+
+.search-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-family: 'Nunito', sans-serif;
+    font-size: 1rem;
+    color: var(--dark-font-color);
+    background: transparent;
+}
+
+.search-input::placeholder {
+    color: var(--light-font-color);
+}
+
+.search-clear-btn {
+    background: var(--light-bg-color);
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    color: var(--light-grey-font-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.2s, color 0.2s;
+}
+
+.search-clear-btn:hover {
+    background: var(--light-pink-accent-color);
+    color: #fff;
+}
+
+.search-go-btn {
+    padding: 0.45rem 1.1rem;
+    border-radius: 20px;
+    border: none;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 0.88rem;
+    background: var(--light-border-section);
+    color: var(--light-font-color);
+    cursor: default;
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+    flex-shrink: 0;
+}
+
+.search-go-btn.active {
+    background: var(--light-pink-accent-color);
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 3px 12px rgba(242, 157, 182, 0.4);
+}
+
+.search-go-btn.active:hover {
+    background: #e8829f;
+}
+
+/* ─── Selected pills row ────────────────────────────────────────────────────── */
+
+.search-selected-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0 1rem 0.75rem;
+    border-top: 1px solid var(--light-border-section);
+    padding-top: 0.6rem;
+}
+
+.selected-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: #fde8ef;
+    color: #c0607c;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 0.78rem;
+    padding: 0.28rem 0.55rem 0.28rem 0.65rem;
+    border-radius: 20px;
+    animation: pillPop 0.18s ease;
+}
+
+@keyframes pillPop {
+    from { opacity: 0; transform: scale(0.8); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+.selected-pill button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #c0607c;
+    font-size: 0.65rem;
+    padding: 0;
+    line-height: 1;
+    opacity: 0.7;
+    transition: opacity 0.15s;
+}
+
+.selected-pill button:hover { opacity: 1; }
+
+/* ─── Category dropdown ─────────────────────────────────────────────────────── */
+
+.search-category-dropdown {
+    position: absolute;
+    top: 100%;
+    left: -1.5px;
+    right: -1.5px;
+    background: #fff;
+    border: 1.5px solid var(--light-pink-accent-color);
+    border-top: none;
+    border-radius: 0 0 20px 20px;
+    padding: 0.75rem 1rem 1rem;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    animation: dropdownOpen 0.2s ease;
+}
+
+@keyframes dropdownOpen {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-label {
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--light-grey-font-color);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 0 0 0.6rem;
+}
+
+.dropdown-cats-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+/* ─── Category chip ─────────────────────────────────────────────────────────── */
+
+.dropdown-cat-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    border: 1.5px solid var(--light-border-section);
+    background: #fff;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 600;
+    font-size: 0.82rem;
+    color: var(--dark-font-title-color);
+    cursor: pointer;
+    transition: border-color 0.18s, background 0.18s, color 0.18s, transform 0.12s;
+    position: relative;
+}
+
+.dropdown-cat-chip:hover {
+    border-color: var(--light-pink-accent-color);
+    background: #fff5f8;
+    transform: translateY(-1px);
+}
+
+/* matches user interests — subtle pink dot indicator */
+.chip--interest {
+    border-color: #f5c6d4;
+    background: #fffafb;
+}
+
+.chip-interest-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--light-pink-accent-color);
+    flex-shrink: 0;
+}
+
+/* selected chip */
+.chip--selected {
+    background: linear-gradient(135deg, #fde8ef, #fff0f5);
+    border-color: var(--light-pink-accent-color);
+    color: #c0607c;
+}
+
+.chip-check {
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: var(--light-pink-accent-color);
+}
+
+/* ─── Results area ──────────────────────────────────────────────────────────── */
+
+.search-results-area {
+    width: 100%;
+    padding: 1.5rem 2rem 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+}
+
+.results-header {
+    width: 100%;
+    max-width: 100%;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.88rem;
+    color: var(--light-grey-font-color);
+    font-weight: 600;
+    padding-bottom: 0.5rem;
+    border-bottom: 1.5px solid var(--light-border-section);
+}
+
+/* ─── Empty / Loading states ────────────────────────────────────────────────── */
+
+.search-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 3rem;
+    color: var(--light-grey-font-color);
+    font-family: 'Nunito', sans-serif;
+    text-align: center;
+}
+
+.search-empty-state .empty-icon {
+    font-size: 2.5rem;
+}
+
+.search-empty-state p {
+    font-size: 0.95rem;
+    margin: 0;
+    color: var(--light-grey-font-color);
+}
+
+.search-clear-btn-alt {
+    margin-top: 0.4rem;
+    padding: 0.45rem 1.2rem;
+    border-radius: 20px;
+    border: 1.5px solid var(--light-border-section);
+    background: #fff;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--dark-font-title-color);
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+}
+
+.search-clear-btn-alt:hover {
+    border-color: var(--light-pink-accent-color);
+    color: var(--light-pink-accent-color);
+}
+
+.search-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem;
+    margin-top: 3rem;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.9rem;
+    color: var(--light-grey-font-color);
+}
+
+.loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--light-border-section);
+    border-top-color: var(--light-pink-accent-color);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}

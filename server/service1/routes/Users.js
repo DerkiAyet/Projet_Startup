@@ -317,17 +317,17 @@ router.post('/:id/add-sub-subject', async (req, res) => {
 
 })
 
-router.delete('/delete-subject/:name', async (req, res) => {
+router.delete('/delete-subject/:id', async (req, res) => {
 
-    const { name } = req.params.name
+    const  id  = req.params.id
 
     try {
 
-        const subject = await Subjects.findOne({ where: { name: name } })
+        const subject = await Subjects.findByPk(id)
 
         if (subject) {
 
-            await Subjects.destroy({ where: { name: name } })
+            await Subjects.destroy({where: {idSubject: id}})
 
             return res.status(200).json({
                 msg: "subject deleted sucessfully",
@@ -345,6 +345,28 @@ router.delete('/delete-subject/:name', async (req, res) => {
 
     }
 
+})
+
+router.get('/subjects/:id', async (req, res) => {
+    try {
+        const subject = await Subjects.findByPk(req.params.id)
+        if (!subject) return res.status(404).json("subject not found")
+        res.status(200).json(subject)
+    } catch (error) {
+        console.log(error.message);
+        res.status(500).json("Internal Server Error", error);
+    }
+})
+
+router.get('/sub-subjects/:id', async (req, res) => {
+    try {
+        const subject = await SubSubjects.findByPk(req.params.id)
+        if (!subject) return res.status(404).json("sub subject not found")
+        res.status(200).json(subject)
+    } catch (error) {
+        console.log(error.message);
+        res.status(500).json("Internal Server Error", error);
+    }
 })
 
 router.get('/get-subjects', async (req, res) => {
@@ -375,7 +397,7 @@ router.get('/get-subjects', async (req, res) => {
 router.post("/student/interests", async (req, res) => {
     try {
         const studentId = req.headers["x-user-id"]; // student id from token
-        const { interests } = req.body;
+        const  interests  = req.body.interests;
 
         if (!Array.isArray(interests) || interests.length === 0) {
             return res.status(400).json({ error: "Interests must be a non-empty array." });
@@ -456,7 +478,7 @@ router.delete("/student/remove-interest/:subjectId", async (req, res) => {
 router.post("/teacher/expertise", async (req, res) => {
     try {
         const teacherId = req.headers['x-user-id'];
-        const { expertise } = req.body;
+        const  expertise  = req.body.interests ;
 
         if (!Array.isArray(expertise) || expertise.length === 0) {
             return res.status(400).json({ error: "Expertise must be a non-empty array." });

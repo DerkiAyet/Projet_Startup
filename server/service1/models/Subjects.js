@@ -25,15 +25,15 @@ module.exports = (sequelize, DataTypes) => {
     Subjects.associate = (models) => {
 
         Subjects.belongsToMany(models.Teachers, {
-            through: 'teacher_expertise',
-            foreignKey: 'idSubject',
+            through: models.TeacherExpertise,
+            foreignKey: 'idExpertise',
             otherKey: 'idTeacher'
         });
 
         Subjects.belongsToMany(models.Students, {
-            through: 'student_interests',
-            foreignKey: 'idInterest',
-            otherKey: 'idStudent'
+            through: models.StudentInterest, // Use the model, not string!
+            foreignKey: 'idInterest', // This is the key in the through table that references Subjects
+            otherKey: 'idStudent'     // This references Students
         });
 
     }
