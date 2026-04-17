@@ -1,0 +1,459 @@
+/* ── Overlay ──────────────────────────────────────────────────────────────── */
+.calc-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(30, 41, 59, 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1100;
+    padding: 1rem;
+    animation: calcOverlayIn 0.2s ease;
+}
+
+@keyframes calcOverlayIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* ── Shell ────────────────────────────────────────────────────────────────── */
+.calc-shell {
+    width: 100%;
+    position: absolute;
+    bottom: 50px;
+    right: 2rem;
+    max-width: 350px;
+    max-height: 450px;
+    background: #fff;
+    border-radius: 28px;
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    animation: calcShellIn 0.28s cubic-bezier(0.34, 1.4, 0.64, 1);
+    z-index: 10000;
+
+}
+
+@keyframes calcShellIn {
+    from {
+        opacity: 0;
+        transform: scale(0.88) translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* ── Header ───────────────────────────────────────────────────────────────── */
+.calc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.7rem 1.4rem;
+    background: linear-gradient(135deg, #F29DB6 0%, #f472b6 100%);
+    flex-shrink: 0;
+}
+
+.calc-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.calc-header-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.calc-title {
+    font-family: 'Geologica', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #fff;
+    margin: 0;
+}
+
+.calc-sub {
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0;
+}
+
+.calc-close-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+
+.calc-close-btn:hover {
+    background: rgba(255, 255, 255, 0.35);
+}
+
+.calc-hist-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.85rem;
+    border-radius: 20px;
+    border: none;
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+
+.calc-hist-toggle:hover {
+    background: rgba(255, 255, 255, 0.32);
+}
+
+/* ── Body ─────────────────────────────────────────────────────────────────── */
+.calc-body {
+    display: flex;
+    flex-direction: column;
+    background: #fdf6f9;
+    overflow-y: auto;
+}
+
+.calc-body::-webkit-scrollbar {
+    display: none;
+}
+
+/* ── History panel ────────────────────────────────────────────────────────── */
+.calc-history-panel {
+    background: #fff;
+    border-bottom: 1.5px solid var(--light-border-section, #D9E1E7);
+    padding: 0.75rem 1rem;
+    max-height: 200px;
+    overflow-y: auto;
+    animation: histSlide 0.2s ease;
+}
+
+@keyframes histSlide {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.calc-history-panel::-webkit-scrollbar {
+    width: 3px;
+}
+
+.calc-history-panel::-webkit-scrollbar-thumb {
+    background: #f3d2e8;
+    border-radius: 3px;
+}
+
+.calc-history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.calc-history-header span {
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #8A8A8A;
+}
+
+.calc-history-header button {
+    border: none;
+    background: none;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.75rem;
+    color: #F29DB6;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.calc-history-empty {
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.82rem;
+    color: #A6A6A6;
+    text-align: center;
+    padding: 0.5rem 0;
+    margin: 0;
+}
+
+.calc-history-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.calc-history-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.4rem 0.6rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+    gap: 1rem;
+}
+
+.calc-history-list li:hover {
+    background: #fde8ef;
+}
+
+.hist-expr {
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.8rem;
+    color: #8A8A8A;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+}
+
+.hist-result {
+    font-family: 'Geologica', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #F29DB6;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ── Display ──────────────────────────────────────────────────────────────── */
+.calc-display {
+    padding: 1rem 1.4rem 0.8rem;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+    min-height: 70px;
+    position: relative;
+}
+
+.calc-display-mode {
+    position: absolute;
+    top: 0.8rem;
+    left: 1rem;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #F29DB6;
+    background: #fde8ef;
+    padding: 2px 8px;
+    border-radius: 20px;
+}
+
+.calc-display-expr {
+    font-family: 'Geologica', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #1E293B;
+    word-break: break-all;
+    text-align: right;
+    max-width: 100%;
+    line-height: 1.2;
+}
+
+.calc-display-preview {
+    font-family: 'Nunito', sans-serif;
+    font-size: 1rem;
+    color: #A6A6A6;
+    text-align: right;
+}
+
+/* ── Button grid ──────────────────────────────────────────────────────────── */
+.calc-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.55rem;
+    padding: 0.75rem 1rem 1.1rem;
+}
+
+/* ── Base button ──────────────────────────────────────────────────────────── */
+.calc-btn {
+    height: 46px;
+    border: none;
+    border-radius: 14px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.calc-btn:active,
+.calc-btn--pressed {
+    transform: scale(0.92);
+}
+
+/* equals spans full row */
+.calc-btn--wide {
+    grid-column: 1 / -1;
+    height: 52px;
+    font-size: 1.2rem;
+    border-radius: 16px;
+}
+
+/* ── Button type colours ──────────────────────────────────────────────────── */
+
+/* digits */
+.calc-btn--digit {
+    background: #fff;
+    color: #1E293B;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.calc-btn--digit:hover {
+    background: #f8fafc;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.09);
+}
+
+/* operators */
+.calc-btn--op {
+    background: #fde8ef;
+    color: #c0607c;
+}
+
+.calc-btn--op:hover {
+    background: #fbd4e3;
+}
+
+/* functions (sin, cos, sqrt …) */
+.calc-btn--fn {
+    background: #f0f4ff;
+    color: #4f46e5;
+    font-size: 0.82rem;
+}
+
+.calc-btn--fn:hover {
+    background: #e0e8ff;
+}
+
+/* constants (π, e) */
+.calc-btn--const {
+    background: #f0fdf4;
+    color: #15803d;
+}
+
+.calc-btn--const:hover {
+    background: #dcfce7;
+}
+
+/* parentheses */
+.calc-btn--paren {
+    background: #fff;
+    color: #8A8A8A;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.calc-btn--paren:hover {
+    background: #f8fafc;
+}
+
+/* clear */
+.calc-btn--clear {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.calc-btn--clear:hover {
+    background: #fecaca;
+}
+
+/* delete */
+.calc-btn--del {
+    background: #fef3c7;
+    color: #b45309;
+    font-size: 1.1rem;
+}
+
+.calc-btn--del:hover {
+    background: #fde68a;
+}
+
+/* mode toggle */
+.calc-btn--mode {
+    background: #f1f5f9;
+    color: #64748b;
+    font-size: 0.8rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+}
+
+.calc-btn--mode:hover {
+    background: #e2e8f0;
+}
+
+.calc-btn--mode-active {
+    background: #F29DB6;
+    color: #fff;
+    box-shadow: 0 3px 10px rgba(242, 157, 182, 0.4);
+}
+
+/* negate */
+.calc-btn--negate {
+    background: #fff;
+    color: #1E293B;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.calc-btn--negate:hover {
+    background: #f8fafc;
+}
+
+/* equals */
+.calc-btn--equals {
+    background: linear-gradient(135deg, #F29DB6, #f472b6);
+    color: #fff;
+    box-shadow: 0 4px 18px rgba(242, 157, 182, 0.45);
+    font-size: 1.3rem;
+}
+
+.calc-btn--equals:hover {
+    box-shadow: 0 6px 24px rgba(242, 157, 182, 0.55);
+    transform: translateY(-1px);
+}

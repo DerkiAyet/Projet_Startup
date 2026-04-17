@@ -49,7 +49,7 @@ function CreateTip() {
     useEffect(() => {
 
         axios.defaults.withCredentials = true
-        axios.get('http://localhost:8080/auth/infos/get-subjects')
+        axios.get('http://localhost:8080/users/infos/get-teacher-expertise')
             .then((res) => setCategories(res.data))
             .catch((err) => console.error(err.response.data))
 

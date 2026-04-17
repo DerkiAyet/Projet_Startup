@@ -21,7 +21,7 @@ router.post('/enrollements/:courseId', async (req, res) => {
         if (userRole !== 'student') return res.status(403).json({ error: "Unauthorized" });
 
         const enrollementExisted = await EnrollementModel.findOne({ studentId: studentId, courseId: courseId })
-        if (enrollementExisted) return res.status(400).json({ error: "student already enrolled the course" })
+        if (enrollementExisted) return res.status(200).json({ exist: "student already enrolled the course" })
 
         const newEnrollement = await EnrollementModel.create({
             studentId,
@@ -37,7 +37,7 @@ router.post('/enrollements/:courseId', async (req, res) => {
     }
 })
 
-router.get('/enrollements/:idCourse', async(req, res) => {
+router.get('/enrollements/:idCourse', async (req, res) => {
     const studentId = req.headers['x-user-id']
     const courseId = req.params.idCourse
 
@@ -67,13 +67,64 @@ router.get('/courses-enrolled', async (req, res) => {
 
         const enrolls = await EnrollementModel.find({ studentId: userId })
         if (!enrolls.length) return res.status(404).json({ error: "No courses enrolled yet" })
-        const courses = await Promise.all(
-            enrolls.map(async (enrollement) => {
-                return await CourseModel.findById(enrollement.courseId)
-            })
-        )
 
-        res.status(200).json(courses)
+        const enrichedEnrolls = await Promise.all(enrolls.map(async (enroll) => {
+            const course = await CourseModel.findById(enroll.courseId)
+
+            const authServiceBaseUrl = await discoverAuthService()
+            const responseUser = await axios.get(`${authServiceBaseUrl}/get_user_byId/${course.teacherId}`)
+
+            const responseCategory = await axios.get(`${authServiceBaseUrl}/infos/subjects/${course.category.id}`);
+
+            let responseField = null;
+            if (course.category.subCategory) {
+                responseField = await axios.get(`${authServiceBaseUrl}/infos/sub-subjects/${course.category.subCategory}`);
+            }
+
+            const thumbnail = course.thumbnail
+                ? `http://localhost:8080/content/uploads/${course.thumbnail}`
+                : `http://localhost:8080/auth/uploads/${responseCategory.data.subImg}`;
+
+            return {
+                _id: enroll._id,
+                courseId: enroll.courseId,
+                studentId: enroll.studentId,
+                lessonsCompleted: enroll.lessonsCompleted,
+                totalLessons: course.lessons.length,
+                enrolledAt: enroll.enrolledAt,
+                course: {
+                    _id: course._id,
+                    teacherId: course.teacherId,
+                    title: course.title,
+                    description: course.description,
+                    thumbnail,
+                    level: course.level,
+                    category: {
+                        idSubject: responseCategory.data.idSubject,
+                        name: responseCategory.data.name,
+                        color: responseCategory.data.color
+                    },
+                    subCategory: responseField
+                        ? {
+                            idSub: responseField.data.idSub,
+                            name: responseField.data.name
+                        }
+                        : null,
+                    lessons: course.lessons,
+                    teacher: {
+                        userId: responseUser.data.user.id,
+                        userName: responseUser.data.user.userName,
+                        familyName: responseUser.data.user.familyName,
+                        givenName: responseUser.data.user.givenName,
+                        userImg: responseUser.data.user.uerImg,
+                        role: "teacher"
+                    } || null
+                }
+            }
+        }))
+
+        res.status(200).json(enrichedEnrolls)
+
     } catch (error) {
         console.log("error while fetching the courses", error.message)
         res.status(500).json("Internal server error", error)
@@ -108,7 +159,7 @@ router.put("/enrollements/:id/lesson-completed/:lessonId", async (req, res) => {
 
 //--------Student Solutions
 
-router.post('/solutions/:assignmentId', async (req, res) => {
+router.put('/solutions/:assignmentId/draft', async (req, res) => {
     const studentId = req.headers['x-user-id']
     const assignmentId = req.params.assignmentId
 
@@ -120,15 +171,54 @@ router.post('/solutions/:assignmentId', async (req, res) => {
         if (userRole !== 'student') return res.status(403).json({ error: "Unauthorized" });
 
         const studentSolution = await SolvingModel.findOne({ studentId: studentId, assignment: assignmentId })
-        if (studentSolution) return res.status(400).json({ error: "student already sent a solution of the assignment" })
+
+        if (studentSolution) {
+            studentSolution.problemsSolved = req.body.problemsSolved
+            await studentSolution.save()
+            return res.status(200).json(studentSolution)
+        }
 
         const newSolution = await SolvingModel.create({
             studentId,
             assignment: assignmentId,
             problemsSolved: req.body.problemsSolved
         })
-
         res.status(200).json(newSolution)
+
+    } catch (error) {
+        console.log("error while adding the solution of student", error.message)
+        res.status(500).json("Internal server error", error)
+    }
+})
+
+router.put('/solutions/:assignmentId/submit', async (req, res) => {
+    const studentId = req.headers['x-user-id']
+    const assignmentId = req.params.assignmentId
+
+    try {
+        const serviceAuthBaseUrl = await discoverAuthService();
+        const response = await axios.get(`${serviceAuthBaseUrl}/get_user_byId/${studentId}`, { timeout: 5000 });
+
+        const userRole = response.data.user.role;
+        if (userRole !== 'student') return res.status(403).json({ error: "Unauthorized" });
+
+        const studentSolution = await SolvingModel.findOne({ studentId: studentId, assignment: assignmentId })
+
+        if (studentSolution) {
+            studentSolution.problemsSolved = req.body.problemsSolved
+            studentSolution.posted = true
+            await studentSolution.save()
+            return res.status(200).json(studentSolution)
+        }
+
+        const newSolution = await SolvingModel.create({
+            studentId,
+            assignment: assignmentId,
+            problemsSolved: req.body.problemsSolved,
+            posted: true
+        })
+        res.status(200).json(newSolution)
+
     } catch (error) {
         console.log("error while adding the solution of student", error.message)
         res.status(500).json("Internal server error", error)
@@ -174,11 +264,13 @@ router.post("/quiz-attempts/start", async (req, res) => {
         const quiz = await QuizModel.findById(quizId);
         if (!quiz) return res.status(404).json({ error: "Quiz not found" });
 
-        const existing = await QuizAttemptModel.findOne({ studentId, quizId, completedAt: null });
-        if (existing) return res.status(400).json({ error: "You already have an ongoing attempt for this quiz" });
+        // If an incomplete attempt exists, return it instead of creating a new one
+        const existing = await QuizAttemptModel.findOne({ studentId, quizId });
+        if (existing && !existing.completedAt) return res.status(200).json({ attempt: existing, resumed: true }); // resumed: frontend uses this to know it's a resume
+        if (existing && existing.completedAt) return res.status(200).json({ attempt: existing, solved: true, message: "You have already completed this quiz. Starting a new attempt is not allowed." });
+
 
         const maxScore = quiz.questions.reduce((sum, q) => sum + (q.points || 1), 0);
-
         const attempt = await QuizAttemptModel.create({
             studentId,
             quizId,
@@ -186,10 +278,38 @@ router.post("/quiz-attempts/start", async (req, res) => {
             startedAt: new Date(),
         });
 
-        res.status(201).json(attempt);
+        res.status(201).json({ attempt, resumed: false });
 
     } catch (error) {
         console.log("Error starting quiz attempt:", error.message);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
+
+// save the attempt without submitting (allows resuming later, no score calculation)
+router.put("/quiz-attempts/:attemptId/save", async (req, res) => {
+    const studentId = req.headers["x-user-id"];
+    const { attemptId } = req.params;
+    const { answers } = req.body;
+
+    try {
+        const attempt = await QuizAttemptModel.findById(attemptId);
+        if (!attempt) return res.status(404).json({ error: "Attempt not found" });
+
+        if (attempt.studentId != studentId)
+            return res.status(403).json({ error: "Unauthorized" });
+
+        if (attempt.completedAt)
+            return res.status(400).json({ error: "This attempt has already been submitted" });
+
+        // Just save answers, no scoring, no completedAt
+        attempt.answers = answers;
+        await attempt.save();
+
+        res.status(200).json(attempt);
+
+    } catch (error) {
+        console.log("Error saving quiz progress:", error.message);
         res.status(500).json({ error: "Internal server error" });
     }
 });

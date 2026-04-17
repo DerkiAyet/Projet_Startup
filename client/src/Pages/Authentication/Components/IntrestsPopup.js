@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import '../Styles/IntrestsPopup.css';
 import axios from 'axios'
 
-const MIN_SELECTION = 3;
+const MIN_SELECTION = 1;
 
 const IntrestsPopup = ({ onFinish }) => {
+
     const [selected, setSelected] = useState(new Set());
 
     const [categories, setCategories] = useState([])

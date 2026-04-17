@@ -1,17 +1,27 @@
-import React from 'react'
+import React, { useContext } from 'react'
 import { Link } from 'react-router-dom';
 import { ReactComponent as CalendarIcon } from '../../../Assets/icons/NavIcons/calendar.svg';
 import { ReactComponent as CommentIcon } from '../../../Assets/icons/TimelineIcons/comment-post.svg';
 import { ReactComponent as SaveIcon } from '../../../Assets/icons/TimelineIcons/bookmark.svg';
 import { ReactComponent as AuthorIcon } from '../../../Assets/icons/CourseIcons/profile-course.svg';
 import { ReactComponent as SharIcon } from '../../../Assets/icons/TimelineIcons/share-post.svg';
+import { AppContext } from '../../../App';
 
 
 function HeaderContent({ title, creatorName, creationDate, commentCount, saveCount, ratingAvg,  }) {
+
+    const {userAuth} = useContext(AppContext)
+
     return (
         <div className="cd-header">
             <div className="link-line">
-                <Link to="/courses">Courses</Link> &gt; <span>{title}</span>
+                {
+                    userAuth.role === "student" ? (
+                        <Link to="/activities">My Activities</Link>
+                    ) : (
+                        <Link to="/courses">Courses</Link>
+                    )
+                    } &gt; <span>{title}</span>
             </div>
             <h1>
                 {title}

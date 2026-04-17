@@ -1,11 +1,14 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar'
 import { format, parse, startOfWeek, getDay } from 'date-fns'
 import { enUS } from 'date-fns/locale'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 import '../Styles/Calendar.css'
 import { ReactComponent as CloseIcon } from '../../../Assets/icons/TimelineIcons/close.svg'
+import { ReactComponent as DateIcon } from '../../../Assets/icons/Calendar/date.svg'
+import { ReactComponent as TimeIcon } from '../../../Assets/icons/Calendar/time-calendar.svg'
 import ChartImg from '../../../Assets/images/chart-img.png'
+import axios from 'axios'
 
 
 const localizer = dateFnsLocalizer({
@@ -16,43 +19,34 @@ const localizer = dateFnsLocalizer({
 const EVENT_TYPES = {
     Lecture: { color: '#6FAEF0', light: '#E7F3FF' },
     Assessment: { color: '#F2C94C', light: '#FFF7D6' },
-    Meeting: { color: '#F29DB6', light: '#FFE4EC' },
+    Meeting: { color: '#FF725E', light: '#FFB5A9' },
     Planning: { color: '#9FE8B4', light: '#DFF8E6' }
 }
 
 function CalendarPage() {
-    const [events, setEvents] = useState([
-        {
-            title: "Algebra Lecture",
-            start: new Date("2026-03-30T09:00:00"),
-            end: new Date("2026-03-30T11:00:00"),
-            type: "Lecture",
-        },
-        {
-            title: "Midterm Assessment",
-            start: new Date("2026-04-02T14:00:00"),
-            end: new Date("2026-04-02T16:00:00"),
-            type: "Assessment",
-        },
-        {
-            title: "Weekly Teacher Meeting",
-            start: new Date("2026-03-31T10:00:00"),
-            end: new Date("2026-03-31T11:00:00"),
-            type: "Meeting",
-        },
-        {
-            title: "Lesson Planning Session",
-            start: new Date("2026-04-01T13:00:00"),
-            end: new Date("2026-04-01T15:00:00"),
-            type: "Planning",
-        },
-        {
-            title: "Student Support Session",
-            start: new Date("2026-03-29T16:00:00"),
-            end: new Date("2026-03-29T17:00:00"),
-            type: "Support",
-        }
-    ]);
+
+    const [events, setEvents] = useState([]);
+    useEffect(() => {
+
+        axios.defaults.withCredentials = true
+        axios.get('http://localhost:8080/content/events')
+            .then((res) => {
+                const eventsFromServer = res.data.map(e => {
+                    const [year, month, day] = e.date.split("-").map(Number);
+                    const [sh, sm] = e.startHour.split(":").map(Number);
+                    const [eh, em] = e.endHour.split(":").map(Number); // This method of creating dates is the safest way in JavaScript, because it avoids string parsing issues, some browsers might have trouble parsing "2026-03-30T09:00:00" for example, but new Date(2026, 2, 30, 9, 0) will always work as expected (month is 0-indexed in this constructor)
+                    return {
+                        title: e.title,
+                        type: e.type,
+                        start: new Date(year, month - 1, day, sh, sm),
+                        end: new Date(year, month - 1, day, eh, em)
+                    }
+                });
+                setEvents(eventsFromServer);
+            })
+            .catch((err) => console.error(err.response.data))
+
+    }, [])
 
 
     const [modal, setModal] = useState(null)
@@ -75,46 +69,38 @@ function CalendarPage() {
         const end = new Date(modal.date)
         end.setHours(eh, em, 0)
 
-        setEvents([...events, {
+        const year = modal.date.getFullYear();
+        const month = String(modal.date.getMonth() + 1).padStart(2, '0');
+        const day = String(modal.date.getDate()).padStart(2, '0');
+
+        //Prepare payload for backend
+        const payload = {
             title: form.title,
-            start,
-            end,
             type: form.type,
-        }])
+            date: `${year}-${month}-${day}`, // YYYY-MM-DD format
+            startHour: form.startTime,
+            endHour: form.endTime,
+        };
 
-        // Prepare payload for backend
-        // const payload = {
-        //     title: form.title,
-        //     type: form.type,
-        //     date: modal.date.toISOString().split('T')[0], // "YYYY-MM-DD"
-        //     startHour: form.startTime, // "HH:mm"
-        //     endHour: form.endTime,     // "HH:mm"
-        // };
+        try {
+            await axios.post('http://localhost:8080/content/events', payload, {
+                headers: { 'Content-Type': 'application/json' },
+            });
 
-        // try {
-        //     const response = await fetch('https://your-backend.com/api/events', {
-        //         method: 'POST',
-        //         headers: {
-        //             'Content-Type': 'application/json',
-        //         },
-        //         body: JSON.stringify(payload),
-        //     });
-
-        //     if (!response.ok) {
-        //         throw new Error('Failed to save event');
-        //     }
-
-        //     const result = await response.json();
-        //     console.log('Event saved:', result);
-        // } catch (error) {
-        //     console.error(error);
-        // }
-
+            setEvents([...events, {
+                title: form.title,
+                start,
+                end,
+                type: form.type,
+            }])
+        } catch (error) {
+            console.error('Failed to save event:', error.response?.data || error.message);
+        }
 
         setModal(null)
     }
 
-    // This is how react-big-calendar lets you style individual events
+    // This is how react-big-calendar lets me style individual events
     const eventPropGetter = (event) => {
         const { color, light } = EVENT_TYPES[event.type] || EVENT_TYPES.Lecture
         return {
@@ -156,10 +142,10 @@ function CalendarPage() {
             <div className='calendar-wrapper'>
                 <div className="calendar-top-container">
                     <div className="card">
-                        <div className="title-card"> All schedule</div>
+                        <div className="title-card" style={{color: "#EC4899"}}> All schedule</div>
                         <div className="card-content">
                             <div style={{ display: "flex", gap: "6px", alignItems: "flex-end" }}>
-                                <h2 style={{ color: "#000" }}>15</h2>
+                                <h2 style={{ color: "#000" }}> {events.length} </h2>
                                 <span style={{ color: "#8A8A8A", marginBottom: "3px" }}>Agenda</span>
                             </div>
                             <img src={ChartImg} alt="Chart" />
@@ -169,7 +155,7 @@ function CalendarPage() {
                         <div className="title-card" style={{ backgroundColor: "#6FAEF0", color: "#E7F3FF" }}> All Lectures</div>
                         <div className="card-content">
                             <div style={{ display: "flex", gap: "6px", alignItems: "flex-end" }}>
-                                <h2 style={{ color: "#000" }}>15</h2>
+                                <h2 style={{ color: "#000" }}> {events.filter(e => e.type === 'Lecture').length} </h2>
                                 <span style={{ color: "#8A8A8A", marginBottom: "3px" }}>Agenda</span>
                             </div>
                             <img src={ChartImg} alt="Chart" />
@@ -179,7 +165,7 @@ function CalendarPage() {
                         <div className="title-card" style={{ backgroundColor: "#F2C94C", color: "#FFF7D6" }}> All Assessements</div>
                         <div className="card-content">
                             <div style={{ display: "flex", gap: "6px", alignItems: "flex-end" }}>
-                                <h2 style={{ color: "#000" }}>15</h2>
+                                <h2 style={{ color: "#000" }}> {events.filter(e => e.type === 'Assessment').length} </h2>
                                 <span style={{ color: "#8A8A8A", marginBottom: "3px" }}>Agenda</span>
                             </div>
                             <img src={ChartImg} alt="Chart" />
@@ -189,17 +175,17 @@ function CalendarPage() {
                         <div className="title-card" style={{ backgroundColor: "#9FE8B4", color: "#DFF8E6" }}> All Planning</div>
                         <div className="card-content">
                             <div style={{ display: "flex", gap: "6px", alignItems: "flex-end" }}>
-                                <h2 style={{ color: "#000" }}>15</h2>
+                                <h2 style={{ color: "#000" }}> {events.filter(e => e.type === 'Planning').length} </h2>
                                 <span style={{ color: "#8A8A8A", marginBottom: "3px" }}>Agenda</span>
                             </div>
                             <img src={ChartImg} alt="Chart" />
                         </div>
                     </div>
                     <div className="card">
-                        <div className="title-card" style={{ backgroundColor: "#F29DB6", color: "#FFE4EC" }}> All Meetings</div>
+                        <div className="title-card" style={{ backgroundColor: "#FFB5A9", color: "#FF725E" }}> All Meetings</div>
                         <div className="card-content">
                             <div style={{ display: "flex", gap: "6px", alignItems: "flex-end" }}>
-                                <h2 style={{ color: "#000" }}>15</h2>
+                                <h2 style={{ color: "#000" }}> {events.filter(e => e.type === 'Meeting').length} </h2>
                                 <span style={{ color: "#8A8A8A", marginBottom: "3px" }}>Agenda</span>
                             </div>
                             <img src={ChartImg} alt="Chart" />
@@ -265,20 +251,31 @@ function CalendarPage() {
                         eventPropGetter={eventPropGetter}  // ← applies per-event styles
                     />
                     <div className="the-coming-events">
-                        <h3>Upcoming Events</h3>
-                        {events
-                            .filter(e => e.start > new Date())
-                            .sort((a, b) => a.start - b.start)
-                            .slice(0, 5)
-                            .map((e, idx) => (
-                                <div key={idx} className="upcoming-event">
-                                    <div className="event-color" style={{ backgroundColor: EVENT_TYPES[e.type]?.color || '#6FAEF0' }} />
-                                    <div>
-                                        <p className="event-title">{e.title}</p>
-                                        <p className="event-time">{format(e.start, 'MMM d, yyyy, h:mm a')}</p>
+                        <h3 className="upcoming-title">Upcoming Events</h3>
+
+                        <div className="upcoming-list">
+                            {events
+                                .filter(e => e.start > new Date())
+                                .sort((a, b) => a.start - b.start)
+                                .slice(0, 5)
+                                .map((e, idx) => (
+                                    <div key={idx} className="upcoming-event-card" style={{ backgroundColor: EVENT_TYPES[e.type]?.light || "#6FAEF0" }}>
+
+                                        <div className="event-info">
+                                            <p className="event-type" style={{ backgroundColor: EVENT_TYPES[e.type]?.color || "#6FAEF0" , color: EVENT_TYPES[e.type]?.light || "#fff" }}>{e.type}</p>
+                                            <p className="event-title">{e.title}</p>
+                                            <div className="event-line-param">
+                                                <DateIcon className="event-icon" />
+                                                <p className="event-time">{format(e.start, "MMM d, yyyy")}</p>
+                                            </div>
+                                            <div className="event-line-param">
+                                                <TimeIcon className="event-icon" />
+                                                <p className="event-time">{format(e.start, "h:mm a")}</p>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                ))}
+                        </div>
                     </div>
                 </div>
             </div>

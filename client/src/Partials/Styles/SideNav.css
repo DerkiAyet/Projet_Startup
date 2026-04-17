@@ -157,8 +157,8 @@
     width: var(--sidenav-width);
 }
 
-.sidenav nav ul li span{
-     color: var(--fill-white);
+.sidenav nav ul li span {
+    color: var(--fill-white);
 }
 
 
@@ -302,6 +302,10 @@
 
 .logout-btn {
     background-color: transparent;
+}
+
+#light-mode .more_btn.logout .link:hover span {
+    color: var(--bg-modal) !important;
 }
 
 .more-container .line-decoration {
@@ -722,30 +726,30 @@
 
 
 @keyframes shrikhNotification {
-  0% {
-    width: 600px;
-  }
+    0% {
+        width: 600px;
+    }
 
-  100% {
-    width: 0px;
-  }
+    100% {
+        width: 0px;
+    }
 }
 
 @keyframes expandNotification {
-  0% {
-    width: 0;
-  }
+    0% {
+        width: 0;
+    }
 
-  100% {
-    width: 600px;
-  }
+    100% {
+        width: 600px;
+    }
 }
 
-.sidenav-container.open-notification-page .notif-page{
+.sidenav-container.open-notification-page .notif-page {
     animation: expandNotification 1s ease-in-out forwards;
 }
 
-.sidenav-container.closing-notification-page .notif-page{
+.sidenav-container.closing-notification-page .notif-page {
     animation: shrikhNotification 1s ease-in-out forwards;
 }
 

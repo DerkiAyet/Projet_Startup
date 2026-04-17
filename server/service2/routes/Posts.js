@@ -50,15 +50,65 @@ const upload = multer({
 
 router.get("/", async (req, res) => {
     try {
-        // Fetch posts
-        const posts = await Post.find().sort({ createdAt: -1 });
+        const currentUserId = req.headers["x-user-id"];
+        if (!currentUserId)
+            return res.status(400).json({ error: "Missing user ID" });
 
         // Discover AUTH-SERVICE URL from Eureka
         const authServiceBaseUrl = await discoverAuthService();
 
-        // For each post, fetch user info
-        const enrichedPosts = await Promise.all( //  a built-in JavaScript method that allows you to run multiple asynchronous operations in parallel and wait for all of them to complete
-            posts.map(async (post) => {
+        // Fetch user interests from AUTH service
+        const { data: userInterests } = await axios.get(
+            `${authServiceBaseUrl}/infos/get-user-intrests`,
+            {
+                headers: {
+                    "x-user-id": currentUserId
+                },
+                timeout: 5000
+            }
+        );
+
+        // If no interests, return empty result
+        if (!Array.isArray(userInterests) || userInterests.length === 0) {
+            return res.json([]);
+        }
+
+        // Fetch all posts
+        const posts = await Post.find().sort({ createdAt: -1 });
+
+        // Filter posts by authors who share at least ONE interest
+        const filteredPosts = [];
+        for (const post of posts) {
+
+            try {
+                // Fetch post author's interests
+                const { data: authorInterests } = await axios.get(
+                    `${authServiceBaseUrl}/infos/get-user-intrests`,
+                    {
+                        headers: {
+                            "x-user-id": post.userId
+                        },
+                        timeout: 5000
+                    }
+                );
+
+                // Check intersection
+                const shareCommon = authorInterests.some((id) =>
+                    userInterests.includes(id)
+                );
+
+                if (shareCommon) {
+                    filteredPosts.push(post);
+                }
+
+            } catch (err) {
+                console.log("Error checking author interests:", err.message);
+            }
+        }
+
+        // Enrich filtered posts with full user + comments detail
+        const enrichedPosts = await Promise.all(
+            filteredPosts.map(async (post) => {
                 try {
                     const { data } = await axios.get(
                         `${authServiceBaseUrl}/get_user_byId/${post.userId}`,
@@ -70,24 +120,22 @@ router.get("/", async (req, res) => {
                         return acc + 1 + repliesCount;
                     }, 0);
 
-                    const comments = post.comments
-                    let enrichedComments;
+                    let enrichedComments = [];
 
-                    if (comments) {
+                    if (post.comments) {
                         enrichedComments = await Promise.all(
-                            comments.map(async (c) => {
-                                const response = await axios.get(
+                            post.comments.map(async (c) => {
+                                const userRes = await axios.get(
                                     `${authServiceBaseUrl}/get_user_byId/${c.userId}`,
                                     { timeout: 5000 }
                                 );
 
-                                const replies = c.replies
-                                let enrichedReplies
+                                let enrichedReplies = [];
 
-                                if (replies) {
+                                if (c.replies) {
                                     enrichedReplies = await Promise.all(
-                                        replies.map(async (r) => {
-                                            const response = await axios.get(
+                                        c.replies.map(async (r) => {
+                                            const replyUser = await axios.get(
                                                 `${authServiceBaseUrl}/get_user_byId/${r.userId}`,
                                                 { timeout: 5000 }
                                             );
@@ -96,14 +144,14 @@ router.get("/", async (req, res) => {
                                                 _id: r._id,
                                                 text: r.text,
                                                 likes: r.likes,
-                                                userName: response.data.user.userName,
-                                                familyName: response.data.user.familyName,
-                                                givenName: response.data.user.givenName,
-                                                userImg: response.data.user.uerImg,
-                                                role: response.data.user.role
-                                            }
+                                                userName: replyUser.data.user.userName,
+                                                familyName: replyUser.data.user.familyName,
+                                                givenName: replyUser.data.user.givenName,
+                                                userImg: replyUser.data.user.uerImg,
+                                                role: replyUser.data.user.role,
+                                            };
                                         })
-                                    )
+                                    );
                                 }
 
                                 return {
@@ -111,14 +159,14 @@ router.get("/", async (req, res) => {
                                     text: c.text,
                                     replies: enrichedReplies,
                                     likes: c.likes,
-                                    userName: response.data.user.userName,
-                                    familyName: response.data.user.familyName,
-                                    givenName: response.data.user.givenName,
-                                    userImg: response.data.user.uerImg,
-                                    role: response.data.user.role,
-                                }
+                                    userName: userRes.data.user.userName,
+                                    familyName: userRes.data.user.familyName,
+                                    givenName: userRes.data.user.givenName,
+                                    userImg: userRes.data.user.uerImg,
+                                    role: userRes.data.user.role
+                                };
                             })
-                        )
+                        );
                     }
 
                     return {
@@ -144,13 +192,12 @@ router.get("/", async (req, res) => {
                             givenName: data.user.givenName,
                             userImg: data.user.uerImg,
                             role: data.user.role
-                        } || null
+                        }
                     };
 
                 } catch (err) {
-                    console.error("Failed to fetch user:", err.message);
+                    console.error("Failed to enrich post:", err.message);
 
-                    // Still return post but without user info
                     return {
                         ...post.toObject(),
                         user: null

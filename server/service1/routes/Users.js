@@ -11,7 +11,7 @@ const bcrypt = require('bcrypt')
 const { discoverNotifService } = require('../config_service/discovery.service')
 const axios = require('axios');
 const { error } = require('node:console');
-const multer = require('multer')
+const multer = require('multer');
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -319,7 +319,7 @@ router.post('/:id/add-sub-subject', async (req, res) => {
 
 router.delete('/delete-subject/:id', async (req, res) => {
 
-    const  id  = req.params.id
+    const id = req.params.id
 
     try {
 
@@ -327,7 +327,7 @@ router.delete('/delete-subject/:id', async (req, res) => {
 
         if (subject) {
 
-            await Subjects.destroy({where: {idSubject: id}})
+            await Subjects.destroy({ where: { idSubject: id } })
 
             return res.status(200).json({
                 msg: "subject deleted sucessfully",
@@ -397,7 +397,7 @@ router.get('/get-subjects', async (req, res) => {
 router.post("/student/interests", async (req, res) => {
     try {
         const studentId = req.headers["x-user-id"]; // student id from token
-        const  interests  = req.body.interests;
+        const interests = req.body.interests;
 
         if (!Array.isArray(interests) || interests.length === 0) {
             return res.status(400).json({ error: "Interests must be a non-empty array." });
@@ -478,7 +478,7 @@ router.delete("/student/remove-interest/:subjectId", async (req, res) => {
 router.post("/teacher/expertise", async (req, res) => {
     try {
         const teacherId = req.headers['x-user-id'];
-        const  expertise  = req.body.interests ;
+        const expertise = req.body.interests;
 
         if (!Array.isArray(expertise) || expertise.length === 0) {
             return res.status(400).json({ error: "Expertise must be a non-empty array." });
@@ -554,5 +554,58 @@ router.delete("/teacher/remove-interest/:subjectId", async (req, res) => {
         res.status(500).json({ error: "Internal server error" });
     }
 });
+
+router.get('/get-teacher-expertise', async (req, res) => {
+    const teacherId = req.headers['x-user-id']
+    try {
+        
+        const intrests = await TeacherExpertise.findAll({ where: { idTeacher: teacherId } })
+        
+        const enrichedIntrests = await Promise.all(
+            intrests.map(async (i) => {
+            const subject = await Subjects.findByPk(i.idExpertise)
+            const sub_subject = await SubSubjects.findAll({ where: { idSubject: i.idExpertise } })
+            return {
+                idSubject: i.idExpertise,
+                name: subject.name,
+                subCategories: sub_subject
+            }
+        }))
+
+        res.status(200).json(enrichedIntrests)
+
+    } catch (error) {
+        console.error("Error fetching teacher expertise", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+})
+
+//---------------GETTERS FOR FILTRATION-------------
+
+router.get('/get-user-intrests', async (req, res) => {
+    const userId = req.headers['x-user-id']
+
+    try {
+        const user = await Users.findByPk(userId)
+        if (!user) return res.status(400).json("the user doesn't exist!!")
+
+        const role = user.role
+        if (role != "teacher" && role != "student") return res.status(400).json("Unotharized")
+
+        let intrestIds;
+        if (role == "student") {
+            const intrests = await StudentInterest.findAll({ where: { idStudent: userId } })
+            intrestIds = intrests.map((i) => i.idInterest)
+        } else {
+            const intrests = await TeacherExpertise.findAll({ where: { idTeacher: userId } })
+            intrestIds = intrests.map((i) => i.idExpertise)
+        }
+
+        res.status(200).json(intrestIds)
+    } catch (error) {
+        console.log("error while fetching the intrests", error.message)
+        res.status(500).json({msg: "Internal Server Error", error})
+    }
+})
 
 module.exports = router 

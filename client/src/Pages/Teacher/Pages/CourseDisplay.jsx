@@ -19,7 +19,8 @@ import { useTranslation } from "react-i18next";
 import axios from 'axios'
 import { useContext } from "react";
 import { AppContext } from "../../../App";
-
+import QuizSolve from "../../Student/Components/QuizSolve";
+import QuizViewer from "../Components/QuizViewer";
 
 const RECOMMENDATIONS = [
     {
@@ -71,7 +72,12 @@ export const CommentLine = ({ courseId, commentId, commentTxt, commentUserName, 
     const [replyClicked, setReplyClicked] = useState(false);
     const [commentReplies, setCommentReplies] = useState(replies)
     const [reply, setReply] = useState('');
-    const [isLiked, setIsLiked] = useState(commentBody.likes.some((l) => l.userId === userId))
+    const [isLiked, setIsLiked] = useState(() => {
+        if (!commentBody || !commentBody.likes || !Array.isArray(commentBody.likes)) {
+            return false;
+        }
+        return commentBody.likes.some((l) => l.userId === userId);
+    });
     const maxLength = 150;
 
     const toggleReadMore = () => setIsExpanded(!isExpanded);
@@ -286,6 +292,7 @@ export default function CourseDisplay() {
     const [topic, setTopic] = useState(null)
     const [content, setContent] = useState(null)
     const [comments, setComments] = useState(topic?.comments);
+    const [teacherId, setTeacherId] = useState(null)
 
     useEffect(() => {
         const link = type === "course" ? "http://localhost:8080/content/courses" : type === "assignment" ? "http://localhost:8080/content/assignments" : "http://localhost:8080/content/tips";
@@ -295,6 +302,8 @@ export default function CourseDisplay() {
                 const content = res.data.course ?? res.data.assignment ?? res.data.topic
                 setComments(res.data.comments)
                 setContent(content)
+                setTeacherId(res.data.teacher.userId)
+                console.log(res.data)
             })
             .catch((err) => console.error(err.response.data))
     }, [id, type])
@@ -306,7 +315,7 @@ export default function CourseDisplay() {
 
     const initializeDone = (data) => setDoneLessons(data)
 
-    const onChangeDone = (value) => setDoneLessons(value) 
+    const onChangeDone = (value) => setDoneLessons(value)
 
     const goTo = (idx) => {
         setCurrentLessonIdx(idx);
@@ -381,10 +390,66 @@ export default function CourseDisplay() {
         setCompletionPct(Math.round((doneLessonsCount / content?.lessons.length) * 100))
     }
 
-    // const completionPct = Math.round((doneLessons.size / LESSONS.length) * 100);
     const dateOnly = content?.createdAt
         ? new Date(content.createdAt).toLocaleDateString()
         : null;
+
+    // for the quiz:
+    const [attemptId, setAttemptId] = useState(null)
+    const [quizData, setQuizData] = useState({})
+    const [savedAnswers, setSavedAnswers] = useState({})
+    const [showQuizSolve, setShowQuizSolve] = useState(false)
+    const [completedResult, setCompletedResult] = useState(null) // to hold the result of a completed quiz for display in QuizSolve
+
+
+    const handleSaveQuiz = async (answers) => {
+        await axios.put(`http://localhost:8080/content/activity/quiz-attempts/${attemptId}/save`, { answers: answers }, {
+            headers: { 'Content-Type': 'application/json' }
+        })
+        setShowQuizSolve(false)
+    }
+
+    const handleOpenQuiz = async (quiz) => {
+        try {
+            const res = await axios.post('http://localhost:8080/content/activity/quiz-attempts/start', { quizId: quiz._id }, {
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            })
+            const { attempt, resumed, solved } = res.data
+
+            // Convert saved answers array back to the {} object format QuizSolve uses
+            let savedAnswers = {}
+            if ((resumed || solved) && attempt.answers?.length > 0) {
+                attempt.answers.forEach(a => {
+                    savedAnswers[a.questionId] = a.responses
+                })
+            }
+
+            if (solved) setCompletedResult(attempt) // if already solved, we have the result immediately to show in QuizSolve
+
+            setAttemptId(attempt._id)
+            setQuizData(quiz)
+            setSavedAnswers(savedAnswers)
+            setShowQuizSolve(true)
+        } catch (err) {
+            console.error('Failed to start quiz:', err)
+        }
+    }
+
+    const handleSubmitQuiz = async (answers) => {
+        const response = await axios.put(`http://localhost:8080/content/activity/quiz-attempts/${attemptId}/submit`, { answers: answers }, {
+            headers: { 'Content-Type': 'application/json' }
+        })
+
+        return response.data; // return the result to QuizSolve for display
+    }
+
+    //-----------Quiz Viewer for teachers---------
+
+    const [openViewer, setOpenViewer] = useState(false);
+    const [openEditBuilder, setOpenEditBuilder] = useState(false);
+
     return (
         <div className="course-display-container">
             <HeaderContent
@@ -399,10 +464,24 @@ export default function CourseDisplay() {
                 {/* ── Main area ── */}
                 <div className="cd-main">
 
-                    {type === "course" && topic?.course?.lessons && <CourseView LESSONS={topic.course.lessons} viewerRef={viewerRef} handleChangePct={handleChangePct} courseId={topic.course._id} onChangeDone={onChangeDone} onChangeLesson={(idx) => setCurrentLessonIdx(idx)} initializeDone={initializeDone} />}
+                    {type === "course" && topic?.course?.lessons && (
+                        <CourseView
+                            LESSONS={topic.course.lessons}
+                            viewerRef={viewerRef}
+                            handleChangePct={handleChangePct}
+                            courseId={topic.course._id}
+                            onChangeDone={onChangeDone}
+                            onChangeLesson={(idx) => setCurrentLessonIdx(idx)}
+                            initializeDone={initializeDone}
+                            quiz={topic.course.quiz}
+                            handleShowQuiz={handleOpenQuiz}
+                            openQuizViewer={() => setOpenViewer(true)}
+                        />
+                    )}
                     {type === "tip" && topic?.content && <TipView content={topic.content} />}
-                    {type === "assignment" && topic?.assignment?.exercises && <AssignementView PROBLEMATIQUES={topic.assignment.exercises} viewerRef={viewerRef} />}
-
+                    {type === "assignment" &&
+                        <AssignementView PROBLEMATIQUES={topic?.assignment?.exercises || []} viewerRef={viewerRef} assignmentId={topic?.assignment?._id} />
+                    }
 
                     {/* Comments */}
                     <div className="cd-comments">
@@ -470,7 +549,7 @@ export default function CourseDisplay() {
                         <div className="cd-teacher-row">
                             <div className="cd-teacher-avatar" style={{ background: "#EC489922", color: "#EC4899" }}>
                                 {`${topic?.teacher.familyName.charAt(0).toUpperCase()}${topic?.teacher.givenName.charAt(0).toUpperCase()}`}
-                                
+
                             </div>
                             <div>
                                 <p className="cd-teacher-label">Instructor</p>
@@ -480,7 +559,7 @@ export default function CourseDisplay() {
 
                         {/* Progress */}
                         {
-                            userAuth.role === "student" &&
+                            userAuth.role === "student" && type === "course" &&
                             <div className="cd-progress-section">
                                 <div className="cd-progress-label">
                                     <span>Your progress</span>
@@ -499,7 +578,7 @@ export default function CourseDisplay() {
                                     <LessonIcon className="detail-item-icon" />
                                     <div>
                                         <p className="cd-detail-label">{type === "course" ? "Lessons" : "Exercises"}</p>
-                                        <p className="cd-detail-val">{type === "course" ? content?.lessons.length : content?.exercises.length}</p>
+                                        <p className="cd-detail-val">{type === "course" ? content?.lessons?.length : content?.exercises?.length}</p>
                                     </div>
                                 </div>
                                 <div className="cd-detail-item">
@@ -517,7 +596,7 @@ export default function CourseDisplay() {
                                     </div>
                                 </div>
                                 {
-                                    userAuth.role === "student" &&
+                                    userAuth.role === "student" && type === "course" &&
                                     <div className="cd-detail-item">
                                         <DoneIcon />
                                         <div>
@@ -590,6 +669,29 @@ export default function CourseDisplay() {
 
                 </aside>
             </div>
+
+            {
+                userAuth.role === "student" && type === "course" && topic?.course?.quiz && showQuizSolve &&
+                <QuizSolve
+                    quiz={quizData}
+                    attemptId={attemptId}
+                    initialAnswers={savedAnswers}
+                    onClose={() => setShowQuizSolve(false)}
+                    onSave={handleSaveQuiz}
+                    onSubmit={handleSubmitQuiz}
+                    completedResult={completedResult}
+                />
+            }
+
+            {
+                userAuth.role !== "student" && type === "course" && topic?.course?.quiz && openViewer &&
+                <QuizViewer
+                    quiz={topic.course.quiz}
+                    teacherId={teacherId}
+                    onClose={() => setOpenViewer(false)}
+                    onEdit={() => { setOpenViewer(false); setOpenEditBuilder(true); }}
+                />
+            }
         </div>
     );
 }

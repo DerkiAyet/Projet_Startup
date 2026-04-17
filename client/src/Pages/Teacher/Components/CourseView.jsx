@@ -4,7 +4,7 @@ import TopViewerBar from "./TopViewerBar";
 import axios from 'axios'
 import { AppContext } from "../../../App";
 
-export function CourseView({ LESSONS, viewerRef, handleChangePct, courseId, onChangeDone, initializeDone, onChangeLesson }) {
+export function CourseView({ LESSONS, viewerRef, handleChangePct, courseId, onChangeDone, initializeDone, onChangeLesson, quiz, handleShowQuiz, openQuizViewer }) {
 
     const { userAuth } = useContext(AppContext)
     const [currentLessonIdx, setCurrentLessonIdx] = useState(0);
@@ -18,14 +18,22 @@ export function CourseView({ LESSONS, viewerRef, handleChangePct, courseId, onCh
                     setEnrollement(res.data)
                     setDoneLessons(new Set(res.data.lessonsCompleted))
                     initializeDone(new Set(res.data.lessonsCompleted))
+                    handleChangePct(new Set(res.data.lessonsCompleted).size)
                 })
         }
-    }, [ courseId, initializeDone])
+    }, [courseId])
 
-    const lesson = LESSONS[currentLessonIdx];
-    const isDone = doneLessons.has(lesson._id);
+    // code added for quiz
+    const hasQuiz = !!quiz;
+    const totalSteps = LESSONS.length + (hasQuiz ? 1 : 0);
+    const isQuizPage = hasQuiz && currentLessonIdx === LESSONS.length;
+
+    const lesson = !isQuizPage ? LESSONS[currentLessonIdx] : null;
+    const isDone = doneLessons.has(lesson?._id);
 
     const goTo = (idx) => {
+        if (idx < 0 || idx >= totalSteps) return;
+
         setCurrentLessonIdx(idx);
         onChangeLesson?.(idx);
         viewerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
@@ -40,10 +48,12 @@ export function CourseView({ LESSONS, viewerRef, handleChangePct, courseId, onCh
                 const updatedSet = new Set(res.data.lessonsCompleted);
                 setDoneLessons(updatedSet);
                 handleChangePct(updatedSet.size);
-                onChangeDone?.(updatedSet); 
+                onChangeDone?.(updatedSet);
             })
             .catch((err) => console.error(err.response.data))
     };
+
+    const allDone = doneLessons.size === LESSONS.length;
 
     if (!LESSONS || LESSONS.length === 0) return null;
 
@@ -51,28 +61,88 @@ export function CourseView({ LESSONS, viewerRef, handleChangePct, courseId, onCh
         <>
             <TopViewerBar
                 currentIndex={currentLessonIdx}
-                lessonsCount={LESSONS.length}
-                title={lesson.title}
+                lessonsCount={totalSteps}
+                title={isQuizPage ? quiz.title : lesson.title}
                 contentType={"course"}
                 goTo={goTo}
-                isDone={isDone}
-                toggleDone={toggleDone}
+                isDone={isQuizPage ? false : isDone}
+                toggleDone={isQuizPage ? null : toggleDone}
+                hasQuiz={hasQuiz}
+                contentId={courseId}
             />
 
-            <ContentViewer
-                content={lesson.content}
-                title={lesson.title}
-            />
+            {!isQuizPage ? (
+                <ContentViewer
+                    content={lesson.content}
+                    title={lesson.title}
+                />
+            ) : (
+                <div className="cd-page-card cd-quiz-page">
+                    <div className="cd-page-number">Final Step</div>
+
+                    <div className="cd-page-content cd-quiz-content">
+                        <h2>{quiz.title}</h2>
+                        {
+                            userAuth.role === "student" ?
+                                (<div className="cd-quiz-body">
+                                    {
+                                        allDone ? (
+                                            <>
+                                                <p>You’ve completed all lessons 🎉</p>
+                                                <span>Ready to test your knowledge?</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <p>Almost there! 🚀</p>
+                                                <span>Complete all lessons to unlock the final quiz.</span>
+                                            </>
+                                        )
+                                    }
+
+                                    <button
+                                        className="cd-start-quiz-btn"
+                                        onClick={() => handleShowQuiz(quiz)}
+                                        disabled={!allDone}
+                                    >
+                                        {allDone ? "Start Quiz" : "Complete all lessons to unlock the quiz"}
+                                    </button>
+                                </div>) : (
+                                    <div className="cd-quiz-body">
+
+                                        <p>A quiz is available! </p>
+
+                                        <button
+                                            className="cd-start-quiz-btn"
+                                            onClick={() => openQuizViewer()}
+                                        >
+                                            See Quiz
+                                        </button>
+                                    </div>
+                                )
+                        }
+                    </div>
+
+                    <div className="cd-page-footer">
+                        <span>{quiz.title}</span>
+                        <span>{currentLessonIdx + 1} / {totalSteps}</span>
+                    </div>
+                </div>
+            )}
 
             <div className="cd-viewer-nav">
                 {currentLessonIdx > 0 && (
                     <button className="cd-viewer-nav-btn" onClick={() => goTo(currentLessonIdx - 1)}>
-                        ← {LESSONS[currentLessonIdx - 1].title}
+                        ← {currentLessonIdx - 1 < LESSONS.length
+                            ? LESSONS[currentLessonIdx - 1].title
+                            : quiz.title}
                     </button>
                 )}
-                {currentLessonIdx < LESSONS.length - 1 && (
-                    <button className="cd-viewer-nav-btn cd-viewer-nav-btn--next" onClick={() => goTo(currentLessonIdx + 1)}>
-                        {LESSONS[currentLessonIdx + 1].title} →
+
+                {currentLessonIdx < totalSteps - 1 && (
+                    <button className="cd-viewer-nav-btn" onClick={() => goTo(currentLessonIdx + 1)}>
+                        {currentLessonIdx + 1 < LESSONS.length
+                            ? LESSONS[currentLessonIdx + 1].title
+                            : quiz.title} →
                     </button>
                 )}
             </div>

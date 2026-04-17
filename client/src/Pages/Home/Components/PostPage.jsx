@@ -43,14 +43,19 @@ const timeAgo = (dateString, t) => {
 
 export const CommentLine = ({ postId, commentId, commentTxt, commentUserName, commentUserImg, replies = [], commentUserFamily, commentUserGiven, onAddReply, commentBody = { likes: [], replies: [], _id: 0, userId: 0, text: "" }, userId, toggleLike }) => {
 
-    const {t} = useTranslation()
+    const { t } = useTranslation()
 
     const [isExpanded, setIsExpanded] = useState(false);
     const [showReplies, setShowReplies] = useState(false);
     const [replyClicked, setReplyClicked] = useState(false);
     const [commentReplies, setCommentReplies] = useState(replies)
     const [reply, setReply] = useState('');
-    const [isLiked, setIsLiked] = useState(commentBody.likes.some((l) => l.userId === userId))
+    const [isLiked, setIsLiked] = useState(() => {
+        if (!commentBody || !commentBody.likes || !Array.isArray(commentBody.likes)) {
+            return false;
+        }
+        return commentBody.likes.some((l) => l.userId === userId);
+    });
     const maxLength = 150;
 
     const { setPosts } = useContext(TimeLineContext)
@@ -234,7 +239,7 @@ export const CommentLine = ({ postId, commentId, commentTxt, commentUserName, co
                         <div className="add-reply-container">
                             <textarea
                                 type="text"
-                                placeholder= {t('posts.writeReply')}
+                                placeholder={t('posts.writeReply')}
                                 className="add-reply-input"
                                 value={reply}
                                 onChange={(e) => setReply(e.target.value)}
@@ -259,7 +264,7 @@ export const CommentLine = ({ postId, commentId, commentTxt, commentUserName, co
 
 function PostPage() {
 
-    const {t} = useTranslation()
+    const { t } = useTranslation()
 
     const { selectedPost, setSelectedPost } = useContext(TimeLineContext)
 
@@ -619,7 +624,7 @@ function PostPage() {
                             <div className="input-container">
                                 <textarea
                                     className="add-comment-input"
-                                    placeholder= {t('posts.addComment')}
+                                    placeholder={t('posts.addComment')}
                                     value={commentBody.commentText}
                                     onChange={(e) =>
                                         setCommentBody({ ...commentBody, commentText: e.target.value })

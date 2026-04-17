@@ -24,9 +24,9 @@
   },
   "tools": {
     "tools": "Outils",
-    "createCourse": "Créer un cours",
-    "createExercise": "Créer un exercice",
-    "createTip": "Créer un conseil",
+    "createCourse": "Créer cours",
+    "createExercise": "Créer Affectation",
+    "createTip": "Créer conseil",
     "aiAssistant": "Assistant IA",
     "ocrScanner": "Scanner OCR",
     "shareResources": "Partager des ressources"

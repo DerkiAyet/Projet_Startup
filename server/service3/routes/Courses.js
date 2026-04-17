@@ -1,10 +1,13 @@
 const express = require('express')
 const router = express.Router()
 const CourseModel = require('../models/Courses')
+const AssignmentModel = require('../models/Assignments')
+const TipModel = require('../models/Tips')
 const CommentModel = require('../models/Comments')
 const QuizeModel = require('../models/Quizes')
 const EnrollementModel = require('../models/Enrollements')
 const { discoverAuthService, discoverNotifService } = require('../config/discovery.service')
+const SolvingModel = require('../models/Solving')
 const axios = require('axios')
 const multer = require('multer')
 
@@ -19,6 +22,94 @@ const storage = multer.diskStorage({
 })
 
 const upload = multer({ storage: storage })
+
+async function enrichContent(item, typeContent, authServiceBaseUrl, categoryNames = [], subCategoryNames = []) {
+    try {
+        // Teacher + category info
+        const [responseUser, responseCategory] = await Promise.all([
+            axios.get(`${authServiceBaseUrl}/get_user_byId/${item.teacherId}`),
+            axios.get(`${authServiceBaseUrl}/infos/subjects/${item.category.id}`)
+        ]);
+
+        // Subcategory - handle gracefully if it doesn't exist
+        let responseField = null;
+        if (item.category.subCategory) {
+            try {
+                responseField = await axios.get(
+                    `${authServiceBaseUrl}/infos/sub-subjects/${item.category.subCategory}`
+                );
+            } catch (subError) {
+                console.log(`Subcategory ${item.category.subCategory} not found`);
+                responseField = null;
+            }
+        }
+
+        // Comments + enrolls + quizzes only for COURSES
+        let comments = [];
+        let enrolls = [];
+        let solutions = [];
+        let quiz = null;
+
+        if (typeContent === "course") {
+            [comments, enrolls, quiz] = await Promise.all([
+                CommentModel.find({ contentId: item._id, contentType: "course" }),
+                EnrollementModel.find({ courseId: item._id }),
+                QuizeModel.findOne({ courseId: item._id })
+            ]);
+        }
+
+        if (typeContent === "assignment") {
+            solutions = await SolvingModel.find({ assignment: item._id })
+        }
+
+        // Thumbnail fallback
+        const thumbnail = item.thumbnail
+            ? `http://localhost:8080/content/uploads/${item.thumbnail}`
+            : `http://localhost:8080/auth/uploads/${responseCategory.data.subImg}`;
+
+        return {
+            typeContent,
+            _id: item._id,
+            teacherId: item.teacherId,
+            title: item.title,
+            description: item.description,
+            thumbnail,
+            level: item.level,
+            category: {
+                idSubject: responseCategory.data.idSubject,
+                name: responseCategory.data.name,
+                color: responseCategory.data.color
+            },
+            subCategory: responseField
+                ? { idSub: responseField.data.idSub, name: responseField.data.name }
+                : null,
+            lessons: item.lessons,
+            exercises: item.exercises,
+            tags: item.tags,
+            visibility: item.visibility,
+            createdAt: item.createdAt,
+            avgRating: item.averageRating ? item.averageRating() : 0,
+
+            comments,
+            commentsCount: comments.length,
+            enrollCount: enrolls.length,
+            solveCount: solutions.length,
+            quiz: quiz || null,
+
+            teacher: {
+                userId: responseUser.data.user.id,
+                userName: responseUser.data.user.userName,
+                familyName: responseUser.data.user.familyName,
+                givenName: responseUser.data.user.givenName,
+                userImg: responseUser.data.user.userImg || responseUser.data.user.uerImg,
+                role: "teacher"
+            }
+        };
+    } catch (err) {
+        console.log("Error enriching:", err.message);
+        return null;
+    }
+}
 
 router.post('/', upload.single('thumbnail'), async (req, res) => {
     const teacherId = req.headers['x-user-id'];
@@ -144,6 +235,101 @@ router.get('/', async (req, res) => {
 
     } catch (error) {
         console.error("Error fetching courses:", error.message);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
+
+router.get('/search', async (req, res) => {
+    try {
+        let { title, categoryId, categoryName, subCategoryName, level } = req.query;
+
+        const normalizeList = (value) => {
+            if (!value) return [];
+            if (Array.isArray(value)) return value;
+            return value.split(',').map(v => v.trim());
+        };
+
+        const categoryIds = normalizeList(categoryId);
+        const categoryNames = normalizeList(categoryName);
+        const subCategoryNames = normalizeList(subCategoryName);
+
+        console.log('Search params:', { title, categoryIds, categoryNames, subCategoryNames, level });
+
+        // ── ONLY filter by database-level filters (no title here!) ──
+        const mongoFilter = { visibility: true };
+
+        if (level) {
+            mongoFilter.level = level;
+        }
+
+        if (categoryIds.length) {
+            mongoFilter["category.id"] = { $in: categoryIds };
+        }
+
+        console.log('Mongo filter:', JSON.stringify(mongoFilter, null, 2));
+
+        // Fetch ALL content that passes level and categoryId filters
+        const [courses, assignments, tips] = await Promise.all([
+            CourseModel.find(mongoFilter),
+            AssignmentModel.find(mongoFilter),
+            TipModel.find(mongoFilter)
+        ]);
+
+        console.log(`Found: ${courses.length} courses, ${assignments.length} assignments, ${tips.length} tips`);
+
+        const authServiceBaseUrl = await discoverAuthService();
+
+        // ── Enrich everything (pass empty arrays for categoryNames/subCategoryNames to disable filtering inside enrichContent) ──
+        const allEnriched = (await Promise.all([
+            ...courses.map(c => enrichContent(c, "course", authServiceBaseUrl, [], [])),
+            ...assignments.map(a => enrichContent(a, "assignment", authServiceBaseUrl, [], [])),
+            ...tips.map(t => enrichContent(t, "tip", authServiceBaseUrl, [], []))
+        ])).filter(Boolean);
+
+        console.log(`Total enriched items: ${allEnriched.length}`);
+
+        // ── Apply OR filter in memory ──
+        const hasFilters = title || categoryNames.length > 0 || subCategoryNames.length > 0;
+
+        const filtered = !hasFilters
+            ? allEnriched
+            : allEnriched.filter(item => {
+                let matches = false;
+
+                // Check title match (if title provided)
+                if (title && item.title) {
+                    matches = item.title.toLowerCase().includes(title.toLowerCase());
+                    if (matches) console.log(`Item "${item.title}" matched by title`);
+                }
+
+                // Check category match (if not already matched)
+                if (!matches && categoryNames.length > 0 && item.category?.name) {
+                    matches = categoryNames.some(catName =>
+                        item.category.name.toLowerCase().includes(catName.toLowerCase())
+                    );
+                    if (matches) console.log(`Item "${item.title}" matched by category: ${item.category.name}`);
+                }
+
+                // Check subcategory match (if not already matched)
+                if (!matches && subCategoryNames.length > 0 && item.subCategory?.name) {
+                    matches = subCategoryNames.some(subName =>
+                        item.subCategory.name.toLowerCase().includes(subName.toLowerCase())
+                    );
+                    if (matches) console.log(`Item "${item.title}" matched by subcategory: ${item.subCategory.name}`);
+                }
+
+                return matches;
+            });
+
+        console.log(`Filtered items: ${filtered.length}`);
+
+        // Don't delete the names, just send them as is
+        filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        res.json(filtered);
+
+    } catch (err) {
+        console.error(err);
         res.status(500).json({ error: "Internal server error" });
     }
 });
@@ -367,6 +553,7 @@ router.get('/:id', async (req, res) => {
 
         const enrollemnts = await EnrollementModel.find({ courseId: course._id })
 
+        const quiz = await QuizeModel.findOne({ courseId: course._id });
 
         const comments = await CommentModel.find({ contentId: courseId, contentType: "course" })
         let enrichedComments;
@@ -446,6 +633,7 @@ router.get('/:id', async (req, res) => {
                 enrollCount: enrollemnts.length,
                 visibility: course.visibility,
                 createdAt: course.createdAt,
+                quiz: quiz || null,
             },
             comments: enrichedComments,
             teacher: {
@@ -524,22 +712,22 @@ router.post('/:courseId/comment/:commentId/reply', async (req, res) => {
     try {
         const course = await CourseModel.findById(courseId)
         if (!course) return res.status(404).json({ error: "course not found" })
-        
+
         const comment = await CommentModel.findById(commentId)
         if (!comment) return res.status(404).json({ error: "comment not found" })
-        
+
         const reply = {
             userId: userId,
             text: req.body.text,
         }
-        
+
         comment.replies.push(reply)         // push returns length, ignore it
         await comment.save()
-        
+
         // Send back the actual new reply (last item after save)
         const savedReply = comment.replies[comment.replies.length - 1]
         res.status(200).json(savedReply)
-        
+
     } catch (error) {
         console.error("error while creating the comment", error.message)
         res.status(500).json({ error: error.message })  // ← also add this, you had no error response!
@@ -625,6 +813,11 @@ router.post('/:courseId/quiz', async (req, res) => {
         const course = await CourseModel.findById(courseId);
         if (!course) return res.status(404).json({ error: "Course not found" });
 
+        const category = {
+            id: course.category.id,
+            subCategory: course.category.subCategory
+        }
+
         let { title, description, difficulty, questions, score } = req.body || {}
 
         if (!title || !difficulty) return res.status(400).json({ error: "Missing fields: title, difficulty" })
@@ -638,9 +831,10 @@ router.post('/:courseId/quiz', async (req, res) => {
             title,
             description,
             difficulty,
+            category,
             questions,
             courseId,
-            score
+            score,
         })
 
         res.status(200).json(newQuize)

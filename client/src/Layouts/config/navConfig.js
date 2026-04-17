@@ -24,6 +24,7 @@ import { ReactComponent as ShareIcon } from '../../Assets/icons/NavIcons/upload-
 export const teacherNavItems = [
     { title: 'mainNav.home', icon: HomeIcon, path: '/' },
     { title: 'mainNav.courses', icon: CoursesIcon, path: '/courses' },
+    { title: 'mainNav.searchCourses', icon: SearchIcon, path: "/search" },
     { title: 'mainNav.calendar', icon: CalendarIcon, path: '/calendar' },
     { title: 'mainNav.students', icon: PeopleIcon, path: '/my-students' },
     { title: 'mainNav.chats', icon: ChatIcon, path: '/chats' },
@@ -53,9 +54,9 @@ export const studentNavItems = [
 ];
 
 export const studentTools = [
-    { title: 'tools.chats', icon: ScannerIcon, path: "/ocr" },
-    { title: 'tools.chats', icon: AiIcon, path: "/ai-bot" },
-    { title: 'tools.chats', icon: ShareIcon, path: "/share" },
+    { title: 'tools.ocrScanner', icon: ScannerIcon, path: "/ocr" },
+    { title: 'tools.aiAssistant', icon: AiIcon, path: "/ai-bot" },
+    { title: 'tools.shareResources', icon: ShareIcon, path: "/share" },
 ];
 
 export const studentMobileNav = [

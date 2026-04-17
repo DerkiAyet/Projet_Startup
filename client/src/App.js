@@ -27,6 +27,8 @@ import CreateAssignment from './Pages/Teacher/Pages/CreateAssignement';
 import CreateTip from './Pages/Teacher/Pages/CreateTip';
 import IntrestsPopup from './Pages/Authentication/Components/IntrestsPopup';
 import SearchPage from './Pages/Student/Pages/Search';
+import StudentActivity from './Pages/Student/Pages/Activity';
+import AssignmentSolve from './Pages/Student/Pages/AssignmentSolve';
 
 export const AppContext = createContext();
 
@@ -119,23 +121,28 @@ function App() {
     }
   };
 
+  const [getPosts, setGetPosts] = useState(false)
+
   const submitIntrests = (intrestsSelected) => {
 
     const link = userAuth.role === "teacher" ? 'http://localhost:8080/users/infos/teacher/expertise' : 'http://localhost:8080/users/infos/student/interests'
 
     axios.defaults.withCredentials = true
-    axios.post(link, {interests: intrestsSelected}, {
+    axios.post(link, { interests: intrestsSelected }, {
       headers: {
         "Content-Type": "application/json"
       }
     })
-    .then(() => setUserAuth({...userAuth, firstAuth: false}))
-    .catch((err) => console.error(err.response.data))
+      .then(() => {
+        setUserAuth({ ...userAuth, firstAuth: false })
+        setGetPosts(true)
+      })
+      .catch((err) => console.error(err.response.data))
 
   }
 
   return (
-    <AppContext.Provider value={{ darkMode, setDarkMode, isRtl, setIsRtl, lang, setLang, userAuth, setUserAuth }}>
+    <AppContext.Provider value={{ darkMode, setDarkMode, isRtl, setIsRtl, lang, setLang, userAuth, setUserAuth, getPosts, setGetPosts }}>
       <SocketProvider >
         <div className={`App ${isRtl ? "app-rtl" : ""}`} id={darkMode ? 'dark-mode' : 'light-mode'}>
           <Routes>
@@ -161,7 +168,8 @@ function App() {
               <Route path="create-tip" element={<CreateTip />} />
               <Route path="ai-bot" element={<section className='main-container'>AI Assistant</section>} />
               <Route path="search" element={<SearchPage />} />
-              <Route path="activities" element={<section className='main-container'>My Activities</section>} />
+              <Route path="activities" element={<StudentActivity />} />
+              <Route path="activities/solve-assignment/:id" element={<AssignmentSolve />} />
               <Route path="progress" element={<section className='main-container'>Progress & Achievements</section>} />
               <Route path="ocr" element={<section className='main-container'>OCR Scanner</section>} />
               <Route path="share" element={<section className='main-container'>Share Resources</section>} />
@@ -174,7 +182,7 @@ function App() {
             </Route>
           </Routes>
           <ToastContainer position="top-right" autoClose={10000} />
-          {userAuth.firstAuth && <IntrestsPopup onFinish={submitIntrests} />}
+          {userAuth.firstAuth && (userAuth.role === "teacher" || userAuth.role === "student") && <IntrestsPopup onFinish={submitIntrests} />}
         </div>
       </SocketProvider>
     </AppContext.Provider>

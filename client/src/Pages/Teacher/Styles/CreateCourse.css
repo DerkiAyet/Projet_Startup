@@ -8,7 +8,7 @@
     --light-grey-font-color: #8E8E8E;
     --grey-bg-color: #E2E4E5;
 
-    --lg-font-size: 1.2rem;
+    --lg-font-size: 1.4rem;
     --h1-font-size: 2rem;
 
 }
@@ -72,7 +72,7 @@
 
 .create-course-form .form-group span {
     font-family: 'Nunito', sans-serif;
-    font-size: var(--lg-font-size);
+    font-size: 1.2rem;
     font-weight: 500;
     color: var(--dark-font-color);
 }
@@ -254,7 +254,7 @@
 
 .thumbnail-upload-section span {
     font-family: 'Nunito', sans-serif;
-    font-size: var(--lg-font-size);
+    font-size: 1.2rem;
     font-weight: 500;
     color: var(--dark-font-color);
 }

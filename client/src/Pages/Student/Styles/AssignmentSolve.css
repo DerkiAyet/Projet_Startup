@@ -1,0 +1,1022 @@
+:root {
+    --main-color: #EC4899;
+    --light-pink-bg-color: #FDF2F8;
+    --white-bg-color: #FFFFFF;
+    --dark-font-color: #1E293B;
+    --light-border-color: #A7A7A7;
+    --main-color-light: #EC489980;
+    --light-grey-font-color: #8E8E8E;
+    --grey-bg-color: #E2E4E5;
+    --cd-dark-grey: #4A4A4A;
+
+    --lg-font-size: 1.4rem;
+    --h1-font-size: 2rem;
+
+    --light-scrollbar-track: #FDF2F8;
+    --light-scrollbar-thumb-start: #EC4899;
+    --light-scrollbar-thumb-end: #FFFFFF;
+    --radius-lg: 20px;
+}
+
+.as-container {
+    width: 100%;
+    height: 100%;
+    font-family: 'Geologica', sans-serif;
+    display: flex;
+    flex-direction: column;
+}
+
+.as-main {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    padding-right: 1.5rem;
+}
+
+.solution-sheet {
+    flex: 1 1 0;
+    overflow-y: auto;
+}
+
+/*----------Custom Scroll Bar---------*/
+
+.solution-sheet ::-webkit-scrollbar-track {
+    background: var(--light-scrollbar-track);
+    border-radius: var(--radius-lg);
+}
+
+.solution-sheet ::-webkit-scrollbar-thumb {
+    background: linear-gradient(to bottom,
+            var(--light-scrollbar-thumb-start),
+            var(--light-scrollbar-thumb-end));
+    border-radius: var(--radius-lg);
+    border: 2px solid var(--light-scrollbar-track);
+}
+
+.solution-sheet ::-webkit-scrollbar-thumb:hover {
+    background: var(--light-scrollbar-thumb-start);
+}
+
+/* Firefox support for Light Mode */
+.solution-sheet {
+    scrollbar-width: thin;
+    scrollbar-color: var(--light-scrollbar-thumb-start) var(--light-scrollbar-track);
+}
+
+.as-header {
+    width: 100%;
+    margin: 0 auto;
+    padding-top: 1rem;
+    padding-left: 1rem;
+    border-bottom: 2px solid var(--light-border-pink);
+    margin-bottom: 0.4rem;
+}
+
+.as-header .link-line {
+    font-size: 1.2rem;
+    font-family: "Plus Jakarta Sans", sans-serif;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--dark-font-color);
+}
+
+.as-header .link-line span {
+    color: var(--main-color);
+}
+
+.as-header .link-line a {
+    color: var(--dark-font-color);
+
+}
+
+.as-header .link-line a:hover {
+    text-decoration: underline;
+}
+
+.as-header h1 {
+    font-family: 'Pacifico', cursive;
+    font-size: 1.35rem;
+    color: var(--dark-font-color);
+    margin-bottom: 0.7rem;
+}
+
+.as-header .course-features {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.4rem;
+    justify-content: space-between;
+}
+
+.as-header .cd-header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.course-features .feature-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--cd-dark-grey);
+}
+
+.as-header .cd-icon-header {
+    width: 18px;
+    height: 18px;
+}
+
+.as-header .cd-icon-header path {
+    fill: var(--pink-text-color);
+}
+
+.stars-rating {
+    display: flex;
+    gap: 4px;
+}
+
+.stars-rating svg {
+    width: 16px;
+    height: 16px;
+    color: gold;
+}
+
+.recipe-wrapper .stars-rating span {
+    align-self: center;
+}
+
+.as-header .options-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-right: 2rem;
+}
+
+.as-header .options-header-right button {
+    padding: 0.3rem 0.8rem;
+    border-radius: 10px;
+    border: none;
+    font-weight: 500;
+    color: var(--dark-font-color);
+    background-color: transparent;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-size: 1.05rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 700;
+    border: 3px solid transparent;
+    transition: border-color 0.3s, color 0.3s, background-color 0.3s;
+}
+
+.as-header .options-header-right .submit-btn {
+    border: 2px solid var(--main-color);
+    color: var(--main-color);
+}
+
+.as-header .options-header-right .submit-btn:hover {
+    border-color: var(--main-color);
+    color: white;
+    background-color: var(--main-color);
+}
+
+.as-header .options-header-right .print-btn:hover {
+    border-color: var(--main-color);
+    color: white;
+    background-color: var(--main-color);
+}
+
+.as-header .options-header-right .draft-btn {
+    background-color: transparent;
+    border: 3px solid var(--grey-bg-color);
+    color: var(--dark-font-color);
+}
+
+.as-header .options-header-right .draft-btn:hover {
+    background-color: var(--grey-bg-color);
+    border: 3px solid transparent;
+    color: var(--dark-font-color);
+}
+
+
+.options-header-right .option-box {
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--light-border-section);
+    border-radius: 5px;
+}
+
+.options-header-right .option-box .option-cd-icon path {
+    fill: var(--pink-text-color);
+}
+
+.as-container .lesson-editor-container {
+    width: 100%;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.lesson-editor-header {
+    width: 100%;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.lesson-editor-header .header-left,
+.lesson-editor-header .header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.lesson-editor-header .header-right {
+    align-self: flex-end;
+}
+
+.lesson-editor-header h5 {
+    font-family: "Pacifico", cursive;
+    font-size: 1.2rem;
+}
+
+.lesson-nav-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 14px;
+    border: 1px solid var(--light-border-color);
+    background-color: var(--light-pink-bg-color);
+}
+
+.lesson-nav-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    flex: 1;
+}
+
+.lesson-counter {
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--light-grey-font-color);
+    letter-spacing: 0.03em;
+}
+
+.lesson-title-input {
+    width: 100%;
+    max-width: 340px;
+    padding: 0.45rem 0.9rem;
+    border-radius: 8px;
+    border: 1.5px solid var(--light-border-color);
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--dark-font-color);
+    background-color: white;
+    outline: none;
+    text-align: center;
+    transition: border-color 0.2s;
+    text-transform: capitalize;
+}
+
+.lesson-title-input:focus {
+    border-color: var(--main-color-light);
+}
+
+.lesson-title-input::placeholder {
+    font-weight: 400;
+    color: var(--light-grey-font-color);
+}
+
+.lesson-nav-btn {
+    height: 42px;
+    padding: 0 1.2rem;
+    border-radius: 30px;
+    border: 1.5px solid var(--light-border-color);
+    background-color: white;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--dark-font-color);
+    cursor: pointer;
+    transition: border-color 0.2s, background-color 0.2s, opacity 0.2s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+.lesson-nav-btn:hover:not(:disabled) {
+    border-color: var(--main-color-light);
+    background-color: #FDF2F8;
+}
+
+.lesson-nav-bar .lesson-icon.rotate-180 {
+    transform: rotate(180deg);
+}
+
+.lesson-nav-bar .lesson-icon.rotate-180 path {
+    fill: #fff;
+}
+
+.lesson-nav-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.lesson-nav-btn--next {
+    background-color: var(--main-color-light);
+    border-color: var(--main-color-light);
+    color: white;
+}
+
+.lesson-nav-btn--next:hover:not(:disabled) {
+    background-color: transparent;
+    color: var(--dark-font-color);
+}
+
+.jodit-container .jodit-workplace {
+    min-height: 50vh !important;
+}
+
+/* ── Bottom action bar ──────────────────────────────── */
+
+.lesson-editor-actions {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.lesson-editor-actions-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.lesson-back-btn {
+    align-self: flex-start;
+    height: 50px;
+    padding: 0 1.5rem;
+    border-radius: 30px;
+    border: 3px solid transparent;
+    background-color: var(--grey-bg-color);
+    color: var(--dark-font-color);
+    font-family: 'Nunito', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.3s, background-color 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.lesson-back-btn:hover {
+    background-color: transparent;
+    border: 3px solid var(--grey-bg-color);
+}
+
+/* ── Lesson progress dots ───────────────────────────── */
+
+.lesson-dots {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.lesson-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--light-border-color);
+    background-color: transparent;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s, transform 0.15s;
+}
+
+.lesson-dot:hover {
+    border-color: var(--main-color-light);
+    transform: scale(1.2);
+}
+
+.lesson-dot--filled {
+    border-color: var(--main-color-light);
+    background-color: #EC489940;
+}
+
+.lesson-dot--active {
+    border-color: var(--main-color-light);
+    background-color: var(--main-color-light);
+    transform: scale(1.25);
+}
+
+.points-box {
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--dark-font-color);
+    padding: 0.25rem 0.6rem;
+    border-radius: 8px;
+    background-color: var(--grey-bg-color);
+    display: inline-block;
+}
+
+.exercise-statement-box {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    max-height: 40vh;
+    overflow-y: auto;
+    padding: 0.5rem 0.25rem;
+    scroll-behavior: smooth;
+    overflow-y: auto;
+}
+
+.exercise-statement-box::-webkit-scrollbar {
+    width: 6px;
+}
+
+.exercise-statement-box::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.exercise-statement-box::-webkit-scrollbar-thumb {
+    background: var(--light-border-color);
+    border-radius: 99px;
+}
+
+.as-exercise-card {
+    background: var(--white-bg-color);
+    border-radius: 16px;
+    padding: 2.5rem 3rem;
+    position: relative;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    animation: cd-fadein 0.35s ease both;
+}
+
+
+@keyframes cd-fadein {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.as-page-number {
+    position: absolute;
+    top: 1.2rem;
+    right: 1.5rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--light-grey-font-color);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+/* Content typography */
+.as-page-content h1,
+.as-page-content h2,
+.as-page-content h3,
+.as-page-content h4,
+.as-page-content h5,
+.as-page-content h6 {
+    font-family: 'Pacifico', cursive;
+    color: var(--dark-font-color);
+    margin: 0 0 1.2rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 2px solid var(--light-pink-bg-color);
+}
+
+.as-page-content h1 {
+    font-size: 1.5rem;
+}
+
+.as-page-content h2 {
+    font-size: 1.35rem;
+}
+
+.as-page-content h3 {
+    font-size: 1.2rem;
+}
+
+.as-page-content h4 {
+    font-size: 1.05rem;
+}
+
+.as-page-content h5 {
+    font-size: 0.9rem;
+}
+
+.as-page-content h6 {
+    font-size: 0.8rem;
+}
+
+.as-page-content p {
+    font-size: 0.97rem;
+    line-height: 1.85;
+    color: #334155;
+    margin: 0 0 1rem;
+}
+
+.as-page-content ul {
+    padding-left: 1.4rem;
+    margin: 0 0 1rem;
+}
+
+.as-page-content li {
+    font-size: 0.97rem;
+    line-height: 1.85;
+    color: #334155;
+    margin-bottom: 0.4rem;
+}
+
+.as-page-content strong {
+    color: var(--dark-font-color);
+    font-weight: 700;
+}
+
+.as-page-content em {
+    color: var(--light-pink-bg-color);
+    font-style: normal;
+    font-weight: 500;
+}
+
+.cd-sidebar {
+    width: 320px;
+    min-width: 300px;
+    max-width: 340px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    position: sticky;
+    top: 2rem;
+    max-height: calc(100vh - 4rem);
+    overflow-y: auto;
+}
+
+.cd-sidebar::-webkit-scrollbar {
+    display: none;
+}
+
+.cd-sidebar-card {
+    background: var(--cd-white);
+    border: 1.5px solid var(--cd-border);
+    border-radius: 16px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.cd-sidebar-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cd-sidebar-card-title {
+    font-family: 'Pacifico', cursive;
+    font-size: 1rem;
+    color: var(--cd-dark);
+    margin: 0;
+}
+
+.cd-course-title-text {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--cd-dark);
+    margin: 0;
+    line-height: 1.4;
+    text-transform: capitalize;
+}
+
+/* Teacher row */
+.cd-teacher-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: var(--cd-pink-bg);
+    border-radius: 12px;
+    padding: 0.7rem 0.9rem;
+}
+
+.cd-teacher-avatar {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 800;
+    font-family: 'Nunito', sans-serif;
+}
+
+.cd-teacher-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--cd-grey);
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.cd-teacher-name {
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: var(--cd-dark);
+    margin: 0;
+}
+
+/* Progress */
+.cd-progress-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.cd-progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--cd-grey);
+}
+
+.cd-progress-pct {
+    color: var(--cd-pink);
+}
+
+.cd-progress-track {
+    height: 8px;
+    background: var(--cd-pink-light);
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.cd-progress-fill {
+    height: 100%;
+    background: var(--cd-pink);
+    border-radius: 99px;
+    transition: width 0.5s ease;
+}
+
+/* Detail grid */
+.cd-details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+.cd-detail-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #FAFAFA;
+    border: 1px solid var(--cd-border);
+    border-radius: 10px;
+    padding: 0.55rem 0.7rem;
+}
+
+.cd-detail-item .detail-item-icon {
+    width: 24px;
+    height: 24px;
+}
+
+.cd-detail-icon {
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.cd-detail-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--cd-grey);
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.cd-detail-val {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--cd-dark);
+    margin: 0;
+}
+
+/* Tags */
+.cd-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.cd-tag {
+    background: var(--cd-pink-light);
+    color: var(--cd-pink);
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.2rem 0.65rem;
+    border-radius: 20px;
+}
+
+/* Lesson list */
+.cd-lesson-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.cd-lesson-list-item {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    width: 100%;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    padding: 0.55rem 0.7rem;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #334155;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.18s;
+}
+
+.cd-lesson-list-item:hover {
+    background: var(--cd-pink-bg);
+    color: var(--cd-pink);
+}
+
+.cd-lesson-list-item--active {
+    background: var(--cd-pink-bg);
+    border-color: var(--cd-pink-mid);
+    color: var(--cd-pink);
+    font-weight: 800;
+}
+
+.cd-lesson-list-item--done .cd-lesson-num {
+    background: #ECFDF5;
+    color: #10B981;
+}
+
+.cd-lesson-num {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    border-radius: 50%;
+    background: var(--cd-page-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: var(--cd-grey);
+    transition: all 0.18s;
+}
+
+.cd-lesson-list-item--active .cd-lesson-num {
+    background: var(--cd-pink);
+    color: white;
+}
+
+.cd-lesson-list-title {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Recommendations */
+.cd-rec-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.cd-rec-item {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    border-radius: 12px;
+    border: 1px solid var(--cd-border);
+    padding: 0.65rem 0.75rem;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.cd-rec-item:hover {
+    border-color: var(--cd-pink-mid);
+    box-shadow: 0 2px 12px rgba(236, 72, 153, 0.07);
+}
+
+.cd-rec-thumb {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+}
+
+.cd-rec-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.cd-rec-title {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--cd-dark);
+    margin: 0 0 0.15rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cd-rec-desc {
+    font-size: 0.75rem;
+    color: var(--cd-grey);
+    margin: 0 0 0.35rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cd-rec-level {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.15rem 0.55rem;
+    border-radius: 20px;
+}
+
+/*------------For the submission confirm---------*/
+
+/* ── Overlay & Modal ── */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(30, 41, 59, 0.45);
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(1px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-box {
+    background: #ffffff;
+    border-radius: 16px;
+    border: 0.5px solid rgba(236, 72, 153, 0.2);
+    padding: 2rem 2rem 1.5rem;
+    width: 100%;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.modal-icon-ring {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #FDF2F8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-icon-ring svg {
+    width: 26px;
+    height: 26px;
+}
+
+.modal-title {
+    font-family: 'Pacifico', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #1E293B;
+    margin: 0 0 6px;
+    text-align: center;
+    text-transform: capitalize;
+}
+
+.modal-desc {
+    font-family: 'Kumbh Sans', sans-serif;
+    font-size: 1rem;
+    color: #8E8E8E;
+    text-align: center;
+    line-height: 1.6;
+    margin: 0 0 0.7rem;
+}
+
+.modal-meta {
+    background: #FDF2F8;
+    border-radius: 10px;
+    padding: 10px 16px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.modal-meta-row {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Kumbh Sans', sans-serif;
+    font-size: 0.9rem;
+}
+
+.modal-meta-row span:first-child {
+    color: #8E8E8E;
+}
+
+.modal-meta-row span:last-child {
+    color: #1E293B;
+    font-weight: 700;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+}
+
+.btn-cancel {
+    flex: 1;
+    padding: 10px 0;
+    border-radius: 10px;
+    border: 0.5px solid #E2E4E5;
+    background: #fff;
+    color: #4A4A4A;
+    font-family: 'Nunito', sans-serif;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.btn-cancel:hover {
+    background: #F8F8F8;
+}
+
+.btn-confirm {
+    flex: 1.4;
+    padding: 10px 0;
+    border-radius: 10px;
+    border: none;
+    background: #EC4899;
+    color: #fff;
+    font-family: 'Nunito', sans-serif;
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s;
+}
+
+.btn-confirm:hover {
+    background: #D4377F;
+}
+
+.btn-confirm:active {
+    transform: scale(0.98);
+}
+
+.cd-calculator{
+    position: absolute;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 1001;
+}

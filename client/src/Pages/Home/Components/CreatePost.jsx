@@ -210,7 +210,7 @@ function CreatePost({ isOpen, onClose }) {
                 }
             }
 
-            setPosts((prev) => [...prev, newPost])
+            setPosts((prev) => [newPost, ...prev])
             onClose()
             setPostAdded(true)
         } catch (error) {

@@ -7,6 +7,7 @@ const SolvingModel = require('../models/Solving')
 const { discoverAuthService, discoverNotifService } = require('../config/discovery.service')
 const axios = require('axios')
 const multer = require('multer')
+const QuizAttemptModel = require('../models/QuizAttempts')
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -523,7 +524,7 @@ router.post('/:assignId/comment/:commentId/reply', async (req, res) => {
             text: req.body.text,
         }
 
-        comment.replies.push(reply)        
+        comment.replies.push(reply)
         await comment.save()
 
         // Send back the actual new reply (last item after save)
@@ -609,7 +610,7 @@ router.post('/quizes', async (req, res) => {
 
     const teacherId = req.headers['x-user-id']
 
-    let { title, description, difficulty, questions, score } = req.body || {}
+    let { title, description, difficulty, category, questions, score } = req.body || {}
 
     if (!title || !difficulty) return res.status(400).json({ error: "Missing fields: title, difficulty" })
 
@@ -629,6 +630,7 @@ router.post('/quizes', async (req, res) => {
             title,
             description,
             difficulty,
+            category,
             questions,
             courseId,
             score
@@ -674,6 +676,120 @@ router.put('/quizes/:quizId', async (req, res) => {
     } catch (error) {
 
         console.log("Internal Server error", error.message)
+    }
+})
+
+router.get('/quizes/:quizId', async (req, res) => {
+
+    const quizId = req.params.quizId
+
+    try {
+        const quiz = await QuizeModel.findById(quizId)
+        if (!quiz) return res.status(404).json({ nonExist: "this quiz doesn't exist" })
+
+        const authServiceBaseUrl = await discoverAuthService()
+        const responseUser = await axios.get(`${authServiceBaseUrl}/get_user_byId/${quiz.teacherId}`)
+
+        const responseCategory = await axios.get(`${authServiceBaseUrl}/infos/subjects/${quiz.category.id}`);
+
+        let responseField = null;
+        if (quiz.category.subCategory) {
+            responseField = await axios.get(`${authServiceBaseUrl}/infos/sub-subjects/${quiz.category.subCategory}`);
+        }
+        const finalQuiz = {
+            _id: quiz._id,
+            teacherId: quiz.teacherId,
+            title: quiz.title,
+            description: quiz.description,
+            difficulty: quiz.difficulty,
+            category: responseCategory ? {
+                idSubject: responseCategory.data.idSubject,
+                name: responseCategory.data.name,
+                color: responseCategory.data.color
+            } : null,
+            subCategory: responseField
+                ? {
+                    idSub: responseField.data.idSub,
+                    name: responseField.data.name
+                }
+                : null,
+            questions: quiz.questions,
+            score: quiz.score,
+            teacher: {
+                userId: responseUser.data.user.id,
+                userName: responseUser.data.user.userName,
+                familyName: responseUser.data.user.familyName,
+                givenName: responseUser.data.user.givenName,
+                userImg: responseUser.data.user.uerImg,
+                role: "teacher"
+            } || null
+        }
+        res.status(200).json(finalQuiz)
+
+    } catch (error) {
+        console.log("Internal Server error", error.message)
+        res.status(500).json({ error: "Internal server error", message: error.message })
+    }
+})
+
+router.get('/me/quizes', async (req, res) => {
+
+    const userId = req.headers['x-user-id']
+
+    try {
+        const solvedQuizes = await QuizAttemptModel.find({ studentId: userId })
+        const authServiceBaseUrl = await discoverAuthService()
+
+        const enrichedQuizes = await Promise.all(
+            solvedQuizes.map(async (attempt) => {
+                const quiz = await QuizeModel.findById(attempt.quizId)
+                const responseUser = await axios.get(`${authServiceBaseUrl}/get_user_byId/${quiz.teacherId}`)
+
+                const responseCategory = await axios.get(`${authServiceBaseUrl}/infos/subjects/${quiz.category.id}`);
+
+                let responseField = null;
+                if (quiz.category.subCategory) {
+                    responseField = await axios.get(`${authServiceBaseUrl}/infos/sub-subjects/${quiz.category.subCategory}`);
+                }
+
+                return {
+                    attempt,
+                    quiz: {
+                        _id: quiz._id,
+                        teacherId: quiz.teacherId,
+                        title: quiz.title,
+                        description: quiz.description,
+                        difficulty: quiz.difficulty,
+                        category: responseCategory ? {
+                            idSubject: responseCategory.data.idSubject,
+                            name: responseCategory.data.name,
+                            color: responseCategory.data.color
+                        } : null,
+                        subCategory: responseField
+                            ? {
+                                idSub: responseField.data.idSub,
+                                name: responseField.data.name
+                            }
+                            : null,
+                        questions: quiz.questions,
+                        score: quiz.score,
+                        teacher: {
+                            userId: responseUser.data.user.id,
+                            userName: responseUser.data.user.userName,
+                            familyName: responseUser.data.user.familyName,
+                            givenName: responseUser.data.user.givenName,
+                            userImg: responseUser.data.user.uerImg,
+                            role: "teacher"
+                        } || null
+                    }
+                }
+            })
+        )
+        res.status(200).json(enrichedQuizes)
+
+    } catch (error) {
+        console.log("Internal Server error", error.message)
+        res.status(500).json({ error: "Internal server error", message: error.message })
     }
 })
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import '../Styles/Posts.css'
 import { PostCard } from '../Components/Post'
 import Suggestions from './Suggestions'
@@ -7,12 +7,15 @@ import CreatePost from '../Components/CreatePost'
 import PostPage from '../Components/PostPage'
 import axios from 'axios'
 import { useTranslation } from 'react-i18next'
+import { AppContext } from '../../../App'
 
 export const TimeLineContext = React.createContext()
 
 function PostsFeed() {
 
     const { t } = useTranslation()
+
+    const {getPosts} = useContext(AppContext)
 
     const [createPostClicked, setCreatePostClicked] = useState(false)
 
@@ -60,7 +63,7 @@ function PostsFeed() {
             .catch((err) => console.error(err.response.data))
 
 
-    }, [])
+    }, [getPosts])
     
     useEffect(() => {
         if (!postAdded) return;

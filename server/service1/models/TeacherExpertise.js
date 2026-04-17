@@ -22,7 +22,9 @@ module.exports = (sequelize, DataTypes) => {
         },
     }, {
         tableName: 'teacher_expertise',
-        timestamps: false,
+        timestamps: true,
+        createdAt: 'addedAt',
+        updatedAt: false
     })
 
     return TeacherExpertise;

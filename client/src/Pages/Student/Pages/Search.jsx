@@ -1,34 +1,30 @@
 import React, { useState, useRef, useEffect } from 'react'
 import '../Styles/Search.css'
 import { ReactComponent as SearchIcon } from '../../../Assets/icons/CourseIcons/search-course.svg'
-import { CourseCard } from '../../Teacher/Pages/MyCourses'
-
-const CATEGORIES = [
-    { id: 1, name: 'Mathematics', emoji: '📐' },
-    { id: 2, name: 'Computer Science', emoji: '💻' },
-    { id: 3, name: 'Physics', emoji: '⚛️' },
-    { id: 4, name: 'Chemistry', emoji: '🧪' },
-    { id: 5, name: 'Biology', emoji: '🧬' },
-    { id: 6, name: 'History', emoji: '🏛️' },
-    { id: 7, name: 'Geography', emoji: '🌍' },
-    { id: 8, name: 'Literature', emoji: '📚' },
-    { id: 9, name: 'Language Arts', emoji: '✍️' },
-    { id: 10, name: 'Art & Design', emoji: '🎨' },
-    { id: 11, name: 'Music', emoji: '🎵' },
-    { id: 12, name: 'Philosophy', emoji: '🧠' },
-    { id: 13, name: 'Economics', emoji: '📊' },
-    { id: 14, name: 'Psychology', emoji: '🪞' },
-    { id: 15, name: 'Engineering', emoji: '⚙️' },
-    { id: 16, name: 'Medicine', emoji: '🩺' },
-    { id: 17, name: 'Law', emoji: '⚖️' },
-    { id: 18, name: 'Sports & PE', emoji: '🏃' },
-]
-
-// The student's interest category IDs would come from their profile / context
-// For now we highlight them visually — pass them from your AppContext later
-const STUDENT_INTEREST_IDS = [1, 2, 5, 13]
+import CoursesView from '../Components/CoursesView'
+import axios from 'axios'
+import QuizSolve from '../Components/QuizSolve'
 
 function SearchPage() {
+
+    const [categories, setCategories] = useState([])
+
+    useEffect(() => {
+        axios.defaults.withCredentials = true
+        axios.get('http://localhost:8080/auth/infos/get-subjects')
+            .then((res) => setCategories(res.data))
+            .catch((err) => console.error(err.response.data))
+    }, [])
+
+    const [studentIntrests, setStudentsIntrests] = useState([])
+
+    useEffect(() => {
+        axios.defaults.withCredentials = true
+        axios.get('http://localhost:8080/users/infos/get-user-intrests')
+            .then((res) => setStudentsIntrests(res.data))
+            .catch((err) => console.error(err.response.data))
+    }, [])
+
     const [query, setQuery] = useState('')
     const [focused, setFocused] = useState(false)
     const [selectedCats, setSelectedCats] = useState([])
@@ -52,34 +48,58 @@ function SearchPage() {
 
     const toggleCategory = (cat) => {
         setSelectedCats((prev) =>
-            prev.find(c => c.id === cat.id)
-                ? prev.filter(c => c.id !== cat.id)
+            prev.find(c => c.idSubject === cat.idSubject)
+                ? prev.filter(c => c.idSubject !== cat.idSubject)
                 : [...prev, cat]
         )
     }
 
     const removeCategory = (id) => {
-        setSelectedCats(prev => prev.filter(c => c.id !== id))
+        setSelectedCats(prev => prev.filter(c => c.idSubject !== id))
     }
+
+    const [courses, setCourses] = useState([])
+    const [assignments, setAssignments] = useState([])
+    const [tips, setTips] = useState([])
 
     const handleSearch = () => {
-        if (!query.trim() && selectedCats.length === 0) return
-        setFocused(false)
-        setLoading(true)
-        setSearched(true)
+        if (!query.trim() && selectedCats.length === 0) return;
 
-        // Build your query params here when backend is ready:
-        // const params = new URLSearchParams()
-        // if (query)               params.set('title', query)
-        // if (selectedCats.length) params.set('categories', selectedCats.map(c => c.id).join(','))
-        // axios.get(`/search?${params}`).then(res => setResults(res.data)).finally(() => setLoading(false))
+        setFocused(false);
+        setLoading(true);
+        setSearched(true);
 
-        // ── Simulated delay for now ──
-        setTimeout(() => {
-            setResults([]) // replace with real data
-            setLoading(false)
-        }, 800)
-    }
+        // Extract category IDs
+        const categoryIds = selectedCats.map(cat => cat.idSubject);
+
+        // Split query
+        const subcategoryNames = query
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean); // to delete the empty strings
+
+        // Build params
+        const params = new URLSearchParams();
+        params.set("title", query)
+        if (subcategoryNames.length) params.set("subCategoryName", subcategoryNames.join(","));
+        if (categoryIds.length) params.set("categoryId", categoryIds.join(","));
+
+        // Force minimum 1 second delay
+        const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
+        const request = axios.get(`http://localhost:8080/content/courses/search?${params.toString()}`);
+
+        Promise.all([request, minDelay])
+            .then(([res]) => {
+                const data = res.data;
+
+                setResults(data);
+
+                setCourses(data.filter(i => i.typeContent === "course"));
+                setAssignments(data.filter(i => i.typeContent === "assignment"));
+                setTips(data.filter(i => i.typeContent === "tip"));
+            })
+            .finally(() => { setLoading(false); console.log(assignments) });
+    };
 
     const handleKeyDown = (e) => {
         if (e.key === 'Enter') handleSearch()
@@ -135,7 +155,7 @@ function SearchPage() {
                             {selectedCats.map(cat => (
                                 <span key={cat.id} className="selected-pill">
                                     {cat.emoji} {cat.name}
-                                    <button onClick={() => removeCategory(cat.id)}>✕</button>
+                                    <button onClick={() => removeCategory(cat.idSubject)}>✕</button>
                                 </span>
                             ))}
                         </div>
@@ -148,9 +168,9 @@ function SearchPage() {
                                 {selectedCats.length > 0 ? 'Add more categories' : 'Browse by category'}
                             </p>
                             <div className="dropdown-cats-grid">
-                                {CATEGORIES.map(cat => {
-                                    const isSelected = selectedCats.find(c => c.id === cat.id)
-                                    const isInterest = STUDENT_INTEREST_IDS.includes(cat.id)
+                                {categories.map(cat => {
+                                    const isSelected = selectedCats.find(c => c.idSubject === cat.idSubject)
+                                    const isInterest = studentIntrests.includes(cat.idSubject)
                                     return (
                                         <button
                                             key={cat.id}
@@ -160,7 +180,7 @@ function SearchPage() {
                                             `}
                                             onMouseDown={e => { e.preventDefault(); toggleCategory(cat) }}
                                         >
-                                            <span>{cat.emoji}</span>
+                                            {/* <span>{cat.emoji}</span> */}
                                             <span>{cat.name}</span>
                                             {isSelected && <span className="chip-check">✓</span>}
                                             {isInterest && !isSelected && (
@@ -177,46 +197,7 @@ function SearchPage() {
 
             {/* ─── Results area ───────────────────────────────── */}
             <div className="search-results-area">
-                {!searched && (
-                    <div className="search-empty-state">
-                        <span className="empty-icon">🔍</span>
-                        <p>Start typing or pick a category to discover courses</p>
-                    </div>
-                )}
-
-                {searched && loading && (
-                    <div className="search-loading">
-                        <div className="loading-spinner" />
-                        <span>Searching…</span>
-                    </div>
-                )}
-
-                {searched && !loading && results.length === 0 && (
-                    <div className="search-empty-state">
-                        <span className="empty-icon">😕</span>
-                        <p>No courses found for <strong>"{query}"</strong>{selectedCats.length > 0 && ` in ${selectedCats.map(c => c.name).join(', ')}`}</p>
-                        <button className="search-clear-btn-alt" onClick={clearAll}>Clear search</button>
-                    </div>
-                )}
-
-                {searched && !loading && results.length > 0 && (
-                    <>
-                        <div className="results-header">
-                            <span>{results.length} course{results.length !== 1 ? 's' : ''} found</span>
-                        </div>
-                        <div className="courses-grid-container">
-                            {results.map(course => (
-                                <CourseCard
-                                    key={course._id}
-                                    course={course}
-                                    onClick={() => { }}
-                                    isSelected={false}
-                                    typeView="Courses"
-                                />
-                            ))}
-                        </div>
-                    </>
-                )}
+                <CoursesView courses={courses} assignments={assignments} searched={searched} loading={loading} query={query} selectedCats={selectedCats.map(c => c.name).join(', ')} />
             </div>
         </div>
     )

@@ -81,7 +81,12 @@ const PostSchema = new Schema({
                 image: String
             }
         }
-    ]
+    ],
+    
+    isParentHub:{
+        type: Boolean,
+        default: false
+    }
 
 }, { timestamps: true });
 

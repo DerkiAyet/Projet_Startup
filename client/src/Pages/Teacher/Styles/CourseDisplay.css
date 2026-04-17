@@ -393,6 +393,7 @@
     font-weight: 500;
 }
 
+
 /* Math display block */
 .math-block {
     background: var(--cd-pink-bg);
@@ -802,7 +803,7 @@
     padding: 0.55rem 0.7rem;
 }
 
-.cd-detail-item .detail-item-icon{
+.cd-detail-item .detail-item-icon {
     width: 24px;
     height: 24px;
 }
@@ -977,6 +978,52 @@
     font-weight: 700;
     padding: 0.15rem 0.55rem;
     border-radius: 20px;
+}
+
+/*---------------Quiz Page---------*/
+
+.cd-quiz-body {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    align-items: center;
+}
+
+.cd-quiz-body p {
+    font-family: 'Pacifico', cursive;
+    font-size: 1.35rem;
+    color: var(--cd-pink);
+}
+
+.cd-quiz-body span{
+    font-family: 'Geologica', sans-serif;
+    margin-bottom: 1.2rem;
+}
+
+.cd-quiz-body button{
+    background: var(--cd-pink);
+    border: 2px solid transparent;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 700;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-family: 'Nunito', sans-serif;
+    transition: all 0.2s;
+}
+
+.cd-quiz-body button:hover {
+    background: transparent;
+    color: var(--cd-pink);
+    border-color: var(--cd-pink);
+}
+
+.cd-start-quiz-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
 }
 
 /* ── Responsive ─────────────────────────────────────── */

@@ -22,6 +22,10 @@ const QuizSchema = new Schema({
         enum: ["Beginner", "Intermediate", "Advanced"],
         default: "Beginner"
     },
+    category: {
+        id: { type: Number, required: true },
+        subCategory: { type: Number }
+    },
     questions: [QuestionSchema],
     courseId: {
         type: mongoose.Schema.Types.ObjectId,

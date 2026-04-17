@@ -78,11 +78,11 @@ function Login() {
         console.error(err.response?.data);
 
         if (err.response?.data?.errorUser) {
-          setErrors({ ...errors, identifier: t('auth.userNotFound') })
+          setErrors({ ...errors, identifier: t('auth.errors.userNotFound') })
         }
 
         if (err.response?.data?.errorPassword) {
-          setErrors({ ...errors, password: t('auth.wrongPassword') })
+          setErrors({ ...errors, password: t('auth.errors.wrongPassword') })
         }
 
       });

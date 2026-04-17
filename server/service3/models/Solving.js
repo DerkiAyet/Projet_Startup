@@ -14,12 +14,21 @@ const SolvingSchema = new mongoose.Schema({
 
     problemsSolved: [
         {
-            id: {type: mongoose.Schema.Types.ObjectId},
+            id: { type: mongoose.Schema.Types.ObjectId },
+            exerciseId: {
+                type: mongoose.Schema.Types.ObjectId,
+                required: true
+            },
             solution: { type: String },
             grade: Number,
             teacherExplination: { type: String }
         }
     ],
+
+    posted: {
+        type: Boolean,
+        default: false
+    },
 
     score: { type: Number },
 

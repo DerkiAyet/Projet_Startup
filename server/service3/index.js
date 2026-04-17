@@ -62,4 +62,7 @@ app.use("/tips", tipsRoute)
 const activityRoute = require('./routes/Progress');
 app.use("/activity", activityRoute)
 
+const EventsRoute = require('./routes/Events');
+app.use("/events", EventsRoute)
+
 module.exports = { eurekaClient }
