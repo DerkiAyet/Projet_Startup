@@ -7,8 +7,6 @@
     --light-font-color: #A6A6A6;
     --dark-font-title-color: #4A4A4A;
     --light-border-section: #D9E1E7;
-
-    --lg-font-size: 0.9rem;
 }
 
 .courses-container {
@@ -226,7 +224,7 @@
 }
 
 .course-card .course-infos-box .course-cat {
-    font-size: var(--lg-font-size);
+    font-size: 0.9rem;
     color: var(--light-font-color);
     margin-bottom: 0.5rem;
 }

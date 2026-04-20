@@ -1014,9 +1014,46 @@
     transform: scale(0.98);
 }
 
-.cd-calculator{
+.cd-calculator {
     position: absolute;
     bottom: 1.5rem;
     right: 1.5rem;
     z-index: 1001;
+}
+
+.as-main .tool-btns-wrapper {
+    position: absolute;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.as-main .tool-btns-wrapper button {
+    background-color: #EC489990;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    box-shadow: 0 2px 12px rgba(236, 72, 153, 0.07);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    cursor: pointer;
+}
+
+.as-main .tool-btns-wrapper button .tool-icon{
+    width: 35px;
+    height: 35px;
+    color: white;
+}
+
+.as-main .tool-btns-wrapper button:nth-child(2) .tool-icon path {
+    fill: white;
+}
+
+
+.as-main .tool-btns-wrapper button:nth-child(1) .tool-icon path{
+    stroke: white;
 }

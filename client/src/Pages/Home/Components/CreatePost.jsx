@@ -275,7 +275,7 @@ function CreatePost({ isOpen, onClose }) {
                                 <ImgDeco />
                                 <span>Drop your image/video here</span>
                                 <div className='enter-image-form'>
-                                    <label htmlFor="postImg">Select from computer</label>
+                                    <label htmlFor="postImg">Select from computer</label> {/* it will trigger the hidden file input when clicked */}
                                 </div>
                             </>
                         )}

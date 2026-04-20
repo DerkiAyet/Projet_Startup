@@ -1,0 +1,425 @@
+/* ── Backdrop ─────────────────────────────────────────────────────────────── */
+.cp-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(30, 41, 59, 0.3);
+    z-index: 1050;
+    animation: cpBackdropIn 0.22s ease;
+}
+
+@keyframes cpBackdropIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* ── Panel shell ──────────────────────────────────────────────────────────── */
+.cp-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100dvh;
+    width: 50%;
+    min-width: 340px;
+    max-width: 760px;
+    background: #0d1117;
+    display: flex;
+    flex-direction: column;
+    z-index: 1100;
+    box-shadow: -8px 0 48px rgba(0, 0, 0, 0.35);
+    transform: translateX(100%);
+    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+    border-left: 1.5px solid rgba(255, 255, 255, 0.06);
+}
+
+.cp-panel--open {
+    transform: translateX(0);
+}
+
+/* ── Header ───────────────────────────────────────────────────────────────── */
+.cp-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.65rem 1.2rem;
+    background: linear-gradient(135deg, #F29DB6 0%, #f472b6 100%);
+    flex-shrink: 0;
+    gap: 0.75rem;
+}
+
+.cp-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-width: 0;
+}
+
+.cp-header-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.cp-title {
+    font-family: 'Geologica', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #fff;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.cp-sub {
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0;
+    line-height: 1.2;
+}
+
+.cp-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+/* ── Language picker ──────────────────────────────────────────────────────── */
+.cp-lang-wrapper {
+    position: relative;
+}
+
+.cp-lang-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0.32rem 0.75rem;
+    border-radius: 20px;
+    border: none;
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.18s;
+    white-space: nowrap;
+}
+
+.cp-lang-btn:hover {
+    background: rgba(255, 255, 255, 0.32);
+}
+
+.cp-lang-label {
+    font-family: 'Geologica', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.cp-lang-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: #1c2333;
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    overflow: hidden;
+    min-width: 160px;
+    z-index: 200;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    animation: cpDropIn 0.18s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+@keyframes cpDropIn {
+    from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.cp-lang-option {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    width: 100%;
+    padding: 0.55rem 0.85rem;
+    border: none;
+    background: none;
+    color: #c9d1d9;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.12s;
+}
+
+.cp-lang-option:hover {
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.cp-lang-option--active {
+    background: rgba(242, 157, 182, 0.15);
+    color: #F29DB6;
+}
+
+.cp-lang-option-badge {
+    font-family: 'Geologica', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 800;
+    background: rgba(255, 255, 255, 0.08);
+    padding: 2px 6px;
+    border-radius: 5px;
+    min-width: 32px;
+    text-align: center;
+    color: #8b949e;
+}
+
+.cp-lang-option--active .cp-lang-option-badge {
+    background: rgba(242, 157, 182, 0.2);
+    color: #F29DB6;
+}
+
+/* ── Close button ─────────────────────────────────────────────────────────── */
+.cp-close-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.18s;
+    flex-shrink: 0;
+}
+
+.cp-close-btn:hover {
+    background: rgba(255, 255, 255, 0.35);
+}
+
+/* ── Toolbar ──────────────────────────────────────────────────────────────── */
+.cp-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.45rem 1rem;
+    background: #161b22;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    flex-shrink: 0;
+    gap: 0.5rem;
+}
+
+.cp-toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.cp-file-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #F29DB6;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.cp-file-name {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.78rem;
+    color: #8b949e;
+    font-weight: 500;
+}
+
+.cp-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.cp-tool-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0.28rem 0.65rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    color: #8b949e;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.cp-tool-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #c9d1d9;
+    border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* ── Monaco editor wrapper ────────────────────────────────────────────────── */
+.cp-editor-wrap {
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+}
+
+/* ── Run bar ──────────────────────────────────────────────────────────────── */
+.cp-run-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 1rem;
+    background: #161b22;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    flex-shrink: 0;
+}
+
+.cp-run-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0.42rem 1.1rem;
+    border-radius: 10px;
+    border: none;
+    background: linear-gradient(135deg, #F29DB6, #f472b6);
+    color: #fff;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.12s;
+    box-shadow: 0 3px 14px rgba(242, 157, 182, 0.4);
+}
+
+.cp-run-btn:hover:not(:disabled) {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.cp-run-btn:active:not(:disabled) {
+    transform: scale(0.96);
+}
+
+.cp-run-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.cp-run-btn--disabled {
+    background: rgba(255, 255, 255, 0.1);
+    color: #8b949e;
+    box-shadow: none;
+}
+
+.cp-run-btn--disabled:hover {
+    opacity: 1;
+    transform: none;
+}
+
+.cp-run-hint {
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.74rem;
+    color: #6e7681;
+    font-style: italic;
+}
+
+/* ── Spinner ──────────────────────────────────────────────────────────────── */
+.cp-spinner {
+    width: 12px;
+    height: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: cpSpin 0.7s linear infinite;
+    display: inline-block;
+}
+
+@keyframes cpSpin {
+    to { transform: rotate(360deg); }
+}
+
+/* ── Output ───────────────────────────────────────────────────────────────── */
+.cp-output {
+    background: #0d1117;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    flex-shrink: 0;
+    max-height: 200px;
+    display: flex;
+    flex-direction: column;
+    animation: cpOutputIn 0.18s ease;
+}
+
+@keyframes cpOutputIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.cp-output-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.45rem 1rem 0.3rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cp-output-header span {
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #F29DB6;
+}
+
+.cp-output-header button {
+    border: none;
+    background: none;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #6e7681;
+    cursor: pointer;
+    transition: color 0.15s;
+}
+
+.cp-output-header button:hover {
+    color: #c9d1d9;
+}
+
+.cp-output-pre {
+    margin: 0;
+    padding: 0.65rem 1rem;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.8rem;
+    line-height: 1.7;
+    color: #c9d1d9;
+    white-space: pre-wrap;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.cp-output-pre::-webkit-scrollbar {
+    width: 3px;
+}
+
+.cp-output-pre::-webkit-scrollbar-thumb {
+    background: rgba(242, 157, 182, 0.3);
+    border-radius: 3px;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+    .cp-panel {
+        width: 100%;
+        min-width: unset;
+        border-left: none;
+    }
+}

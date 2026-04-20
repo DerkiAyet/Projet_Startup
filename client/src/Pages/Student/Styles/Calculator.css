@@ -25,7 +25,7 @@
 /* ── Shell ────────────────────────────────────────────────────────────────── */
 .calc-shell {
     width: 100%;
-    position: absolute;
+    position: fixed;
     bottom: 50px;
     right: 2rem;
     max-width: 350px;

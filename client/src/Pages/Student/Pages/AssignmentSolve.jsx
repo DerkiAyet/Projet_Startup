@@ -4,6 +4,8 @@ import { ReactComponent as TargetIcon } from '../../../Assets/icons/CourseIcons/
 import { ReactComponent as TimerIcon } from '../../../Assets/icons/CourseIcons/timer-icon.svg';
 import { ReactComponent as DoneIcon } from '../../../Assets/icons/CourseIcons/done-icon.svg'
 import { ReactComponent as LessonIcon } from '../../../Assets/icons/CourseIcons/lessons-course.svg';
+import { ReactComponent as CalcIcon } from '../../../Assets/icons/CourseIcons/calculator.svg';
+import { ReactComponent as CodeIcon } from '../../../Assets/icons/CourseIcons/code.svg';
 import JoditEditor from "jodit-react"
 import "../Styles/AssignmentSolve.css"
 import HeaderContent from '../Components/HeaderContent'
@@ -13,6 +15,7 @@ import ToastMessage from '../../../Partials/Components/ToastMessage';
 import Calculator from '../Components/Calculator';
 import { useParams } from 'react-router-dom';
 import axios from 'axios'
+import CodePanel from '../Components/CodeEditor';
 
 const RECOMMENDATIONS = [
   {
@@ -147,6 +150,11 @@ function AssignmentSolve() {
       triggerToast("Error", "Failed to save draft.");
     }
   }
+
+  //--------------TOOLS-------------
+
+  const [showCalculator, setShowCalculator] = useState(false);
+  const [showCodePanel, setShowCodePanel] = useState(false)
 
   return (
     <div className='as-container'>
@@ -415,6 +423,14 @@ function AssignmentSolve() {
           </div>
 
         </aside>
+        <div className="tool-btns-wrapper">
+          <button onClick={(e) => {e.preventDefault(); setShowCodePanel(true)}}>
+            <CodeIcon className="tool-icon" />
+          </button>
+          <button onClick={(e) => {e.preventDefault(); setShowCalculator(true)}} >
+            <CalcIcon className="tool-icon" />
+          </button>
+        </div>
       </div>
 
       {
@@ -437,6 +453,13 @@ function AssignmentSolve() {
           />
         )
       }
+
+      {
+        showCalculator && 
+        <Calculator onClose={() => setShowCalculator(false)} />
+      }
+
+      <CodePanel isOpen={showCodePanel} onClose={() => setShowCodePanel(false)} />
 
       <ToastMessage
         visible={toast.visible}

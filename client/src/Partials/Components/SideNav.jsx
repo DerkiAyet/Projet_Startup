@@ -234,7 +234,7 @@ function SideNav({ minimizeNav, setMinimizeNav, navItems = [], tools = [], mobil
                     </nav>
 
                     {/* Logout */}
-                    <div className="more_btn logout" onClick={Logout}>
+                    <div className="more_btn logout" onClick={Logout} style={{marginTop: "auto"}}>
                         <div className={`link ${minimizeNav ? 'minimize-link' : ''}`}>
                             <LogoutIcon className='nav-icon' />
                             <span className={minimizeNav ? 'hide' : ''}>{t('logout')}</span>
