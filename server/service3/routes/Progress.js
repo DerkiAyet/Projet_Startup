@@ -8,16 +8,29 @@ const QuizAttemptModel = require('../models/QuizAttempts')
 const QuizModel = require("../models/Quizes");
 const { discoverAuthService } = require('../config/discovery.service')
 const axios = require('axios')
+const { getUser, getSubject, getSubSubject } = require('../config/kafka/consumer');
+const multer = require('multer')
+
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'uploads/solutions/')
+    },
+    filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now();
+        cb(null, uniqueSuffix + file.originalname)
+    }
+})
+
+const upload = multer({storage: storage})
+
+const solutionUpload = upload.fields([{ name: 'solutionFiles', maxCount: 20 }]);
 
 router.post('/enrollements/:courseId', async (req, res) => {
     const studentId = req.headers['x-user-id']
     const courseId = req.params.courseId
 
     try {
-        const serviceAuthBaseUrl = await discoverAuthService();
-        const response = await axios.get(`${serviceAuthBaseUrl}/get_user_byId/${studentId}`, { timeout: 5000 });
-
-        const userRole = response.data.user.role;
+        const userRole = req.headers['x-user-role'];
         if (userRole !== 'student') return res.status(403).json({ error: "Unauthorized" });
 
         const enrollementExisted = await EnrollementModel.findOne({ studentId: studentId, courseId: courseId })
@@ -42,10 +55,7 @@ router.get('/enrollements/:idCourse', async (req, res) => {
     const courseId = req.params.idCourse
 
     try {
-        const serviceAuthBaseUrl = await discoverAuthService();
-        const response = await axios.get(`${serviceAuthBaseUrl}/get_user_byId/${studentId}`, { timeout: 5000 });
-
-        const userRole = response.data.user.role;
+        const userRole = req.headers['x-user-role'];
         if (userRole !== 'student') return res.status(403).json({ error: "Unauthorized" });
 
         const enrollement = await EnrollementModel.findOne({ studentId: studentId, courseId: courseId })
@@ -72,18 +82,40 @@ router.get('/courses-enrolled', async (req, res) => {
             const course = await CourseModel.findById(enroll.courseId)
 
             const authServiceBaseUrl = await discoverAuthService()
-            const responseUser = await axios.get(`${authServiceBaseUrl}/get_user_byId/${course.teacherId}`)
 
-            const responseCategory = await axios.get(`${authServiceBaseUrl}/infos/subjects/${course.category.id}`);
+            let responseUser = getUser(course.teacherId)
+            if (!responseUser) {
+                const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${course.teacherId}`)
+                responseUser = data.user
+            }
+            let responseCategory = getSubject(course.category.id)
+            if (!responseCategory) {
+                const { data } = await axios.get(`${authServiceBaseUrl}/infos/subjects/${course.category.id}`)
+                responseCategory = data
+            }
 
+            // Subcategory - handle gracefully if it doesn't exist
             let responseField = null;
             if (course.category.subCategory) {
-                responseField = await axios.get(`${authServiceBaseUrl}/infos/sub-subjects/${course.category.subCategory}`);
+                try {
+                    responseField = getSubSubject(course.category.subCategory)
+
+                    if (!responseField) {
+                        console.log(`Subcategory ${course.category.subCategory} not found in Kafka, trying API...`);
+                        const { data } = await axios.get(
+                            `${authServiceBaseUrl}/infos/sub-subjects/${course.category.subCategory}`
+                        );
+                        responseField = data;
+                    }
+                } catch (subError) {
+                    console.log(`Subcategory ${course.category.subCategory} not found`);
+                    responseField = null;
+                }
             }
 
             const thumbnail = course.thumbnail
-                ? `http://localhost:8080/content/uploads/${course.thumbnail}`
-                : `http://localhost:8080/auth/uploads/${responseCategory.data.subImg}`;
+                ? `${process.env.GATEWAY_URI}/content/uploads/${course.thumbnail}`
+                : `${process.env.GATEWAY_URI}/auth/uploads/${responseCategory.subImg}`;
 
             return {
                 _id: enroll._id,
@@ -100,23 +132,23 @@ router.get('/courses-enrolled', async (req, res) => {
                     thumbnail,
                     level: course.level,
                     category: {
-                        idSubject: responseCategory.data.idSubject,
-                        name: responseCategory.data.name,
-                        color: responseCategory.data.color
+                        idSubject: responseCategory.idSubject,
+                        name: responseCategory.name,
+                        color: responseCategory.color
                     },
                     subCategory: responseField
                         ? {
-                            idSub: responseField.data.idSub,
-                            name: responseField.data.name
+                            idSub: responseField.idSub,
+                            name: responseField.name
                         }
                         : null,
                     lessons: course.lessons,
                     teacher: {
-                        userId: responseUser.data.user.id,
-                        userName: responseUser.data.user.userName,
-                        familyName: responseUser.data.user.familyName,
-                        givenName: responseUser.data.user.givenName,
-                        userImg: responseUser.data.user.uerImg,
+                        userId: responseUser.id,
+                        userName: responseUser.userName,
+                        familyName: responseUser.familyName,
+                        givenName: responseUser.givenName,
+                        userImg: responseUser.uerImg,
                         role: "teacher"
                     } || null
                 }
@@ -159,71 +191,83 @@ router.put("/enrollements/:id/lesson-completed/:lessonId", async (req, res) => {
 
 //--------Student Solutions
 
-router.put('/solutions/:assignmentId/draft', async (req, res) => {
-    const studentId = req.headers['x-user-id']
-    const assignmentId = req.params.assignmentId
+router.put('/solutions/:assignmentId/draft', solutionUpload, async (req, res) => {
+    const studentId = req.headers['x-user-id'];
+    const assignmentId = req.params.assignmentId;
 
     try {
-        const serviceAuthBaseUrl = await discoverAuthService();
-        const response = await axios.get(`${serviceAuthBaseUrl}/get_user_byId/${studentId}`, { timeout: 5000 });
-
-        const userRole = response.data.user.role;
+        const userRole = req.headers['x-user-role'];
         if (userRole !== 'student') return res.status(403).json({ error: "Unauthorized" });
 
-        const studentSolution = await SolvingModel.findOne({ studentId: studentId, assignment: assignmentId })
+        let problemsSolved = req.body.problemsSolved ? JSON.parse(req.body.problemsSolved) : [];
 
-        if (studentSolution) {
-            studentSolution.problemsSolved = req.body.problemsSolved
-            await studentSolution.save()
-            return res.status(200).json(studentSolution)
+        if (req.files?.solutionFiles) {
+            req.files.solutionFiles.forEach((file) => {
+                const index = parseInt(file.originalname.split('_')[0]);
+                if (problemsSolved[index]) {
+                    problemsSolved[index].fileUrl = `solutions/${file.filename}`;
+                }
+            });
         }
 
-        const newSolution = await SolvingModel.create({
-            studentId,
-            assignment: assignmentId,
-            problemsSolved: req.body.problemsSolved
-        })
-        res.status(200).json(newSolution)
+        const studentSolution = await SolvingModel.findOne({ studentId, assignment: assignmentId });
+
+        if (studentSolution) {
+            studentSolution.problemsSolved = problemsSolved;
+            await studentSolution.save();
+            return res.status(200).json(studentSolution);
+        }
+
+        const newSolution = await SolvingModel.create({ studentId, assignment: assignmentId, problemsSolved });
+        res.status(200).json(newSolution);
 
     } catch (error) {
-        console.log("error while adding the solution of student", error.message)
-        res.status(500).json("Internal server error", error)
+        console.log("error while adding the solution of student", error.message);
+        res.status(500).json("Internal server error");
     }
-})
+});
 
-router.put('/solutions/:assignmentId/submit', async (req, res) => {
-    const studentId = req.headers['x-user-id']
-    const assignmentId = req.params.assignmentId
+router.put('/solutions/:assignmentId/submit', solutionUpload, async (req, res) => {
+    const studentId = req.headers['x-user-id'];
+    const assignmentId = req.params.assignmentId;
 
     try {
-        const serviceAuthBaseUrl = await discoverAuthService();
-        const response = await axios.get(`${serviceAuthBaseUrl}/get_user_byId/${studentId}`, { timeout: 5000 });
-
-        const userRole = response.data.user.role;
+        const userRole = req.headers['x-user-role'];
         if (userRole !== 'student') return res.status(403).json({ error: "Unauthorized" });
 
-        const studentSolution = await SolvingModel.findOne({ studentId: studentId, assignment: assignmentId })
+        const assignment = await AssignmentModel.findById(assignmentId);
+        if (!assignment) return res.status(404).json({ error: "Assignment not found" });
 
-        if (studentSolution) {
-            studentSolution.problemsSolved = req.body.problemsSolved
-            studentSolution.posted = true
-            await studentSolution.save()
-            return res.status(200).json(studentSolution)
+        let problemsSolved = req.body.problemsSolved ? JSON.parse(req.body.problemsSolved) : [];
+
+        if (req.files?.solutionFiles) {
+            req.files.solutionFiles.forEach((file) => {
+                const index = parseInt(file.originalname.split('_')[0]);
+                if (problemsSolved[index]) {
+                    problemsSolved[index].fileUrl = `solutions/${file.filename}`;
+                }
+            });
         }
 
-        const newSolution = await SolvingModel.create({
-            studentId,
-            assignment: assignmentId,
-            problemsSolved: req.body.problemsSolved,
-            posted: true
-        })
-        res.status(200).json(newSolution)
+        let studentSolution = await SolvingModel.findOne({ studentId, assignment: assignmentId });
+
+        if (studentSolution) {
+            studentSolution.problemsSolved = problemsSolved;
+            studentSolution.posted = true;
+        } else {
+            studentSolution = new SolvingModel({ studentId, assignment: assignmentId, problemsSolved, posted: true });
+        }
+
+        studentSolution.calculateScore(assignment);
+        await studentSolution.save();
+
+        res.status(200).json(studentSolution);
 
     } catch (error) {
-        console.log("error while adding the solution of student", error.message)
-        res.status(500).json("Internal server error", error)
+        console.log("error while submitting solution:", error.message);
+        res.status(500).json({ error: "Internal server error" });
     }
-})
+});
 
 router.put('/solutions/:solutionId/teacher-explanation/problem/:problemId', async (req, res) => {
     const teacherId = req.headers['x-user-id']
@@ -244,7 +288,7 @@ router.put('/solutions/:solutionId/teacher-explanation/problem/:problemId', asyn
         if (teacherExplination) problem.teacherExplination = teacherExplination
 
         solution.status = "graded"
-        solution.calculateScore()
+        solution.calculateScore(assignment)
         await solution.save()
 
         res.status(200).json(solution)
@@ -252,6 +296,188 @@ router.put('/solutions/:solutionId/teacher-explanation/problem/:problemId', asyn
     } catch (error) {
         console.log("error while updatinng the solution of student", error.message)
         res.status(500).json("Internal server error", error)
+    }
+})
+
+router.put('/solutions/:solutionId/teacher-grade', async (req, res) => {
+    const teacherId = req.headers['x-user-id']
+    const solutionId = req.params.solutionId
+    const { teacherReview } = req.body
+
+    try {
+        const solution = await SolvingModel.findById(solutionId)
+        if (!solution) return res.status(404).json({ error: "solution doesn't exist" })
+
+        const assignment = await AssignmentModel.findById(solution.assignment)
+        if (assignment.teacherId != teacherId) return res.status(400).json({ error: "Unathorized" })
+
+        await Promise.all(teacherReview.map((review) => {
+            const exerciseId = review.exerciseId
+            const problem = solution.problemsSolved.find((p) => p.exerciseId.toString() === review.exerciseId.toString())
+
+            if (!problem) return null
+            if (problem.exerciseType === "mcq") return null
+
+            if (review.grade !== undefined) problem.grade = review.grade
+            if (review.teacherExplanation) problem.teacherExplanation = review.teacherExplanation
+        }))
+
+        solution.status = "graded"
+        solution.calculateScore(assignment)
+        await solution.save()
+
+        res.status(200).json(solution)
+
+    } catch (error) {
+        console.log("error while grading the solution of student", error.message)
+        res.status(500).json("Internal server error", error)
+    }
+})
+
+router.get('/solutions/:solutionId', async (req, res) => {
+    const solutionId = req.params.solutionId
+    try {
+
+        const solution = await SolvingModel.findById(solutionId)
+        if (!solution) return res.status(404).json({ error: "solution doesn't exist" })
+
+        const assignment = await AssignmentModel.findById(solution.assignment)
+
+        const authServiceBaseUrl = await discoverAuthService();
+        let student = getUser(solution.studentId);
+        if (!student) {
+            const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${solution.studentId}`);
+            student = data.user;
+        }
+
+        res.status(200).json({ solution, assignment, student });
+
+    } catch (error) {
+
+        console.log("Error fetching solution:", error.message);
+        res.status(500).json({ error: "Internal server error" });
+
+    }
+})
+
+router.get('/my-solutions/:assignmentId', async (req, res) => {
+    const studentId = req.headers['x-user-id']
+    const assignmentId = req.params.assignmentId
+    try {
+
+        const userRole = req.headers['x-user-role']
+        if (userRole !== "student") res.status(400).json("Unauthorized")
+
+        const assignment = await AssignmentModel.findById(assignmentId)
+        if (!assignment) return res.status(404).json({ error: "assignment doesn't exist" })
+
+        const solution = await SolvingModel.findOne({ studentId: studentId, assignment: assignmentId })
+        if (!solution) return res.status(404).json({ error: "no solutions submitted yet" })
+        if (solution.studentId.toString() !== studentId.toString()) return res.status(400).json({ error: "not your solution dear student" })
+
+        res.status(200).json({problemsSolved: solution.problemsSolved, status: solution.status})
+
+    } catch (error) {
+        console.log("Error fetching solution:", error.message);
+        res.status(500).json({ error: "Internal server error" });
+    }
+})
+
+router.get('/student-solutions', async (req, res) => {
+    const studentId = req.headers['x-user-id'];
+
+    try {
+        const userRole = req.headers['x-user-role'];
+        if (userRole !== 'student') return res.status(403).json({ error: "Unauthorized" });
+
+        // fetch assignment to auto-grade MCQ
+        const solutions = await SolvingModel.find({ studentId: studentId });
+
+        const enrichedSolutions = await Promise.all(
+            solutions.map(async (s) => {
+                const assignment = await AssignmentModel.findById(s.assignment)
+
+                const authServiceBaseUrl = await discoverAuthService()
+
+                let responseUser = getUser(assignment.teacherId)
+                if (!responseUser) {
+                    const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${assignment.teacherId}`)
+                    responseUser = data.user
+                }
+                let responseCategory = getSubject(assignment.category.id)
+                if (!responseCategory) {
+                    const { data } = await axios.get(`${authServiceBaseUrl}/infos/subjects/${assignment.category.id}`)
+                    responseCategory = data
+                }
+
+                // Subcategory - handle gracefully if it doesn't exist
+                let responseField = null;
+                if (assignment.category.subCategory) {
+                    try {
+                        responseField = getSubSubject(assignment.category.subCategory)
+
+                        if (!responseField) {
+                            const { data } = await axios.get(
+                                `${authServiceBaseUrl}/infos/sub-subjects/${assignment.category.subCategory}`
+                            );
+                            responseField = data;
+                        }
+                    } catch (subError) {
+                        console.log(`Subcategory ${assignment.category.subCategory} not found`);
+                        responseField = null;
+                    }
+                }
+
+                const thumbnail = assignment.thumbnail
+                    ? `${process.env.GATEWAY_URI}/content/uploads/${assignment.thumbnail}`
+                    : `${process.env.GATEWAY_URI}/auth/uploads/${responseCategory.subImg}`;
+
+                return {
+                    _id: s._id,
+                    studentId: s.studentId,
+                    problemsSolved: s.problemsSolved,
+                    totalExercises: assignment.exercises.length,
+                    solvedAt: s.solvedAt,
+                    posted: s.posted,
+                    status: s.status,
+                    assignment: {
+                        _id: assignment._id,
+                        teacherId: assignment.teacherId,
+                        title: assignment.title,
+                        description: assignment.description,
+                        thumbnail,
+                        level: assignment.level,
+                        category: {
+                            idSubject: responseCategory.idSubject,
+                            name: responseCategory.name,
+                            color: responseCategory.color
+                        },
+                        subCategory: responseField
+                            ? {
+                                idSub: responseField.idSub,
+                                name: responseField.name
+                            }
+                            : null,
+                        exercises: assignment.exercises,
+                        teacher: {
+                            userId: responseUser.id,
+                            userName: responseUser.userName,
+                            familyName: responseUser.familyName,
+                            givenName: responseUser.givenName,
+                            userImg: responseUser.uerImg,
+                            role: "teacher"
+                        } || null
+                    }
+                }
+            })
+        )
+
+        res.status(200).json(enrichedSolutions)
+
+
+    } catch (error) {
+        console.log("error while fetching student solutions:", error.message);
+        res.status(500).json({ error: "Internal server error" });
     }
 })
 

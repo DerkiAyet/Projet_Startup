@@ -14,10 +14,7 @@ router.post("/", async (req, res) => {
     }
 
     try {
-        const serviceAuthBaseUrl = await discoverAuthService();
-        const response = await axios.get(`${serviceAuthBaseUrl}/get_user_byId/${teacherId}`, { timeout: 5000 });
-
-        const userRole = response.data.user.role;
+         const userRole = req.headers['x-user-role'];
         if (userRole !== 'teacher') return res.status(403).json({ error: "Unauthorized" });
 
         const newEvent = new Event({ ...req.body, teacherId });
@@ -37,10 +34,7 @@ router.get("/", async (req, res) => {
         return res.status(401).json({ error: "Unauthorized: Missing user ID" });
     }
     try {
-        const serviceAuthBaseUrl = await discoverAuthService();
-        const response = await axios.get(`${serviceAuthBaseUrl}/get_user_byId/${teacherId}`, { timeout: 5000 });
-
-        const userRole = response.data.user.role;
+        const userRole = req.headers['x-user-role'];
         if (userRole !== 'teacher') return res.status(403).json({ error: "Unauthorized" });
 
         const events = await Event.find({ teacherId }).sort({ date: 1, startHour: 1 });
@@ -68,6 +62,16 @@ router.delete("/:id", async (req, res) => {
 
 router.get("/upcoming", async (req, res) => {
     const teacherId = req.headers["x-user-id"];
+    const userRole = req.headers['x-user-role'];
+
+    if (!teacherId) {
+        return res.status(401).json({ error: "Unauthorized: Missing user ID" });
+    }
+
+    if (userRole !== 'teacher') {
+        return res.status(403).json({ error: "Unauthorized" });
+    }
+
     try {
         const today = new Date().toISOString().split("T")[0];
         const events = await Event.find({ date: { $gte: today }, teacherId })

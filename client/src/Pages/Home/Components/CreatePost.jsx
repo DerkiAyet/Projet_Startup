@@ -20,6 +20,7 @@ function CreatePost({ isOpen, onClose }) {
     let givenName = userAuth.givenName || '';
     let familyName = userAuth.familyName || '';
     const profilePicture = userAuth.userImg || '';
+    const isParent = userAuth.role === "parent"
 
     const [newPost, setNewPost] = useState({
         content: "",
@@ -27,6 +28,7 @@ function CreatePost({ isOpen, onClose }) {
         tags: [],
         mentions: [],
         urls: [],
+        isParentHub: isParent
     });
 
     // to fetch tags and urls
@@ -192,9 +194,10 @@ function CreatePost({ isOpen, onClose }) {
         formData.append("tags", JSON.stringify(newPost.tags))
         formData.append("mentions", JSON.stringify(newPost.mentions))
         formData.append("urls", JSON.stringify(newPost.urls))
+        formData.append("isParentHub", newPost.isParentHub)
 
         try {
-            const res = await axios.post('http://localhost:8080/posts/', formData)
+            const res = await axios.post(`${process.env.REACT_APP_API_URL_GATEWAY}/posts/`, formData)
 
             const newPost = {
                 ...res.data,

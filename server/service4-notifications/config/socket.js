@@ -2,6 +2,7 @@ const { Server } = require('socket.io');
 
 let io = null;
 const connectedUsers = {};
+const activeConversations = {}; // to track the active conversations
 
 function setupWebSocket(server) {
   io = new Server(server, {
@@ -31,10 +32,54 @@ function setupWebSocket(server) {
       console.log(`User connected through WebSocket: ID=${userId}, role=${userRole}, socketId=${socket.id}`);
       connectedUsers[userId] = { socketId: socket.id, role: userRole };
 
-      // socket.join(userRole);
-
-      // Chaque user rejoint sa propre room personnelle pour les notifications broadcast
+      // Chaque user rejoint sa propre room personnelle pour les notifications broadcast (la plus importante)
       socket.join(`user:${userId}`);
+    });
+
+    // ── Messaging rooms ──────────────────────────────────────────
+    socket.on('open_conversation', ({ conversationId }) => {
+      // find userId by socketId
+      const userId = Object.keys(connectedUsers).find(
+        id => connectedUsers[id].socketId === socket.id // what's important is the socket.id
+      );
+      if (!userId) return;
+
+      activeConversations[userId] = conversationId;
+      socket.join(`conversation:${conversationId}`);
+      console.log(`User ${userId} opened conversation ${conversationId}`);
+    });
+
+    socket.on('close_conversation', ({ conversationId }) => {
+      const userId = Object.keys(connectedUsers).find(
+        id => connectedUsers[id].socketId === socket.id
+      );
+      if (!userId) return;
+
+      delete activeConversations[userId];
+      socket.leave(`conversation:${conversationId}`);
+      console.log(`User ${userId} closed conversation ${conversationId}`);
+    });
+
+    // ── Typing indicators ────────────────────────────────────────
+    socket.on('typing', ({ conversationId }) => {
+      const userId = Object.keys(connectedUsers).find(
+        id => connectedUsers[id].socketId === socket.id
+      );
+      // broadcast to everyone in the conversation except the typer
+      socket.to(`conversation:${conversationId}`).emit('user_typing', {
+        userId,
+        conversationId
+      });
+    });
+
+    socket.on('stop_typing', ({ conversationId }) => {
+      const userId = Object.keys(connectedUsers).find(
+        id => connectedUsers[id].socketId === socket.id
+      );
+      socket.to(`conversation:${conversationId}`).emit('user_stop_typing', {
+        userId,
+        conversationId
+      });
     });
 
     socket.on("disconnect", () => {
@@ -82,5 +127,7 @@ module.exports = {
   sendRoleNotification,
   sendBroadcastNotification,
   sendSystemNotification,
-  getIO: () => io
+  getIO: () => io,
+  getActiveConversations: () => activeConversations,
+  getConnectedUsers: () => connectedUsers
 };

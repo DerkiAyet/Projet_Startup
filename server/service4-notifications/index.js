@@ -3,6 +3,8 @@ const cors = require('cors')
 require('dotenv').config({ path: './config/config.env' });
 const mongoose = require('mongoose')
 const { setupWebSocket } = require('./config/socket')
+const { startConsumer } = require('./config/kafka/consumer')
+const { handleCreateNotification } = require('./routes/notify')
 
 
 // Create Eureka client instance
@@ -12,12 +14,6 @@ const app = express();
 
 // Middleware setup
 app.use(express.json());
-app.use(cors({
-    origin: true,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
 
 app.get("/health", (req, res) => res.status(200).json({ status: "UP" }));
 app.get("/info", (req, res) =>
@@ -45,13 +41,33 @@ process.on("SIGINT", () => {
     });
 });
 
-const mainRoute = require('./routes/notify')
-app.use('/', mainRoute)
+const mainRouter = require('./routes/notify').router
+app.use('/', mainRouter)
 
-const server = app.listen(process.env.PORT, () => {
-    console.log(`Node service is running on port ${process.env.PORT}`);
-});
+const conversationRouter = require('./routes/conversations')
+app.use('/conversations', conversationRouter)
 
-setupWebSocket(server);
+const messageRouter = require('./routes/messages')
+app.use('/messages', messageRouter)
+
+const startServer = async () => {
+
+    try {
+        await startConsumer(handleCreateNotification);
+        console.log('[Kafka] Consumer started');
+    } catch (err) {
+        console.error('[Kafka] Consumer failed to start:', err.message);
+    }
+
+    const server = app.listen(process.env.PORT, () => {
+        console.log(`Node service is running on port ${process.env.PORT}`);
+    });
+
+    setupWebSocket(server);
+}
+
+startServer()
+
+
 
 module.exports = { eurekaClient }

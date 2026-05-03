@@ -119,7 +119,7 @@ export const PostCard = ({ postText = "", postMedia = "", postUserName = "", med
     const toggleLike = () => {
         axios
             .post(
-                `http://localhost:8080/posts/${post._id}/like`,
+                `${process.env.REACT_APP_API_URL_GATEWAY}/posts/${post._id}/like`,
                 {},
                 { headers: { "Content-Type": "application/json" } }
             )
@@ -143,7 +143,7 @@ export const PostCard = ({ postText = "", postMedia = "", postUserName = "", med
     const toggleFollow = (followeeId) => {
         axios.defaults.withCredentials = true
 
-        axios.post('http://localhost:8080/posts/follow', { followeeId: followeeId }, {
+        axios.post(`${process.env.REACT_APP_API_URL_GATEWAY}/posts/follow`, { followeeId: followeeId }, {
             headers: {
                 "Content-Type": "application/json"
             }
@@ -259,7 +259,7 @@ export const PostCard = ({ postText = "", postMedia = "", postUserName = "", med
                         <div className='post-img-container'>
                             {mediaType === 'video' ? (
                                 <video
-                                    src={`http://localhost:8080/posts/uploads/${postMedia}` || 'https://www.w3schools.com/html/mov_bbb.mp4'}
+                                    src={`${process.env.REACT_APP_API_URL_GATEWAY}/posts/uploads/${postMedia}` || 'https://www.w3schools.com/html/mov_bbb.mp4'}
                                     controls
                                     loop
                                     playsInline
@@ -267,7 +267,7 @@ export const PostCard = ({ postText = "", postMedia = "", postUserName = "", med
                                 />
                             ) : (
                                 <img
-                                    src={`http://localhost:8080/posts/uploads/${postMedia}` || 'https://picsum.photos/seed/postpage/600/600'}
+                                    src={`${process.env.REACT_APP_API_URL_GATEWAY}/posts/uploads/${postMedia}` || 'https://picsum.photos/seed/postpage/600/600'}
                                     alt="post"
                                     className='post-img'
                                     onClick={openPostPage}

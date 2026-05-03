@@ -10,6 +10,7 @@ import { CourseActivityCard } from "../Components/CourseActivityCard";
 import axios from "axios";
 import QuizActivityCard from "../Components/QuizActivityCard";
 import QuizSolve from "../Components/QuizSolve";
+import { AssignmentActivityCard } from "../Components/AssignmentActivityCard";
 
 
 const StatsCard = ({ icon: Icon, title, value, subtitle, color }) => (
@@ -36,10 +37,11 @@ export default function StudentActivity() {
 
     const [courseEnrolls, setCourseEnrolls] = useState([]);
     const [quizAttempts, setQuizAttempts] = useState([])
+    const [assignsSolved, setAssignsSolved] = useState([])
 
     useEffect(() => {
 
-        axios.get('http://localhost:8080/content/activity/courses-enrolled')
+        axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/activity/courses-enrolled`)
             .then((response) => {
                 setCourseEnrolls(response.data);
             })
@@ -47,8 +49,14 @@ export default function StudentActivity() {
                 console.error("Error fetching course enrollments:", error);
             });
 
-        axios.get('http://localhost:8080/content/assignments/me/quizes')
+        axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/assignments/me/quizes`)
             .then((res) => setQuizAttempts(res.data))
+            .catch((err) => {
+                console.error("Error fetching solved quizes:", err);
+            })
+
+        axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/activity/student-solutions`)
+            .then((res) => setAssignsSolved(res.data))
             .catch((err) => {
                 console.error("Error fetching solved quizes:", err);
             })
@@ -63,7 +71,7 @@ export default function StudentActivity() {
 
 
     const handleSaveQuiz = async (answers) => {
-        await axios.put(`http://localhost:8080/content/activity/quiz-attempts/${attemptId}/save`, { answers: answers }, {
+        await axios.put(`${process.env.REACT_APP_API_URL_GATEWAY}/content/activity/quiz-attempts/${attemptId}/save`, { answers: answers }, {
             headers: { 'Content-Type': 'application/json' }
         })
         setShowQuizSolve(false)
@@ -76,7 +84,7 @@ export default function StudentActivity() {
         attempt.answers.forEach(a => {
             savedAnswers[a.questionId] = a.responses;
         });
-        
+
         if (attempt.completedAt) setCompletedResult(attempt)
 
         setAttemptId(attempt._id)
@@ -87,7 +95,7 @@ export default function StudentActivity() {
     }
 
     const handleSubmitQuiz = async (answers) => {
-        const response = await axios.put(`http://localhost:8080/content/activity/quiz-attempts/${attemptId}/submit`, { answers: answers }, {
+        const response = await axios.put(`${process.env.REACT_APP_API_URL_GATEWAY}/content/activity/quiz-attempts/${attemptId}/submit`, { answers: answers }, {
             headers: { 'Content-Type': 'application/json' }
         })
 
@@ -130,7 +138,6 @@ export default function StudentActivity() {
                 />
             </div>
 
-            {/* Main Content Grid */}
             <div className="activity-bottom-container">
                 <div className="activity-page-header">
                     <div className="header-left categories-bar">
@@ -163,7 +170,7 @@ export default function StudentActivity() {
 
                 {currentCategory === "Courses" && <EnrollementsView enrolls={courseEnrolls} />}
                 {currentCategory === "Quizes" && <QuizesView quizAttempts={quizAttempts} handleOpenQuiz={handleOpenQuiz} />}
-                {currentCategory === "Assignments" && <div className="placeholder-view">Assignment activity will be displayed here.</div>}
+                {currentCategory === "Assignments" && <SolutionsView solutions={assignsSolved} />}
             </div>
 
             {
@@ -211,6 +218,18 @@ const QuizesView = ({ quizAttempts, handleOpenQuiz }) => {
                     handleClick={handleOpenQuiz}
                 />
             ))}
+        </div>
+    )
+}
+
+const SolutionsView = ({solutions}) => {
+    return (
+        <div className="courses-row-container">
+            {
+                solutions.map((s) => (
+                    <AssignmentActivityCard solution={s} />
+                ))
+            }
         </div>
     )
 }

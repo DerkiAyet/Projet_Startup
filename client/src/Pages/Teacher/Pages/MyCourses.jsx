@@ -56,7 +56,7 @@ export const CourseDetailPanel = ({ course, onClose, typeView }) => {
                 <img src={course.thumbnail} alt={course.title} />
                 <div className="detail-panel-level">
                     <ChartIcon /> {course.level}
-                </div>
+                </div> 
             </div>
             <div className="detail-panel-body">
                 <span className="course-cat" style={{ color: `#${course.category.color}` }}> {course.category.name} {course.subCategory ? ` - ${course.subCategory.name}` : ''} </span>
@@ -121,13 +121,13 @@ export const CourseCard = ({ course, onClick, isSelected, typeView }) => {
                 {
                     typeView !== "Tips" &&
                     <div className="level-box">
-                        <ChartIcon />
+                        <ChartIcon /> 
                         {course.level}
                     </div>}
                 <MenuIcon className="menu-card-icon" />
             </div>
             <div className="course-infos-box">
-                <span className='course-cat'>{course.category.name} {course.subCategory ? ` - ${course.subCategory.name}` : ''} </span>
+                <span className='course-cat' style={{ color: `#${course.category.color}` }}>{course.category.name} {course.subCategory ? ` - ${course.subCategory.name}` : ''} </span>
                 <h3>{course.title}</h3>
                 <div className="course-features">
                     <div className="flex-left">
@@ -238,21 +238,21 @@ function Courses() {
     const [assignments, setAssignments] = useState([]);
 
     useEffect(() => {
-        axios.get('http://localhost:8080/content/courses/teacher-courses')
+        axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/courses/teacher-courses`)
             .then(res => setCourses(res.data));
 
-        axios.get('http://localhost:8080/content/assignments/teacher-assigns')
+        axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/assignments/teacher-assigns`)
             .then(res => setAssignments(res.data));
     }, []);
 
     const [searchQuery, setSearchQuery] = useState("");
 
     const filteredCourses = courses.filter(course =>
-        course.title.toLowerCase().includes(searchQuery.toLowerCase())
+        course?.title?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     const filteredAssignments = assignments.filter(a =>
-        a.title.toLowerCase().includes(searchQuery.toLowerCase())
+        a?.title?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     return (

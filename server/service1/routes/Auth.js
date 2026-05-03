@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const { Op } = require('sequelize');
 const { generateResetPasswordEmail } = require('./utilities/utilities');
+const { publishUsers } = require('../config_service/kafka/producer');
 
 const { Users, Parents, Students, Teachers, Admins, ResetPassword, Adresses } = require('../models');
 const { Model, where } = require('sequelize');
@@ -61,17 +62,21 @@ router.post('/register', async (req, res) => {
             role: role
         });
 
+        await publishUsers(newUser);
+
         const accessToken = sign({
             userId: newUser.id,
-            userName: newUser.userName
-        }, process.env.ACCESS_KEY, {
+            userName: newUser.userName,
+            userRole: newUser.role
+        }, process.env.JWT_ACCESS_SECRET, {
             expiresIn: '15m'
         });
 
         const refreshToken = sign({
             userId: newUser.id,
-            userName: newUser.userName
-        }, process.env.REFRESH_KEY, {
+            userName: newUser.userName,
+            userRole: newUser.role
+        }, process.env.JWT_REFRESH_SECRET, {
             expiresIn: '7d'
         });
 
@@ -159,15 +164,17 @@ router.post('/login', async (req, res) => {
 
                 const accessToken = sign({
                     userId: user.id,
-                    userName: user.userName
-                }, process.env.ACCESS_KEY, {
+                    userName: user.userName,
+                    userRole: user.role
+                }, process.env.JWT_ACCESS_SECRET, {
                     expiresIn: '15m'
                 });
 
                 const refreshToken = sign({
                     userId: user.id,
-                    userName: user.userName
-                }, process.env.REFRESH_KEY, {
+                    userName: user.userName,
+                    userRole: user.role
+                }, process.env.JWT_REFRESH_SECRET, {
                     expiresIn: '14d'
                 });
 

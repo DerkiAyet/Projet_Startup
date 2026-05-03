@@ -2,8 +2,9 @@ const express = require('express')
 const router = express.Router();
 const nodemailer = require('nodemailer')
 require('dotenv').config({ path: '../config_service/config.env' });
+const { publishSubject, publishSubSubject, publishStudentInterests, publishTeacherExpertise } = require('../config_service/kafka/producer');
 
-const { ChildParent, Users, Students, Subjects, StudentInterest, TeacherExpertise, SubSubjects } = require('../models');
+const { ChildParent, Users, Students, Parents, Subjects, StudentInterest, TeacherExpertise, SubSubjects } = require('../models');
 const { createChildByParent, createParentApprovalEmail } = require('./utilities/utilities');
 const { where } = require('sequelize');
 const jwt = require("jsonwebtoken");
@@ -12,6 +13,8 @@ const { discoverNotifService } = require('../config_service/discovery.service')
 const axios = require('axios');
 const { error } = require('node:console');
 const multer = require('multer');
+const { Op } = require('sequelize');
+
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -46,7 +49,7 @@ router.post("/request-child", async (req, res) => {
             process.env.PARENT_APPROVAL_SECRET,
             { expiresIn: "48h" }
         );
-        const approveLink = `http://localhost:3000/confirm-parent?token=${token}`;
+        const approveLink = `/confirm-parent?token=${token}`;
 
         const studentExist = await Users.findOne({ where: { email } });
 
@@ -144,9 +147,9 @@ router.post("/child-approval", async (req, res) => {
                     await axios.post(`${serviceNotifyBaseUrl}/notify`, {
                         idReceiver: parentId,
                         title: `the child accepted the link`,
-                        message: `the child with email${studentEmail} accepeted you as their parent`,
+                        message: `the child with email ${studentEmail} accepeted you as their parent`,
                         metadata: {
-                            link: `/my-children`
+                            link: `/`
                         },
                         type: "REQUEST_LINK_PARENT_CHILD"
                     })
@@ -165,7 +168,7 @@ router.post("/child-approval", async (req, res) => {
                 await axios.post(`${serviceNotifyBaseUrl}/notify`, {
                     idReceiver: parentId,
                     title: `the child accepted the link`,
-                    message: `the child with email${studentEmail} accepeted the linl you may create their account`,
+                    message: `the child with email${studentEmail} accepeted the link you may now create their account`,
                     metadata: {
                         link: `/create-child`
                     },
@@ -248,9 +251,40 @@ router.post("/confirm-parent", async (req, res) => {
 
         res.status(200).json({ message: "Parent successfully linked" });
     } catch (err) {
-        res.status(400).json({ error: "Invalid or expired token" });
+        res.status(500).json({ error: "Invalid or expired token" });
     }
 });
+
+router.get('/get-children', async (req, res) => {
+    try {
+        const parentId = req.headers['x-user-id']
+        const userRole = req.headers['x-user-role']
+        if (userRole !== "parent") return res.status(403).json({ error: "action unauthorized" })
+
+        const parent = await Parents.findByPk(parentId)
+        if (!parent) return res.status(404).json({ error: "this parent doesn't exist" })
+
+        const children = await ChildParent.findAll({ where: { idParent: parentId } })
+        const students = await Promise.all(
+            children.map(async (c) => {
+                const student = await Users.findByPk(c.idStudent)
+                return {
+                    userId: student.id,
+                    userName: student.userName,
+                    familyName: student.familyName,
+                    givenName: student.givenName,
+                    userImg: student.uerImg,
+                    linkedAt: c.addedAt
+                }
+            })
+        )
+
+        res.status(200).json(students)
+
+    } catch (error) {
+        res.status(400).json("error while fetching the kids", error);
+    }
+})
 
 //---------------Subjects and relations---------------//
 
@@ -266,6 +300,13 @@ router.post('/add-subject', upload.single('subImg'), async (req, res) => {
         if (!subject) {
 
             const newSubject = await Subjects.create({ name: name, subImg: subImg, color: color })
+
+            await publishSubject({
+                idSubject: subject._id,
+                name: subject.name,
+                color: subject.color,
+                subImg: subject.subImg
+            });
 
             return res.status(200).json({
                 msg: "subject added sucessfully",
@@ -304,6 +345,13 @@ router.post('/:id/add-sub-subject', async (req, res) => {
             idSubject: idSubject,
             name: name
         })
+
+        await publishSubSubject({
+            idSub: newSub.idSub,
+            name: newSub.name,
+            idSubject: newSub.idSubject
+        });
+
         return res.status(200).json({
             msg: "subject added sucessfully",
             newSub
@@ -413,6 +461,9 @@ router.post("/student/interests", async (req, res) => {
 
         await StudentInterest.bulkCreate(insertData); //for multipe insterts
 
+        //publie en kafka
+        await publishStudentInterests(studentId, interests);
+
         return res.status(200).json({
             msg: "Interests updated successfully",
             interests
@@ -493,6 +544,9 @@ router.post("/teacher/expertise", async (req, res) => {
 
         await TeacherExpertise.bulkCreate(insertData);
 
+        await publishTeacherExpertise(teacherId, expertise);
+
+
         return res.status(200).json({
             msg: "Expertise updated successfully",
             expertise
@@ -558,19 +612,19 @@ router.delete("/teacher/remove-interest/:subjectId", async (req, res) => {
 router.get('/get-teacher-expertise', async (req, res) => {
     const teacherId = req.headers['x-user-id']
     try {
-        
+
         const intrests = await TeacherExpertise.findAll({ where: { idTeacher: teacherId } })
-        
+
         const enrichedIntrests = await Promise.all(
             intrests.map(async (i) => {
-            const subject = await Subjects.findByPk(i.idExpertise)
-            const sub_subject = await SubSubjects.findAll({ where: { idSubject: i.idExpertise } })
-            return {
-                idSubject: i.idExpertise,
-                name: subject.name,
-                subCategories: sub_subject
-            }
-        }))
+                const subject = await Subjects.findByPk(i.idExpertise)
+                const sub_subject = await SubSubjects.findAll({ where: { idSubject: i.idExpertise } })
+                return {
+                    idSubject: i.idExpertise,
+                    name: subject.name,
+                    subCategories: sub_subject
+                }
+            }))
 
         res.status(200).json(enrichedIntrests)
 
@@ -604,8 +658,43 @@ router.get('/get-user-intrests', async (req, res) => {
         res.status(200).json(intrestIds)
     } catch (error) {
         console.log("error while fetching the intrests", error.message)
-        res.status(500).json({msg: "Internal Server Error", error})
+        res.status(500).json({ msg: "Internal Server Error", error })
     }
 })
+
+//----------Search
+router.get('/search', async (req, res) => {
+    const { q } = req.query;
+
+    if (!q || q.trim() === '') {
+        return res.status(400).json({ message: 'Search query is required' });
+    }
+
+    const searchTerm = `%${q.trim()}%`;
+
+    try {
+        const users = await Users.findAll({
+            where: {
+                role: { [Op.ne]: 'admin' },
+                [Op.or]: [
+                    { familyName: { [Op.like]: searchTerm } },
+                    { givenName: { [Op.like]: searchTerm } },
+                    { userName: { [Op.like]: searchTerm } },
+                ],
+            },
+            attributes: ['id', 'userName', 'familyName', 'givenName', 'email', 'role', 'uerImg', 'isActive'],
+        });
+
+        if (users.length === 0) {
+            return res.status(404).json({ message: 'No users found' });
+        }
+
+        return res.status(200).json({ count: users.length, users });
+
+    } catch (error) {
+        console.error('Search error:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+});
 
 module.exports = router 

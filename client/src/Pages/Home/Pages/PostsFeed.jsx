@@ -15,7 +15,7 @@ function PostsFeed() {
 
     const { t } = useTranslation()
 
-    const {getPosts} = useContext(AppContext)
+    const {getPosts, userAuth} = useContext(AppContext)
 
     const [createPostClicked, setCreatePostClicked] = useState(false)
 
@@ -54,11 +54,13 @@ function PostsFeed() {
 
         axios.defaults.withCredentials = true
 
-        axios.get('http://localhost:8080/posts')
+        const link = userAuth.role === "parent" ? `${process.env.REACT_APP_API_URL_GATEWAY}/posts/parent-hub` : `${process.env.REACT_APP_API_URL_GATEWAY}/posts`
+
+        axios.get(link)
             .then((res) => setPosts(res.data))
             .catch((err) => console.error(err.response.data))
 
-        axios.get('http://localhost:8080/posts/get-followees')
+        axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/posts/get-followees`)
             .then((res) => setFollowees(res.data))
             .catch((err) => console.error(err.response.data))
 

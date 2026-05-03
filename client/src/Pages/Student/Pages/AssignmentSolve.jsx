@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { ReactComponent as BackIcon } from '../../../Assets/icons/CourseIcons/back-icon.svg'
 import { ReactComponent as TargetIcon } from '../../../Assets/icons/CourseIcons/target-icon.svg'
 import { ReactComponent as TimerIcon } from '../../../Assets/icons/CourseIcons/timer-icon.svg';
@@ -68,27 +68,55 @@ function AssignmentSolve() {
   const [teacherInfo, setTeacherInfo] = useState({});
 
   const [problemsSolved, setProblemsSolved] = useState([]);
+  const [status, setStatus] = useState("")
 
   useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const assignmentRes = await axios.get(
+          `${process.env.REACT_APP_API_URL_GATEWAY}/content/assignments/${id}`
+        );
 
-    axios.get(`http://localhost:8080/content/assignments/${id}`)
-      .then(response => {
-        setAssignmentData(response.data.assignment);
-        setExercises(response.data.assignment.exercises);
-        setTeacherInfo(response.data.teacher);
-        setProblemsSolved([{
-          exerciseId: response.data.assignment.exercises[0]._id,
-          solution: "",
-          grade: null,
-          teacherExplination: ""
-        }]
-        )
-      })
-      .catch(error => {
+        const assignment = assignmentRes.data.assignment;
+
+        setAssignmentData(assignment);
+        setExercises(assignment.exercises);
+        setTeacherInfo(assignmentRes.data.teacher);
+
+        try {
+          const solutionRes = await axios.get(
+            `${process.env.REACT_APP_API_URL_GATEWAY}/content/activity/my-solutions/${id}`
+          );
+
+          setProblemsSolved(solutionRes.data.problemsSolved);
+          setStatus(solutionRes.data.status)
+
+        } catch {
+          // fallback using fresh assignment (NOT state)
+          const fallback = assignment.exercises.map(ex => ({
+            exerciseId: ex._id,
+            exerciseType: ex.exerciseType || "text",
+            solution: "",
+            mcqAnswers: (ex.questions || []).map(q => ({
+              questionId: q._id,
+              selected: []
+            })),
+            grade: null,
+            teacherExplanation: "",
+            localFile: null, // for the pass file option
+            fileUrl: ""
+          }));
+
+          setProblemsSolved(fallback);
+        }
+
+      } catch (error) {
         console.error("Error fetching assignment data:", error);
-      });
+      }
+    };
 
-  }, [])
+    fetchData(); //by this we will make sure no fallback would happen because apparently the second call depends on the result of first call
+  }, [id]);
 
   const currentExercise = exercises[currentExerciseIndex] || {};
 
@@ -109,6 +137,32 @@ function AssignmentSolve() {
     }
   };
 
+  //-------Tracking progress---------
+
+  const progress = useMemo(() => {
+    if (!problemsSolved.length) return 0;
+
+    const solvedCount = problemsSolved.filter(p => {
+      if (p.exerciseType === "text") {
+        return p.solution && p.solution.trim() !== "";
+      }
+
+      if (p.exerciseType === "mcq") {
+        // at least one question answered
+        return p.mcqAnswers.some(a => a.selected.length > 0);
+      }
+
+      if (p.exerciseType === "file") {
+        return p.fileUrl && p.fileUrl !== "";
+      }
+
+      return false;
+    }).length;
+
+    return Math.round((solvedCount / problemsSolved.length) * 100);
+
+  }, [problemsSolved]);
+
   const [showModal, setShowModal] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', subMessage: '' });
   const [submittedWithSuccess, setSubmittedWithSuccess] = useState(false);
@@ -117,44 +171,82 @@ function AssignmentSolve() {
     setToast({ visible: true, message, subMessage });
   };
 
+  const buildFormData = () => {
+    const formData = new FormData();
+    // strip localFile out before JSON-serializing
+    const serializeable = problemsSolved.map(({ localFile, ...rest }) => rest);
+    formData.append("problemsSolved", JSON.stringify(serializeable));
+
+    problemsSolved.forEach((p, i) => {
+      if (p.localFile) {
+        const renamed = new File([p.localFile], `${i}_${p.localFile.name}`, { type: p.localFile.type });
+        formData.append("solutionFiles", renamed);
+      }
+    });
+
+    return formData;
+  }
+
   const handleSubmit = async () => {
     try {
-      await axios.put(`http://localhost:8080/content/activity/solutions/${id}/submit`, {
-        problemsSolved: problemsSolved
-      }, {
-        headers: {
-          "Content-Type": "application/json"
-        }
-      });
-      setShowModal(true)
-
+      await axios.put(
+        `${process.env.REACT_APP_API_URL_GATEWAY}/content/activity/solutions/${id}/submit`,
+        buildFormData()
+      );
+      setShowModal(false);
+      triggerToast("Solution Sent", "Your solution has been sent to teacher.");
     } catch (error) {
-      console.error("Error saving draft:", error);
+      console.error("Error submitting:", error);
       triggerToast("Error", "Failed to submit your answer.");
     }
-  }
+  };
 
   const handleSave = async () => {
     try {
-      await axios.put(`http://localhost:8080/content/activity/solutions/${id}/draft`, {
-        problemsSolved: problemsSolved
-      }, {
-        headers: {
-          "Content-Type": "application/json"
-        }
-      });
+      await axios.put(
+        `${process.env.REACT_APP_API_URL_GATEWAY}/content/activity/solutions/${id}/draft`,
+        buildFormData()
+      );
       triggerToast("Draft saved", "Your current progress has been saved as a draft.");
-
     } catch (error) {
       console.error("Error saving draft:", error);
       triggerToast("Error", "Failed to save draft.");
     }
-  }
+  };
 
   //--------------TOOLS-------------
 
   const [showCalculator, setShowCalculator] = useState(false);
   const [showCodePanel, setShowCodePanel] = useState(false)
+
+  // for the mcq:
+
+  const toggleMCQOption = (questionId, optionText, allowMultiple) => {
+    const solutions = [...problemsSolved];
+    const current = solutions[currentExerciseIndex];
+    const mcqAnswers = [...(current.mcqAnswers || [])];
+    const answerIdx = mcqAnswers.findIndex(a => a.questionId === questionId);
+
+    if (answerIdx === -1) return;
+
+    let selected = [...mcqAnswers[answerIdx].selected];
+
+    if (allowMultiple) {
+      // toggle: add if not there, remove if already selected
+      if (selected.includes(optionText)) {
+        selected = selected.filter(s => s !== optionText);
+      } else {
+        selected.push(optionText);
+      }
+    } else {
+      // single answer: replace
+      selected = [optionText];
+    }
+
+    mcqAnswers[answerIdx] = { ...mcqAnswers[answerIdx], selected };
+    solutions[currentExerciseIndex] = { ...current, mcqAnswers };
+    setProblemsSolved(solutions);
+  };
 
   return (
     <div className='as-container'>
@@ -167,6 +259,8 @@ function AssignmentSolve() {
         ratingAvg={assignmentData?.avgRating}
         handleSubmit={() => setShowModal(true)}
         handleSave={handleSave}
+        graded={status === "graded"}
+        status={status}
       />
       <div className="as-main">
         <div className="solution-sheet left-side">
@@ -215,31 +309,361 @@ function AssignmentSolve() {
                 Next <BackIcon className="lesson-icon rotate-180" />
               </button>
             </div>
-            {/* Points input */}
+
             <div style={{ display: "flex", alignItems: "center", gap: "0.8rem", paddingLeft: "0.2rem" }}>
               <span style={{ fontFamily: "'Nunito', sans-serif", fontSize: "0.95rem", fontWeight: 600, color: "#1E293B" }}>
                 Points
               </span>
               <div className="points-box">
-                {`${currentExercise?.points} pts` || "N/A"}
+                {currentExercise?.exerciseType === "mcq"
+                  ? `${(currentExercise.questions || []).reduce((sum, q) => sum + (q.points || 1), 0)} pts`
+                  : `${currentExercise?.points || 0} pts`}
+              </div>
+              {/* Exercise type badge */}
+              <div style={{
+                padding: "0.2rem 0.7rem", borderRadius: "20px", fontSize: "0.78rem",
+                fontFamily: "'Nunito', sans-serif", fontWeight: 700,
+                background: currentExercise?.exerciseType === "mcq" ? "#ECFDF5"
+                  : currentExercise?.exerciseType === "file" ? "#EFF6FF" : "#FDF2F8",
+                color: currentExercise?.exerciseType === "mcq" ? "#10B981"
+                  : currentExercise?.exerciseType === "file" ? "#3B82F6" : "#EC4899",
+              }}>
+                {currentExercise?.exerciseType === "mcq" ? "MCQ"
+                  : currentExercise?.exerciseType === "file" ? "File"
+                    : "Text"}
               </div>
             </div>
+
+            {/* ── Exercise statement ── */}
             <div className="exercise-statement-box">
-              <div className="as-exercise-card">
-                <div className="as-page-number">Exercise {currentExerciseIndex + 1}</div>
+
+              {/* TEXT type — show rich HTML content */}
+              {(currentExercise?.exerciseType === "text" || !currentExercise?.exerciseType) && (
+                <div className="as-exercise-card">
+                  <div className="as-page-number">Exercise {currentExerciseIndex + 1}</div>
+                  <div
+                    className="as-page-content"
+                    dangerouslySetInnerHTML={{ __html: currentExercise?.content }}
+                  />
+                </div>
+              )}
+
+              {/* FILE type — show PDF or image */}
+              {currentExercise?.exerciseType === "file" && (
+                <div className="as-exercise-card">
+                  <div className="as-page-number">Exercise {currentExerciseIndex + 1}</div>
+                  {currentExercise?.fileUrl ? (
+                    currentExercise.fileUrl.toLowerCase().endsWith(".pdf") ? (
+                      <iframe
+                        src={`${process.env.REACT_APP_API_URL_GATEWAY}/content/uploads/${currentExercise.fileUrl}`}
+                        title={currentExercise.title}
+                        style={{ width: "100%", height: "400px", border: "none", borderRadius: "10px" }}
+                      />
+                    ) : (
+                      <img
+                        src={`${process.env.REACT_APP_API_URL_GATEWAY}/${currentExercise.fileUrl}`}
+                        alt={currentExercise.title}
+                        style={{ width: "100%", borderRadius: "10px", objectFit: "contain" }}
+                      />
+                    )
+                  ) : (
+                    <p style={{ fontFamily: "'Nunito', sans-serif", color: "#8E8E8E", textAlign: "center" }}>
+                      No file attached to this exercise.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* MCQ type — show questions with options */}
+              {status !== "graded" ?
+                (currentExercise?.exerciseType === "mcq" && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                    {(currentExercise.questions || []).map((q, qIdx) => {
+                      const currentAnswer = problemsSolved[currentExerciseIndex]?.mcqAnswers?.find(
+                        a => a.questionId === q._id
+                      );
+                      const selected = currentAnswer?.selected || [];
+
+                      return (
+                        <div className="as-exercise-card" key={qIdx}>
+                          <div className="as-page-number">{q.points || 1} pt{q.points !== 1 ? "s" : ""}</div>
+                          <p style={{
+                            fontFamily: "'Nunito', sans-serif", fontWeight: 700,
+                            fontSize: "0.97rem", color: "#1E293B", marginBottom: "1rem"
+                          }}>
+                            {qIdx + 1}. {q.questionContent}
+                          </p>
+                          {q.allowMultiple && (
+                            <p style={{ fontFamily: "'Nunito', sans-serif", fontSize: "0.75rem", color: "#8E8E8E", marginBottom: "0.8rem" }}>
+                              Multiple answers allowed
+                            </p>
+                          )}
+                          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                            {(q.options || []).map((opt, oIdx) => {
+                              const isSelected = selected.includes(opt.text);
+                              return (
+                                <div
+                                  key={oIdx}
+                                  onClick={() => toggleMCQOption(q._id, opt.text, q.allowMultiple)}
+                                  className={`mcq-solve-option ${isSelected ? "mcq-solve-option--selected" : ""}`}
+                                >
+                                  <div className={`mcq-solve-indicator ${q.allowMultiple ? "mcq-solve-indicator--checkbox" : "mcq-solve-indicator--radio"} ${isSelected ? "mcq-solve-indicator--active" : ""}`}>
+                                    {isSelected && (
+                                      q.allowMultiple ? (
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                                          <polyline points="20 6 9 17 4 12" />
+                                        </svg>
+                                      ) : (
+                                        <div style={{ width: "8px", height: "8px", borderRadius: "50%", background: "white" }} />
+                                      )
+                                    )}
+                                  </div>
+                                  <span style={{ fontFamily: "'Nunito', sans-serif", fontSize: "0.92rem", color: "#1E293B" }}>
+                                    {opt.text}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )) : (
+                  currentExercise?.exerciseType === "mcq" && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                      {(currentExercise.questions || []).map((q, qIdx) => {
+                        const studentAnswer = problemsSolved[currentExerciseIndex]?.mcqAnswers?.find(a => a.questionId === q._id);
+                        const selected = studentAnswer?.selected || [];
+
+                        return (
+                          <div className="as-exercise-card" key={qIdx}>
+                            <div className="as-page-number">{q.points || 1} pt{q.points !== 1 ? "s" : ""}</div>
+                            <p style={{ fontFamily: "'Nunito', sans-serif", fontWeight: 700, fontSize: "0.97rem", color: "#1E293B", marginBottom: "1rem" }}>
+                              {qIdx + 1}. {q.questionContent}
+                            </p>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                              {(q.options || []).map((opt, oIdx) => {
+                                const isSelected = selected.includes(opt.text);
+                                const isCorrect = opt.isCorrect;
+                                // color coding: green = correct, red = wrong selection, grey = not selected
+                                let bg = "#fff", border = "1.5px solid #A7A7A7", color = "#1E293B";
+                                if (isCorrect) { bg = "#ECFDF5"; border = "1.5px solid #10B981"; color = "#10B981"; }
+                                if (isSelected && !isCorrect) { bg = "#FFF5F5"; border = "1.5px solid #EF4444"; color = "#EF4444"; }
+                                if (isSelected && isCorrect) { bg = "#ECFDF5"; border = "1.5px solid #10B981"; color = "#10B981"; }
+
+                                return (
+                                  <div key={oIdx} style={{
+                                    display: "flex", alignItems: "center", gap: "0.75rem",
+                                    padding: "0.7rem 1rem", borderRadius: "10px",
+                                    border, fontFamily: "'Nunito', sans-serif",
+                                    fontSize: "0.92rem", color
+                                  }}>
+                                    <div style={{
+                                      width: "20px", height: "20px", borderRadius: q.allowMultiple ? "4px" : "50%",
+                                      border: `2px solid ${color}`, display: "flex", alignItems: "center",
+                                      justifyContent: "center", flexShrink: 0,
+                                      background: (isSelected || isCorrect) ? color : "transparent"
+                                    }}>
+                                      {(isSelected || isCorrect) && (
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                                          <polyline points="20 6 9 17 4 12" />
+                                        </svg>
+                                      )}
+                                    </div>
+                                    {opt.text}
+                                    {isCorrect && <span style={{ marginLeft: "auto", fontSize: "0.75rem", fontWeight: 700 }}>✓ Correct</span>}
+                                    {isSelected && !isCorrect && <span style={{ marginLeft: "auto", fontSize: "0.75rem", fontWeight: 700 }}>✗ Wrong</span>}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            {/* auto grade indicator */}
+                            <div style={{
+                              marginTop: "0.8rem", padding: "0.5rem 0.8rem", borderRadius: "8px",
+                              background: studentAnswer?.isCorrect ? "#ECFDF5" : "#FFF5F5",
+                              fontFamily: "'Nunito', sans-serif", fontSize: "0.82rem", fontWeight: 700,
+                              color: studentAnswer?.isCorrect ? "#10B981" : "#EF4444"
+                            }}>
+                              {studentAnswer?.isCorrect ? "✓ Correct answer" : "✗ Incorrect answer"}
+                              {q.explanation && (
+                                <p style={{ marginTop: "0.3rem", fontWeight: 400, color: "#8E8E8E" }}>
+                                  {q.explanation}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )
+                )}
+            </div>
+
+            {/* Problem content editor */}
+            {(currentExercise?.exerciseType === "text" || !currentExercise?.exerciseType) && status !== "graded" && (
+              <>
+
+
+                <div style={{ display: "flex", alignItems: "center", gap: "0.8rem", width: "100%", }}>
+                  {problemsSolved[currentExerciseIndex]?.localFile || problemsSolved[currentExerciseIndex]?.fileUrl ? (
+                    <div style={{
+                      width: "100%",
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      padding: "0.8rem 1rem", borderRadius: "12px",
+                      border: "1.5px solid #BA68C8", background: "#D8B3E070"
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", width: "100%", }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#BA68C8" strokeWidth="2">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                          <polyline points="14 2 14 8 20 8" />
+                        </svg>
+                        <span style={{ fontFamily: "'Nunito', sans-serif", fontSize: "0.88rem", color: "#BA68C8", fontWeight: 600 }}>
+                          {problemsSolved[currentExerciseIndex]?.localFile?.name || "File uploaded"}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => updateCurrentSolution("localFile", null)}
+                        style={{ background: "none", border: "none", cursor: "pointer", color: "#BA68C8", fontWeight: 700, fontSize: "0.82rem" }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <label style={{
+                      display: "flex", flexDirection: "column", alignItems: "center", gap: "0.5rem",
+                      padding: "1.5rem", borderRadius: "12px", border: "2px dashed #A7A7A7",
+                      cursor: "pointer", background: "#FAFAFA", transition: "border-color 0.2s", width: "100%"
+                    }}
+                      onMouseEnter={e => e.currentTarget.style.borderColor = "#EC4899"}
+                      onMouseLeave={e => e.currentTarget.style.borderColor = "#A7A7A7"}
+                    >
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#A7A7A7" strokeWidth="1.5">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="12" y1="18" x2="12" y2="12" />
+                        <line x1="9" y1="15" x2="15" y2="15" />
+                      </svg>
+                      <span style={{ fontFamily: "'Nunito', sans-serif", fontSize: "0.85rem", color: "#8E8E8E" }}>
+                        Click to upload a PDF or image
+                      </span>
+                      <input
+                        type="file"
+                        accept=".pdf,image/*"
+                        style={{ display: "none" }}
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) updateCurrentSolution("localFile", file);
+                        }}
+                      />
+                    </label>
+                  )}
+                </div>
+
+                <JoditEditor
+                  key={`content-${currentExerciseIndex}`}
+                  value={problemsSolved[currentExerciseIndex]?.solution || ""}
+                  onBlur={(val) => updateCurrentSolution("solution", val)}
+                  config={{ uploader: { insertImageAsBase64URI: true } }}
+                />
+
+              </>
+            )}
+
+            {(currentExercise?.exerciseType === "text" || !currentExercise?.exerciseType) && (status === "graded") && (
+              <div className="as-exercise-card" style={{ border: "1.5px solid #EC489980", background: "#FDF2F8" }}>
+                <div className="as-page-number">Teacher's Remark</div>
                 <div
                   className="as-page-content"
-                  dangerouslySetInnerHTML={{ __html: exercises?.[currentExerciseIndex]?.content }}
+                  dangerouslySetInnerHTML={{ __html: problemsSolved[currentExerciseIndex]?.teacherExplanation }}
                 />
               </div>
-            </div>
-            {/* Problem content editor */}
-            <JoditEditor
-              key={`content-${currentExerciseIndex}`}
-              value={problemsSolved[currentExerciseIndex]?.solution || ""}
-              onBlur={(val) => updateCurrentSolution("solution", val)}
-              config={{ uploader: { insertImageAsBase64URI: true } }}
-            />
+            )}
+
+            {/* FILE → Jodit editor for written answer (student writes explanation alongside the file) */}
+            {currentExercise?.exerciseType === "file" && status !== "graded" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.8rem" }}>
+                <span style={{ fontFamily: "'Nunito', sans-serif", fontWeight: 600, fontSize: "0.95rem", color: "#1E293B" }}>
+                  Your Answer
+                </span>
+
+                {/* File upload */}
+                {problemsSolved[currentExerciseIndex]?.localFile || problemsSolved[currentExerciseIndex]?.fileUrl ? (
+                  <div style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    padding: "0.8rem 1rem", borderRadius: "12px",
+                    border: "1.5px solid #10B98150", background: "#ECFDF5"
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                      </svg>
+                      <span style={{ fontFamily: "'Nunito', sans-serif", fontSize: "0.88rem", color: "#10B981", fontWeight: 600 }}>
+                        {problemsSolved[currentExerciseIndex]?.localFile?.name || "File uploaded"}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => updateCurrentSolution("localFile", null)}
+                      style={{ background: "none", border: "none", cursor: "pointer", color: "#10B981", fontWeight: 700, fontSize: "0.82rem" }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <label style={{
+                    display: "flex", flexDirection: "column", alignItems: "center", gap: "0.5rem",
+                    padding: "1.5rem", borderRadius: "12px", border: "2px dashed #A7A7A7",
+                    cursor: "pointer", background: "#FAFAFA", transition: "border-color 0.2s"
+                  }}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = "#EC4899"}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = "#A7A7A7"}
+                  >
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#A7A7A7" strokeWidth="1.5">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                      <line x1="12" y1="18" x2="12" y2="12" />
+                      <line x1="9" y1="15" x2="15" y2="15" />
+                    </svg>
+                    <span style={{ fontFamily: "'Nunito', sans-serif", fontSize: "0.85rem", color: "#8E8E8E" }}>
+                      Click to upload a PDF or image
+                    </span>
+                    <input
+                      type="file"
+                      accept=".pdf,image/*"
+                      style={{ display: "none" }}
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) updateCurrentSolution("localFile", file);
+                      }}
+                    />
+                  </label>
+                )}
+
+                {/* Written answer alongside the file */}
+                <JoditEditor
+                  key={`content-${currentExerciseIndex}`}
+                  value={problemsSolved[currentExerciseIndex]?.solution || ""}
+                  onBlur={(val) => updateCurrentSolution("solution", val)}
+                  config={{ uploader: { insertImageAsBase64URI: true } }}
+                />
+              </div>
+            )}
+
+            {/* MCQ → no answer editor needed, answers are tracked via option clicks */}
+            {currentExercise?.exerciseType === "mcq" && (
+              <div style={{
+                padding: "0.8rem 1rem", borderRadius: "12px",
+                background: "#ECFDF5", border: "1.5px solid #10B98130",
+                fontFamily: "'Nunito', sans-serif", fontSize: "0.85rem",
+                color: "#10B981", fontWeight: 600, textAlign: "center"
+              }}>
+                {(problemsSolved[currentExerciseIndex]?.mcqAnswers || []).filter(a => a.selected.length > 0).length}
+                {" "}/ {(currentExercise.questions || []).length} questions answered
+              </div>
+            )}
             {/* Solution toggle */}
             {/* <div style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -331,10 +755,10 @@ function AssignmentSolve() {
             <div className="cd-progress-section">
               <div className="cd-progress-label">
                 <span>Your progress</span>
-                <span className="cd-progress-pct">30%</span>
+                <span className="cd-progress-pct">{progress}%</span>
               </div>
               <div className="cd-progress-track">
-                <div className="cd-progress-fill" style={{ width: `30%` }} />
+                <div className="cd-progress-fill" style={{ width: `${progress}%` }} />
               </div>
             </div>
 
@@ -424,10 +848,10 @@ function AssignmentSolve() {
 
         </aside>
         <div className="tool-btns-wrapper">
-          <button onClick={(e) => {e.preventDefault(); setShowCodePanel(true)}}>
+          <button onClick={(e) => { e.preventDefault(); setShowCodePanel(true) }}>
             <CodeIcon className="tool-icon" />
           </button>
-          <button onClick={(e) => {e.preventDefault(); setShowCalculator(true)}} >
+          <button onClick={(e) => { e.preventDefault(); setShowCalculator(true) }} >
             <CalcIcon className="tool-icon" />
           </button>
         </div>
@@ -455,7 +879,7 @@ function AssignmentSolve() {
       }
 
       {
-        showCalculator && 
+        showCalculator &&
         <Calculator onClose={() => setShowCalculator(false)} />
       }
 
@@ -467,7 +891,7 @@ function AssignmentSolve() {
         subMessage={toast.subMessage}
         onClose={() => setToast(t => ({ ...t, visible: false }))}
       />
-    </div>
+    </div >
   )
 }
 

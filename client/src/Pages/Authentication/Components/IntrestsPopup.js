@@ -12,7 +12,7 @@ const IntrestsPopup = ({ onFinish }) => {
 
     useEffect(() => {
         axios.defaults.withCredentials = true
-        axios.get('http://localhost:8080/auth/infos/get-subjects')
+        axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/auth/infos/get-subjects`)
         .then((res) => setCategories(res.data))
         .catch((err) => console.error(err.response.data))
     }, [])
@@ -56,7 +56,7 @@ const IntrestsPopup = ({ onFinish }) => {
                                 {/* <span className="interest-emoji">{cat.emoji}</span> */}
                                 <span className="interest-name">{cat.name}</span>
                                 <span className="interest-check">✓</span>
-                                <img src={`http://localhost:8080/auth/uploads/${cat.subImg}`} alt="course" />
+                                <img src={`${process.env.REACT_APP_API_URL_GATEWAY}/auth/uploads/${cat.subImg}`} alt="course" />
                             </button>
                         ))}
                     </div>

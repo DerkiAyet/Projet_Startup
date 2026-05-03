@@ -3,7 +3,13 @@ const { Schema } = mongoose;
 
 const LessonSchema = new Schema({
     title: String,
-    content: String
+    content: String,
+    videoUrl: String,     // cloudinary URL if lesson is a video
+    lessonType: {
+        type: String,
+        enum: ['text', 'video'],
+        default: 'text'
+    }
 }, { timestamps: true })
 
 const CourseSchema = new Schema({

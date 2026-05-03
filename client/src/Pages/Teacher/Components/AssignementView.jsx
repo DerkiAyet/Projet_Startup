@@ -11,7 +11,7 @@ export function AssignementView({ PROBLEMATIQUES = [], viewerRef, assignmentId }
     }
 
     const lesson = PROBLEMATIQUES[currentLessonIdx];
-    
+
     // Add safety check for lesson
     if (!lesson) {
         return null;
@@ -37,6 +37,9 @@ export function AssignementView({ PROBLEMATIQUES = [], viewerRef, assignmentId }
             <ContentViewer
                 content={lesson.content || ""}
                 title={lesson.title || "Untitled"}
+                exerciseType={lesson.exerciseType || "text"}
+                fileUrl={lesson.fileUrl || ""}
+                questions={lesson.questions || []}
             />
             <div className="cd-viewer-nav">
                 {currentLessonIdx > 0 && (

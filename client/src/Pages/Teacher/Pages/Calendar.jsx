@@ -29,7 +29,7 @@ function CalendarPage() {
     useEffect(() => {
 
         axios.defaults.withCredentials = true
-        axios.get('http://localhost:8080/content/events')
+        axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/events`)
             .then((res) => {
                 const eventsFromServer = res.data.map(e => {
                     const [year, month, day] = e.date.split("-").map(Number);
@@ -83,7 +83,7 @@ function CalendarPage() {
         };
 
         try {
-            await axios.post('http://localhost:8080/content/events', payload, {
+            await axios.post(`${process.env.REACT_APP_API_URL_GATEWAY}/content/events`, payload, {
                 headers: { 'Content-Type': 'application/json' },
             });
 

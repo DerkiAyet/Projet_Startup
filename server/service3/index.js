@@ -3,6 +3,7 @@ const cors = require('cors')
 require('dotenv').config({ path: './config/config.env' });
 const mongoose = require('mongoose')
 const path = require('path')
+const { startConsumer } = require('./config/kafka/consumer');
 
 // Create Eureka client instance
 const eurekaClient = require('./config/eureka.client')
@@ -10,13 +11,8 @@ const eurekaClient = require('./config/eureka.client')
 const app = express();
 
 // Middleware setup
-app.use(express.json());
-app.use(cors({
-    origin: true,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(express.json({ limit: '5gb' }));
+app.use(express.urlencoded({ limit: '5gb', extended: true }));
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -46,10 +42,6 @@ process.on("SIGINT", () => {
     });
 });
 
-app.listen(process.env.PORT, () => {
-    console.log(`Node service is running on port ${process.env.PORT}`);
-});
-
 const coursesRoute = require('./routes/Courses')
 app.use("/courses", coursesRoute)
 
@@ -65,4 +57,25 @@ app.use("/activity", activityRoute)
 const EventsRoute = require('./routes/Events');
 app.use("/events", EventsRoute)
 
-module.exports = { eurekaClient }
+const StatisticsRoute = require('./routes/Statistcs')
+app.use("/stats", StatisticsRoute)
+
+const startServer = async () => {
+    try {
+        await startConsumer();
+        console.log('[Kafka] Consumer started');
+    } catch (err) {
+        console.error('[Kafka] Consumer failed to start:', err.message);
+        // don't crash the server if Kafka fails
+    }
+
+    const server = app.listen(process.env.PORT, () => {
+        console.log(`Node service is running on port ${process.env.PORT}`);
+    });
+
+    server.timeout = 30 * 60 * 1000;
+    server.keepAliveTimeout = 30 * 60 * 1000;
+    server.headersTimeout = 31 * 60 * 1000;
+};
+
+startServer();

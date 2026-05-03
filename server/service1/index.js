@@ -2,6 +2,7 @@ const express = require('express');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 require('dotenv').config({ path: './config_service/config.env' });
+const { connectProducer } = require('./config_service/kafka/producer');
 
 const db = require('./models');
 const path = require('path');
@@ -14,12 +15,6 @@ const app = express();
 // Middleware setup
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors({
-  origin: true,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.get("/health", (req, res) => res.status(200).json({ status: "UP" }));
@@ -50,7 +45,8 @@ app.use('/', authRoutes);
 const userRoutes = require('./routes/Users')
 app.use('/infos', userRoutes)
 
-db.sequelize.sync().then(() => {
+db.sequelize.sync().then(async() => {
+    await connectProducer();
     app.listen(process.env.PORT, () => {
         console.log(`Node service is running on port ${process.env.PORT}`);
     });

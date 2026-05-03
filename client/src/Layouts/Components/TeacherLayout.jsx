@@ -15,7 +15,7 @@ function TeacherLayout() {
 
     const socket = useSocket();
 
-    useEffect(() => {
+    useEffect(() => { 
     if (!socket) return;
 
     socket.on("connect_error", (err) => {

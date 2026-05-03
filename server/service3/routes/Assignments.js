@@ -8,10 +8,15 @@ const { discoverAuthService, discoverNotifService } = require('../config/discove
 const axios = require('axios')
 const multer = require('multer')
 const QuizAttemptModel = require('../models/QuizAttempts')
+const { getUser, getSubject, getSubSubject, getTeacherExpertise, getStudentInterests } = require('../config/kafka/consumer')
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'uploads/images/')
+        if (file.fieldname === 'exerciseFiles') {
+            cb(null, 'uploads/files/')
+        } else {
+            cb(null, 'uploads/images/')
+        }
     },
     filename: function (req, file, cb) {
         const uniqueSuffix = Date.now();
@@ -19,13 +24,138 @@ const storage = multer.diskStorage({
     }
 })
 
-const upload = multer({ storage: storage })
+const upload = multer({
+    storage: storage,
+    limits: {
+        fieldSize: 50 * 1024 * 1024  // 50MB to handle base64 images in lesson HTML
+    }
+})
+ 
+async function enrichContent(item, typeContent, authServiceBaseUrl, categoryNames = [], subCategoryNames = []) {
+    try {
+        // Teacher + category info
 
-router.post('/', upload.single('thumbnail'), async (req, res) => {
+        let responseUser = getUser(item.teacherId)
+        if (!responseUser) {
+            const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${item.teacherId}`)
+            responseUser = data.user
+        }
+        let responseCategory = getSubject(item.category.id)
+        if (!responseCategory) {
+            const { data } = await axios.get(`${authServiceBaseUrl}/infos/subjects/${item.category.id}`)
+            responseCategory = data
+        }
+
+        // Subcategory - handle gracefully if it doesn't exist
+        let responseField = null;
+        if (item.category.subCategory) {
+            try {
+                responseField = getSubSubject(item.category.subCategory)
+
+                if (!responseField) {
+                    console.log(`Subcategory ${item.category.subCategory} not found in Kafka, trying API...`);
+                    const { data } = await axios.get(
+                        `${authServiceBaseUrl}/infos/sub-subjects/${item.category.subCategory}`
+                    );
+                    responseField = data;
+                }
+            } catch (subError) {
+                console.log(`Subcategory ${item.category.subCategory} not found`);
+                responseField = null;
+            }
+        }
+
+        // Comments + enrolls + quizzes only for COURSES
+        let comments = [];
+        let enrolls = [];
+        let solutions = [];
+        let quiz = null;
+
+        if (typeContent === "course") {
+            [comments, enrolls, quiz] = await Promise.all([
+                CommentModel.find({ contentId: item._id, contentType: "course" }),
+                EnrollementModel.find({ courseId: item._id }),
+                QuizeModel.findOne({ courseId: item._id })
+            ]);
+        }
+
+        if (typeContent === "assignment") {
+            solutions = await SolvingModel.find({ assignment: item._id })
+        }
+
+        // Thumbnail fallback
+        const thumbnail = item.thumbnail
+            ? `${process.env.GATEWAY_URI}/content/uploads/${item.thumbnail}`
+            : `${process.env.GATEWAY_URI}/auth/uploads/${responseCategory.subImg}`;
+
+        return {
+            typeContent,
+            _id: item._id,
+            teacherId: item.teacherId,
+            title: item.title,
+            description: item.description,
+            thumbnail,
+            level: item.level,
+            category: {
+                idSubject: responseCategory.idSubject,
+                name: responseCategory.name,
+                color: responseCategory.color
+            },
+            subCategory: responseField
+                ? { idSub: responseField.idSub, name: responseField.name }
+                : null,
+            lessons: item.lessons,
+            exercises: item.exercises,
+            tags: item.tags,
+            visibility: item.visibility,
+            createdAt: item.createdAt,
+            avgRating: item.averageRating ? item.averageRating() : 0,
+
+            comments,
+            commentsCount: comments.length,
+            enrollCount: enrolls.length,
+            solveCount: solutions.length,
+            quiz: quiz || null,
+
+            teacher: {
+                userId: responseUser.id,
+                userName: responseUser.userName,
+                familyName: responseUser.familyName,
+                givenName: responseUser.givenName,
+                userImg: responseUser.userImg || responseUser.uerImg,
+                role: "teacher"
+            }
+        };
+    } catch (err) {
+        console.log("Error enriching:", err.message);
+        return null;
+    }
+}
+
+router.post('/', upload.fields([
+    { name: 'thumbnail', maxCount: 1 },
+    { name: 'exerciseFiles', maxCount: 20 } // multiple exercise files
+]), async (req, res) => {
     const teacherId = req.headers['x-user-id'];
     if (!teacherId) return res.status(400).json({ error: "Missing user ID in headers" });
 
-    const thumbnail = req.file?.filename ? `images/${req.file.filename}` : null;
+    // thumbnail stays the same
+    const thumbnail = req.files?.thumbnail?.[0]?.filename
+        ? `images/${req.files.thumbnail[0].filename}`
+        : null;
+
+    // build a map of exerciseIndex → fileUrl
+    // frontend will send files named "exerciseFiles" with index in the field
+    const exerciseFileMap = {};
+    if (req.files?.exerciseFiles) {
+        req.files.exerciseFiles.forEach((file) => {
+            // filename pattern: exerciseIndex_timestamp_originalname
+            // we extract the index from the originalname prefix we set on frontend
+            const index = file.originalname.split('_')[0];
+            exerciseFileMap[index] = `files/${file.filename}`;
+        });
+    }
+
     let { title, description, level, category, exercises, tags } = req.body || {};
 
     try {
@@ -39,15 +169,20 @@ router.post('/', upload.single('thumbnail'), async (req, res) => {
         tags = [];
     }
 
+    // inject fileUrl into the matching exercise
+    exercises = exercises.map((ex, i) => {
+        if (exerciseFileMap[String(i)]) {
+            return { ...ex, fileUrl: exerciseFileMap[String(i)] };
+        }
+        return ex;
+    });
+
     if (!title || !category || !level) {
         return res.status(400).json({ error: "Missing required fields: title, category, or level" });
     }
 
     try {
-        const serviceAuthBaseUrl = await discoverAuthService();
-        const response = await axios.get(`${serviceAuthBaseUrl}/get_user_byId/${teacherId}`, { timeout: 5000 });
-
-        const userRole = response.data.user.role;
+        const userRole = req.headers['x-user-role'];
         if (userRole !== 'teacher') return res.status(403).json({ error: "Unauthorized" });
 
         const newAssignment = await AssignmentModel.create({
@@ -60,6 +195,9 @@ router.post('/', upload.single('thumbnail'), async (req, res) => {
             exercises,
             tags
         });
+
+        newAssignment.maxScore = newAssignment.calculateMaxScore();
+        await newAssignment.save()
 
         res.status(201).json({ message: "assignment created successfully", assignment: newAssignment });
 
@@ -115,6 +253,55 @@ router.put('/:assignId', upload.single('thumbnail'), async (req, res) => {
     }
 });
 
+router.get('/recommended/me', async (req, res) => {
+    try {
+        const currentUserId = req.headers['x-user-id'];
+        const userRole = req.headers['x-user-role'];
+
+        // ── Get interest/expertise IDs from Kafka cache ──
+        let interestIds = [];
+        if (userRole === 'student') {
+            interestIds = getStudentInterests(currentUserId) || [];
+        } else if (userRole === 'teacher') {
+            interestIds = getTeacherExpertise(currentUserId) || [];
+        }
+
+        if (!interestIds || interestIds.length === 0) {
+            const authServiceBaseUrl = await discoverAuthService();
+            const { data } = await axios.get(
+                `${authServiceBaseUrl}/infos/get-user-intrests`,
+                { headers: { "x-user-id": currentUserId }, timeout: 5000 }
+            );
+            interestIds = data;
+        }
+
+        console.log("the intrest from kafka cache", interestIds)
+
+        // ── Fetch only courses whose category.id is in the user's interests ──
+        const assignments = await AssignmentModel.find({
+            visibility: true,
+            "category.id": { $in: interestIds }
+        });
+
+        if (!assignments.length) return res.json([]);
+
+        const authServiceBaseUrl = await discoverAuthService();
+
+        const enriched = (await Promise.all(
+            assignments.map(a => enrichContent(a, "assignment", authServiceBaseUrl, [], []))
+        )).filter(Boolean);
+
+        // sort by most recent
+        enriched.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        res.json(enriched);
+
+    } catch (err) {
+        console.error("Error fetching recommended courses:", err.message);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
+
 router.get('/', async (req, res) => {
     try {
 
@@ -125,12 +312,34 @@ router.get('/', async (req, res) => {
         const enrichedAssigns = await Promise.all(
             assigns.map(async (assign) => {
                 try {
-                    const responseUser = await axios.get(`${authServiceBaseUrl}/get_user_byId/${assign.teacherId}`);
-                    const responseCategory = await axios.get(`${authServiceBaseUrl}/infos/subjects/${assign.category.id}`);
+                    let responseUser = getUser(assign.teacherId)
+                    if (!responseUser) {
+                        const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${assign.teacherId}`)
+                        responseUser = data.user
+                    }
+                    let responseCategory = getSubject(assign.category.id)
+                    if (!responseCategory) {
+                        const { data } = await axios.get(`${authServiceBaseUrl}/infos/subjects/${assign.category.id}`)
+                        responseCategory = data
+                    }
 
+                    // Subcategory - handle gracefully if it doesn't exist
                     let responseField = null;
                     if (assign.category.subCategory) {
-                        responseField = await axios.get(`${authServiceBaseUrl}/infos/sub-subjects/${assign.category.subCategory}`);
+                        try {
+                            responseField = getSubSubject(assign.category.subCategory)
+
+                            if (!responseField) {
+                                console.log(`Subcategory ${assign.category.subCategory} not found in Kafka, trying API...`);
+                                const { data } = await axios.get(
+                                    `${authServiceBaseUrl}/infos/sub-subjects/${assign.category.subCategory}`
+                                );
+                                responseField = data;
+                            }
+                        } catch (subError) {
+                            console.log(`Subcategory ${assign.category.subCategory} not found`);
+                            responseField = null;
+                        }
                     }
 
                     const comments = await CommentModel.find({
@@ -141,8 +350,8 @@ router.get('/', async (req, res) => {
                     const solutions = await SolvingModel.find({ assignment: assign._id })
 
                     const thumbnail = assign.thumbnail
-                        ? `http://localhost:8080/content/uploads/${course.thumbnail}`
-                        : `http://localhost:8080/auth/uploads/${responseCategory.data.subImg}`;
+                        ? `${process.env.GATEWAY_URI}/content/uploads/${course.thumbnail}`
+                        : `${process.env.GATEWAY_URI}/auth/uploads/${responseCategory.subImg}`;
 
                     return {
                         _id: assign._id,
@@ -152,14 +361,14 @@ router.get('/', async (req, res) => {
                         thumbnail,
                         level: assign.level,
                         category: {
-                            idSubject: responseCategory.data.idSubject,
-                            name: responseCategory.data.name,
-                            color: responseCategory.data.color
+                            idSubject: responseCategory.idSubject,
+                            name: responseCategory.name,
+                            color: responseCategory.color
                         },
                         subCategory: responseField
                             ? {
-                                idSub: responseField.data.idSub,
-                                name: responseField.data.name
+                                idSub: responseField.idSub,
+                                name: responseField.name
                             }
                             : null,
                         exercises: assign.exercises,
@@ -172,11 +381,11 @@ router.get('/', async (req, res) => {
                         visibility: assign.visibility,
                         createdAt: assign.createdAt,
                         teacher: {
-                            userId: responseUser.data.user.id,
-                            userName: responseUser.data.user.userName,
-                            familyName: responseUser.data.user.familyName,
-                            givenName: responseUser.data.user.givenName,
-                            userImg: responseUser.data.user.uerImg,
+                            userId: responseUser.id,
+                            userName: responseUser.userName,
+                            familyName: responseUser.familyName,
+                            givenName: responseUser.givenName,
+                            userImg: responseUser.uerImg,
                             role: "teacher"
                         } || null
                     }
@@ -206,11 +415,29 @@ router.get('/teacher/:teacherId', async (req, res) => {
         const enrichedAssigns = await Promise.all(
             assigns.map(async (assign) => {
                 try {
-                    const responseCategory = await axios.get(`${authServiceBaseUrl}/infos/subjects/${assign.category.id}`);
+                    let responseCategory = getSubject(assign.category.id)
+                    if (!responseCategory) {
+                        const { data } = await axios.get(`${authServiceBaseUrl}/infos/subjects/${assign.category.id}`)
+                        responseCategory = data
+                    }
 
+                    // Subcategory - handle gracefully if it doesn't exist
                     let responseField = null;
                     if (assign.category.subCategory) {
-                        responseField = await axios.get(`${authServiceBaseUrl}/infos/sub-subjects/${assign.category.subCategory}`);
+                        try {
+                            responseField = getSubSubject(assign.category.subCategory)
+
+                            if (!responseField) {
+                                console.log(`Subcategory ${assign.category.subCategory} not found in Kafka, trying API...`);
+                                const { data } = await axios.get(
+                                    `${authServiceBaseUrl}/infos/sub-subjects/${assign.category.subCategory}`
+                                );
+                                responseField = data;
+                            }
+                        } catch (subError) {
+                            console.log(`Subcategory ${assign.category.subCategory} not found`);
+                            responseField = null;
+                        }
                     }
 
                     const comments = await CommentModel.find({
@@ -221,8 +448,8 @@ router.get('/teacher/:teacherId', async (req, res) => {
                     const solutions = await SolvingModel.find({ assignment: assign._id })
 
                     const thumbnail = assign.thumbnail
-                        ? `http://localhost:8080/content/uploads/${course.thumbnail}`
-                        : `http://localhost:8080/auth/uploads/${responseCategory.data.subImg}`;
+                        ? `${process.env.GATEWAY_URI}/content/uploads/${course.thumbnail}`
+                        : `${process.env.GATEWAY_URI}/auth/uploads/${responseCategory.subImg}`;
 
                     return {
                         _id: assign._id,
@@ -232,14 +459,14 @@ router.get('/teacher/:teacherId', async (req, res) => {
                         thumbnail,
                         level: assign.level,
                         category: {
-                            idSubject: responseCategory.data.idSubject,
-                            name: responseCategory.data.name,
-                            color: responseCategory.data.color
+                            idSubject: responseCategory.idSubject,
+                            name: responseCategory.name,
+                            color: responseCategory.color
                         },
                         subCategory: responseField
                             ? {
-                                idSub: responseField.data.idSub,
-                                name: responseField.data.name
+                                idSub: responseField.idSub,
+                                name: responseField.name
                             }
                             : null,
                         exercises: assign.exercises,
@@ -276,11 +503,29 @@ router.get('/teacher-assigns', async (req, res) => {
         const enrichedAssigns = await Promise.all(
             assigns.map(async (assign) => {
                 try {
-                    const responseCategory = await axios.get(`${authServiceBaseUrl}/infos/subjects/${assign.category.id}`);
+                    let responseCategory = getSubject(assign.category.id)
+                    if (!responseCategory) {
+                        const { data } = await axios.get(`${authServiceBaseUrl}/infos/subjects/${assign.category.id}`)
+                        responseCategory = data
+                    }
 
+                    // Subcategory - handle gracefully if it doesn't exist
                     let responseField = null;
                     if (assign.category.subCategory) {
-                        responseField = await axios.get(`${authServiceBaseUrl}/infos/sub-subjects/${assign.category.subCategory}`);
+                        try {
+                            responseField = getSubSubject(assign.category.subCategory)
+
+                            if (!responseField) {
+                                console.log(`Subcategory ${assign.category.subCategory} not found in Kafka, trying API...`);
+                                const { data } = await axios.get(
+                                    `${authServiceBaseUrl}/infos/sub-subjects/${assign.category.subCategory}`
+                                );
+                                responseField = data;
+                            }
+                        } catch (subError) {
+                            console.log(`Subcategory ${assign.category.subCategory} not found`);
+                            responseField = null;
+                        }
                     }
 
                     const comments = await CommentModel.find({
@@ -291,8 +536,8 @@ router.get('/teacher-assigns', async (req, res) => {
                     const solutions = await SolvingModel.find({ assignment: assign._id })
 
                     const thumbnail = assign.thumbnail
-                        ? `http://localhost:8080/content/uploads/${course.thumbnail}`
-                        : `http://localhost:8080/auth/uploads/${responseCategory.data.subImg}`;
+                        ? `${process.env.GATEWAY_URI}/content/uploads/${assign.thumbnail}`
+                        : `${process.env.GATEWAY_URI}/auth/uploads/${responseCategory.subImg}`;
 
                     return {
                         _id: assign._id,
@@ -302,14 +547,14 @@ router.get('/teacher-assigns', async (req, res) => {
                         thumbnail,
                         level: assign.level,
                         category: {
-                            idSubject: responseCategory.data.idSubject,
-                            name: responseCategory.data.name,
-                            color: responseCategory.data.color
+                            idSubject: responseCategory.idSubject,
+                            name: responseCategory.name,
+                            color: responseCategory.color
                         },
                         subCategory: responseField
                             ? {
-                                idSub: responseField.data.idSub,
-                                name: responseField.data.name
+                                idSub: responseField.idSub,
+                                name: responseField.name
                             }
                             : null,
                         exercises: assign.exercises,
@@ -342,18 +587,39 @@ router.get('/:id', async (req, res) => {
         if (!assignment) return res.status(404).json({ error: "assignment not found" });
 
         const authServiceBaseUrl = await discoverAuthService()
-        const responseUser = await axios.get(`${authServiceBaseUrl}/get_user_byId/${assignment.teacherId}`)
+        let responseUser = getUser(assignment.teacherId)
+        if (!responseUser) {
+            const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${assignment.teacherId}`)
+            responseUser = data.user
+        }
+        let responseCategory = getSubject(assignment.category.id)
+        if (!responseCategory) {
+            const { data } = await axios.get(`${authServiceBaseUrl}/infos/subjects/${assignment.category.id}`)
+            responseCategory = data
+        }
 
-        const responseCategory = await axios.get(`${authServiceBaseUrl}/infos/subjects/${assignment.category.id}`);
-
+        // Subcategory - handle gracefully if it doesn't exist
         let responseField = null;
         if (assignment.category.subCategory) {
-            responseField = await axios.get(`${authServiceBaseUrl}/infos/sub-subjects/${assignment.category.subCategory}`);
+            try {
+                responseField = getSubSubject(assignment.category.subCategory)
+
+                if (!responseField) {
+                    console.log(`Subcategory ${assignment.category.subCategory} not found in Kafka, trying API...`);
+                    const { data } = await axios.get(
+                        `${authServiceBaseUrl}/infos/sub-subjects/${assignment.category.subCategory}`
+                    );
+                    responseField = data;
+                }
+            } catch (subError) {
+                console.log(`Subcategory ${assignment.category.subCategory} not found`);
+                responseField = null;
+            }
         }
 
         const thumbnail = assignment.thumbnail
-            ? `http://localhost:8080/content/uploads/${assignment.thumbnail}`
-            : `http://localhost:8080/auth/uploads/${responseCategory.data.subImg}`;
+            ? `${process.env.GATEWAY_URI}/content/uploads/${assignment.thumbnail}`
+            : `${process.env.GATEWAY_URI}/auth/uploads/${responseCategory.subImg}`;
 
         const solutions = await SolvingModel.find({ assignment: assignment._id })
 
@@ -363,10 +629,11 @@ router.get('/:id', async (req, res) => {
         if (comments) {
             enrichedComments = await Promise.all(
                 comments.map(async (c) => {
-                    const response = await axios.get(
-                        `${authServiceBaseUrl}/get_user_byId/${c.userId}`,
-                        { timeout: 5000 }
-                    );
+                    let resolvedCommentUser = getUser(c.userId)
+                    if (!resolvedCommentUser) {
+                        const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${c.userId}`)
+                        resolvedCommentUser = data.user
+                    }
 
                     const replies = c.replies
                     let enrichedReplies
@@ -374,20 +641,21 @@ router.get('/:id', async (req, res) => {
                     if (replies) {
                         enrichedReplies = await Promise.all(
                             replies.map(async (r) => {
-                                const response = await axios.get(
-                                    `${authServiceBaseUrl}/get_user_byId/${r.userId}`,
-                                    { timeout: 5000 }
-                                );
+                                let resolvedUser = getUser(r.userId)
+                                if (!resolvedUser) {
+                                    const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${r.userId}`)
+                                    resolvedUser = data.user
+                                }
 
                                 return {
                                     _id: r._id,
                                     text: r.text,
                                     likes: r.likes,
-                                    userName: response.data.user.userName,
-                                    familyName: response.data.user.familyName,
-                                    givenName: response.data.user.givenName,
-                                    userImg: response.data.user.uerImg,
-                                    role: response.data.user.role
+                                    userName: resolvedUser.userName,
+                                    familyName: resolvedUser.familyName,
+                                    givenName: resolvedUser.givenName,
+                                    userImg: resolvedUser.uerImg,
+                                    role: resolvedUser.role
                                 }
                             })
                         )
@@ -398,11 +666,11 @@ router.get('/:id', async (req, res) => {
                         text: c.text,
                         replies: enrichedReplies,
                         likes: c.likes,
-                        userName: response.data.user.userName,
-                        familyName: response.data.user.familyName,
-                        givenName: response.data.user.givenName,
-                        userImg: response.data.user.uerImg,
-                        role: response.data.user.role,
+                        userName: resolvedCommentUser.userName,
+                        familyName: resolvedCommentUser.familyName,
+                        givenName: resolvedCommentUser.givenName,
+                        userImg: resolvedCommentUser.uerImg,
+                        role: resolvedCommentUser.role,
                     }
                 })
             )
@@ -417,14 +685,14 @@ router.get('/:id', async (req, res) => {
                 thumbnail,
                 level: assignment.level,
                 category: {
-                    idSubject: responseCategory.data.idSubject,
-                    name: responseCategory.data.name,
-                    color: responseCategory.data.color
+                    idSubject: responseCategory.idSubject,
+                    name: responseCategory.name,
+                    color: responseCategory.color
                 },
                 subCategory: responseField
                     ? {
-                        idSub: responseField.data.idSub,
-                        name: responseField.data.name
+                        idSub: responseField.idSub,
+                        name: responseField.name
                     }
                     : null,
                 exercises: assignment.exercises,
@@ -439,11 +707,11 @@ router.get('/:id', async (req, res) => {
             },
             comments: enrichedComments,
             teacher: {
-                userId: responseUser.data.user.id,
-                userName: responseUser.data.user.userName,
-                familyName: responseUser.data.user.familyName,
-                givenName: responseUser.data.user.givenName,
-                userImg: responseUser.data.user.uerImg,
+                userId: responseUser.id,
+                userName: responseUser.userName,
+                familyName: responseUser.familyName,
+                givenName: responseUser.givenName,
+                userImg: responseUser.uerImg,
                 role: "teacher"
             } || null
         }
@@ -616,10 +884,7 @@ router.post('/quizes', async (req, res) => {
 
     try {
 
-        const serviceAuthBaseUrl = await discoverAuthService();
-        const response = await axios.get(`${serviceAuthBaseUrl}/get_user_byId/${teacherId}`, { timeout: 5000 });
-
-        const userRole = response.data.user.role;
+        const userRole = req.headers['x-user-role'];
         if (userRole !== 'teacher') return res.status(403).json({ error: "Unauthorized" });
 
         const existedQuize = await QuizeModel.findOne({ teacherId: teacherId })
@@ -688,13 +953,34 @@ router.get('/quizes/:quizId', async (req, res) => {
         if (!quiz) return res.status(404).json({ nonExist: "this quiz doesn't exist" })
 
         const authServiceBaseUrl = await discoverAuthService()
-        const responseUser = await axios.get(`${authServiceBaseUrl}/get_user_byId/${quiz.teacherId}`)
+        let responseUser = getUser(quiz.teacherId)
+        if (!responseUser) {
+            const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${quiz.teacherId}`)
+            responseUser = data.user
+        }
+        let responseCategory = getSubject(quiz.category.id)
+        if (!responseCategory) {
+            const { data } = await axios.get(`${authServiceBaseUrl}/infos/subjects/${quiz.category.id}`)
+            responseCategory = data
+        }
 
-        const responseCategory = await axios.get(`${authServiceBaseUrl}/infos/subjects/${quiz.category.id}`);
-
+        // Subcategory - handle gracefully if it doesn't exist
         let responseField = null;
         if (quiz.category.subCategory) {
-            responseField = await axios.get(`${authServiceBaseUrl}/infos/sub-subjects/${quiz.category.subCategory}`);
+            try {
+                responseField = getSubSubject(quiz.category.subCategory)
+
+                if (!responseField) {
+                    console.log(`Subcategory ${quiz.category.subCategory} not found in Kafka, trying API...`);
+                    const { data } = await axios.get(
+                        `${authServiceBaseUrl}/infos/sub-subjects/${quiz.category.subCategory}`
+                    );
+                    responseField = data;
+                }
+            } catch (subError) {
+                console.log(`Subcategory ${quiz.category.subCategory} not found`);
+                responseField = null;
+            }
         }
         const finalQuiz = {
             _id: quiz._id,
@@ -703,24 +989,24 @@ router.get('/quizes/:quizId', async (req, res) => {
             description: quiz.description,
             difficulty: quiz.difficulty,
             category: responseCategory ? {
-                idSubject: responseCategory.data.idSubject,
-                name: responseCategory.data.name,
-                color: responseCategory.data.color
+                idSubject: responseCategory.idSubject,
+                name: responseCategory.name,
+                color: responseCategory.color
             } : null,
             subCategory: responseField
                 ? {
-                    idSub: responseField.data.idSub,
-                    name: responseField.data.name
+                    idSub: responseField.idSub,
+                    name: responseField.name
                 }
                 : null,
             questions: quiz.questions,
             score: quiz.score,
             teacher: {
-                userId: responseUser.data.user.id,
-                userName: responseUser.data.user.userName,
-                familyName: responseUser.data.user.familyName,
-                givenName: responseUser.data.user.givenName,
-                userImg: responseUser.data.user.uerImg,
+                userId: responseUser.id,
+                userName: responseUser.userName,
+                familyName: responseUser.familyName,
+                givenName: responseUser.givenName,
+                userImg: responseUser.uerImg,
                 role: "teacher"
             } || null
         }
@@ -743,13 +1029,35 @@ router.get('/me/quizes', async (req, res) => {
         const enrichedQuizes = await Promise.all(
             solvedQuizes.map(async (attempt) => {
                 const quiz = await QuizeModel.findById(attempt.quizId)
-                const responseUser = await axios.get(`${authServiceBaseUrl}/get_user_byId/${quiz.teacherId}`)
 
-                const responseCategory = await axios.get(`${authServiceBaseUrl}/infos/subjects/${quiz.category.id}`);
+                let responseUser = getUser(quiz.teacherId)
+                if (!responseUser) {
+                    const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${quiz.teacherId}`)
+                    responseUser = data.user
+                }
+                let responseCategory = getSubject(quiz.category.id)
+                if (!responseCategory) {
+                    const { data } = await axios.get(`${authServiceBaseUrl}/infos/subjects/${quiz.category.id}`)
+                    responseCategory = data
+                }
 
+                // Subcategory - handle gracefully if it doesn't exist
                 let responseField = null;
                 if (quiz.category.subCategory) {
-                    responseField = await axios.get(`${authServiceBaseUrl}/infos/sub-subjects/${quiz.category.subCategory}`);
+                    try {
+                        responseField = getSubSubject(quiz.category.subCategory)
+
+                        if (!responseField) {
+                            console.log(`Subcategory ${quiz.category.subCategory} not found in Kafka, trying API...`);
+                            const { data } = await axios.get(
+                                `${authServiceBaseUrl}/infos/sub-subjects/${quiz.category.subCategory}`
+                            );
+                            responseField = data;
+                        }
+                    } catch (subError) {
+                        console.log(`Subcategory ${quiz.category.subCategory} not found`);
+                        responseField = null;
+                    }
                 }
 
                 return {
@@ -761,24 +1069,24 @@ router.get('/me/quizes', async (req, res) => {
                         description: quiz.description,
                         difficulty: quiz.difficulty,
                         category: responseCategory ? {
-                            idSubject: responseCategory.data.idSubject,
-                            name: responseCategory.data.name,
-                            color: responseCategory.data.color
+                            idSubject: responseCategory.idSubject,
+                            name: responseCategory.name,
+                            color: responseCategory.color
                         } : null,
                         subCategory: responseField
                             ? {
-                                idSub: responseField.data.idSub,
-                                name: responseField.data.name
+                                idSub: responseField.idSub,
+                                name: responseField.name
                             }
                             : null,
                         questions: quiz.questions,
                         score: quiz.score,
                         teacher: {
-                            userId: responseUser.data.user.id,
-                            userName: responseUser.data.user.userName,
-                            familyName: responseUser.data.user.familyName,
-                            givenName: responseUser.data.user.givenName,
-                            userImg: responseUser.data.user.uerImg,
+                            userId: responseUser.id,
+                            userName: responseUser.userName,
+                            familyName: responseUser.familyName,
+                            givenName: responseUser.givenName,
+                            userImg: responseUser.uerImg,
                             role: "teacher"
                         } || null
                     }

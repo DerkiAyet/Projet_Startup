@@ -11,7 +11,7 @@ function SearchPage() {
 
     useEffect(() => {
         axios.defaults.withCredentials = true
-        axios.get('http://localhost:8080/auth/infos/get-subjects')
+        axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/auth/infos/get-subjects`)
             .then((res) => setCategories(res.data))
             .catch((err) => console.error(err.response.data))
     }, [])
@@ -20,7 +20,7 @@ function SearchPage() {
 
     useEffect(() => {
         axios.defaults.withCredentials = true
-        axios.get('http://localhost:8080/users/infos/get-user-intrests')
+        axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/users/infos/get-user-intrests`)
             .then((res) => setStudentsIntrests(res.data))
             .catch((err) => console.error(err.response.data))
     }, [])
@@ -62,6 +62,16 @@ function SearchPage() {
     const [assignments, setAssignments] = useState([])
     const [tips, setTips] = useState([])
 
+    useEffect(() => {
+        axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/courses/recommended/me`)
+            .then((res) => { setCourses(res.data); console.log(res.data) })
+            .catch((err) => console.error(err.response.data))
+
+        axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/assignments/recommended/me`)
+            .then((res) => setAssignments(res.data))
+            .catch((err) => console.error(err.response.data))
+    }, [])
+
     const handleSearch = () => {
         if (!query.trim() && selectedCats.length === 0) return;
 
@@ -75,7 +85,7 @@ function SearchPage() {
         // Split query
         const subcategoryNames = query
             .trim()
-            .split(/\s+/)
+            .split(/\s+/) 
             .filter(Boolean); // to delete the empty strings
 
         // Build params
@@ -86,7 +96,7 @@ function SearchPage() {
 
         // Force minimum 1 second delay
         const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
-        const request = axios.get(`http://localhost:8080/content/courses/search?${params.toString()}`);
+        const request = axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/courses/search?${params.toString()}`);
 
         Promise.all([request, minDelay])
             .then(([res]) => {

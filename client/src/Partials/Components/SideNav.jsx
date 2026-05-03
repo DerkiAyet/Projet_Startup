@@ -15,7 +15,9 @@ import Notifications from './Notifications';
 
 function SideNav({ minimizeNav, setMinimizeNav, navItems = [], tools = [], mobileNavItems = [] }) {
     const { t } = useTranslation();
-    const { darkMode, setUserAuth } = useContext(AppContext);
+    const { darkMode, setUserAuth, userAuth } = useContext(AppContext);
+
+    const userType = userAuth.role || '';
 
     const [moreBtnClicked, setMoreBtn] = useState(false);
     const [switchModeClicked, setSwitchMode] = useState(false);
@@ -95,7 +97,7 @@ function SideNav({ minimizeNav, setMinimizeNav, navItems = [], tools = [], mobil
 
     const Logout = () => {
 
-        axios.post("http://localhost:8080/auth/logout", {})
+        axios.post(`${process.env.REACT_APP_API_URL_GATEWAY}/auth/logout`, {})
             .then(() => {
                 setUserAuth({
                     userName: "",
@@ -136,7 +138,11 @@ function SideNav({ minimizeNav, setMinimizeNav, navItems = [], tools = [], mobil
                                     </div>
                                     <div className="logo-title" style={{ display: "flex", flexDirection: "column", fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
                                         <span style={{ fontWeight: "700" }} className="text-font">{t('logo.title')}</span>
-                                        <span style={{ fontSize: "12px", fontWeight: "600", color: darkMode ? "rgba(255, 255, 255, 0.128);" : "#00000050" }}>{t('logo.roleTeacher')}</span>
+                                        <span style={{ fontSize: "12px", fontWeight: "600", color: darkMode ? "rgba(255, 255, 255, 0.128);" : "#00000050" }}>
+                                            {
+                                                userType === "teacher" ? t('logo.roleTeacher') : userType === "student" ? t('logo.roleStudent') : t('logo.roleParent')
+                                            }
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -234,7 +240,7 @@ function SideNav({ minimizeNav, setMinimizeNav, navItems = [], tools = [], mobil
                     </nav>
 
                     {/* Logout */}
-                    <div className="more_btn logout" onClick={Logout} style={{marginTop: "auto"}}>
+                    <div className="more_btn logout" onClick={Logout} style={{ marginTop: "auto" }}>
                         <div className={`link ${minimizeNav ? 'minimize-link' : ''}`}>
                             <LogoutIcon className='nav-icon' />
                             <span className={minimizeNav ? 'hide' : ''}>{t('logout')}</span>

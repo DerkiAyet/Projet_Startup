@@ -1,121 +1,41 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "../Styles/Notifications.css";
-import { ReactComponent as CloseIcon } from '../../Assets/icons/TimelineIcons/close.svg'
-
-
-const NOTIF_DATA = [
-  {
-    id: 1,
-    type: "enrollment",
-    avatar: "SA",
-    avatarColor: "#EC4899",
-    name: "Sara Amrani",
-    message: "enrolled in your course",
-    target: "Introduction to Calculus",
-    time: "2 min ago",
-    read: false,
-  },
-  {
-    id: 2,
-    type: "review",
-    avatar: "YB",
-    avatarColor: "#8B5CF6",
-    name: "Yacine Benali",
-    message: "left a 5-star review on",
-    target: "Advanced Algorithms",
-    time: "14 min ago",
-    read: false,
-  },
-  {
-    id: 3,
-    type: "comment",
-    avatar: "LM",
-    avatarColor: "#0EA5E9",
-    name: "Lina Merabet",
-    message: "commented on lesson 3 of",
-    target: "Linear Algebra Basics",
-    time: "1 hr ago",
-    read: false,
-  },
-  {
-    id: 4,
-    type: "achievement",
-    avatar: "KD",
-    avatarColor: "#F59E0B",
-    name: "Karim Djebari",
-    message: "completed your course",
-    target: "Python for Beginners",
-    time: "3 hrs ago",
-    read: true,
-  },
-  {
-    id: 5,
-    type: "enrollment",
-    avatar: "NB",
-    avatarColor: "#10B981",
-    name: "Nadia Bouzid",
-    message: "enrolled in your course",
-    target: "Organic Chemistry 101",
-    time: "Yesterday",
-    read: true,
-  },
-  {
-    id: 6,
-    type: "comment",
-    avatar: "HT",
-    avatarColor: "#EC4899",
-    name: "Hamza Tali",
-    message: "asked a question in",
-    target: "World History: Modern Era",
-    time: "Yesterday",
-    read: true,
-  },
-  {
-    id: 7,
-    type: "review",
-    avatar: "RA",
-    avatarColor: "#6366F1",
-    name: "Rania Aouina",
-    message: "left a review on",
-    target: "English Grammar Masterclass",
-    time: "2 days ago",
-    read: true,
-  },
-  {
-    id: 8,
-    type: "achievement",
-    avatar: "MB",
-    avatarColor: "#F43F5E",
-    name: "Mohamed Bensalem",
-    message: "earned a certificate from",
-    target: "Data Structures & Algorithms",
-    time: "3 days ago",
-    read: true,
-  },
-];
+import { ReactComponent as CloseIcon } from '../../Assets/icons/TimelineIcons/close.svg';
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const TYPE_CONFIG = {
-  enrollment: {
+  REQUEST_LINK_PARENT_CHILD: {
     icon: (
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
         <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" fill="currentColor" />
       </svg>
     ),
-    label: "Enrollment",
+    label: "Link Request",
     color: "#EC4899",
     bg: "#FDF2F8",
   },
-  review: {
+  NEW_POST: {
     icon: (
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" fill="currentColor" />
+        <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
       </svg>
     ),
-    label: "Review",
-    color: "#F59E0B",
-    bg: "#FFFBEB",
+    label: "New Post",
+    color: "#8B5CF6",
+    bg: "#F5F3FF",
   },
-  comment: {
+  NEW_LIKE: {
+    icon: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" fill="currentColor" />
+      </svg>
+    ),
+    label: "Like",
+    color: "#F43F5E",
+    bg: "#FFF1F2",
+  },
+  NEW_COMMENT: {
     icon: (
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -125,56 +45,169 @@ const TYPE_CONFIG = {
     color: "#0EA5E9",
     bg: "#F0F9FF",
   },
-  achievement: {
+  NEW_FOLLOW: {
     icon: (
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="8" r="6" stroke="currentColor" strokeWidth="2" />
-        <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" fill="currentColor" />
       </svg>
     ),
-    label: "Achievement",
+    label: "Follow",
     color: "#10B981",
     bg: "#ECFDF5",
   },
+  NEW_REPLY: {
+    icon: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+        <path d="M9 17l-5-5 5-5M20 18v-2a4 4 0 0 0-4-4H4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+    label: "Reply",
+    color: "#0EA5E9",
+    bg: "#F0F9FF",
+  },
+  URGENT_NOTIFICATION: {
+    icon: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+        <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+    label: "Urgent",
+    color: "#EF4444",
+    bg: "#FEF2F2",
+  },
+  NEW_MESSAGE: {
+    icon: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /><polyline points="22,6 12,13 2,6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    ),
+    label: "Message",
+    color: "#F59E0B",
+    bg: "#FFFBEB",
+  },
+  SYSTEM: {
+    icon: (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" /><path d="M12 8v4m0 4h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    ),
+    label: "System",
+    color: "#6B7280",
+    bg: "#F9FAFB",
+  },
 };
 
-const FILTERS = ["All", "Unread", "Enrollment", "Review", "Comment", "Achievement"];
+// derive avatar initials + a stable color from the user object
+const AVATAR_COLORS = ["#EC4899", "#8B5CF6", "#0EA5E9", "#10B981", "#F59E0B", "#F43F5E", "#6366F1"];
+const getAvatarColor = (id) => AVATAR_COLORS[Number(id) % AVATAR_COLORS.length];
+
+const getInitials = (user) => {
+  if (!user || user === "no sender") return "?";
+  return `${user.givenName?.charAt(0) ?? ""}${user.familyName?.charAt(0) ?? ""}`.toUpperCase();
+};
+
+const timeAgo = (dateStr) => {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs} hr${hrs > 1 ? "s" : ""} ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days} day${days > 1 ? "s" : ""} ago`;
+  return new Date(dateStr).toLocaleDateString();
+};
+
+const FILTERS = ["All", "Unread"];
 
 export default function Notifications({ onClose }) {
-  const [notifications, setNotifications] = useState(NOTIF_DATA);
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState("All");
   const [dismissing, setDismissing] = useState(null);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const { data } = await axios.get(
+          `${process.env.REACT_APP_API_URL_GATEWAY}/notifications/get-notifications`
+        );
+        setNotifications(data);
+      } catch (err) {
+        console.error("Failed to fetch notifications:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchNotifications();
+  }, []);
+
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   const filtered = notifications.filter((n) => {
-    if (activeFilter === "All") return true;
-    if (activeFilter === "Unread") return !n.read;
-    return n.type === activeFilter.toLowerCase();
+    if (activeFilter === "Unread") return !n.isRead;
+    return true;
   });
 
-  const markAllRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  // ── Actions ──────────────────────────────────────────────────
+  const markAllRead = async () => {
+    try {
+      await axios.put(
+        `${process.env.REACT_APP_API_URL_GATEWAY}/notifications/mark-all-as-read`
+      );
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    } catch (err) {
+      console.error("Failed to mark all as read:", err);
+    }
   };
 
-  const markRead = (id) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
+  const markRead = async (id) => {
+    try {
+      await axios.put(
+        `${process.env.REACT_APP_API_URL_GATEWAY}/notifications/mark-as-read/${id}`
+      );
+      setNotifications((prev) =>
+        prev.map((n) => (n._id === id ? { ...n, isRead: true } : n))
+      );
+    } catch (err) {
+      console.error("Failed to mark as read:", err);
+    }
   };
 
-  const dismiss = (id) => {
+  const dismiss = async (id) => {
     setDismissing(id);
-    setTimeout(() => {
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
+    try {
+      await axios.delete(
+        `${process.env.REACT_APP_API_URL_GATEWAY}/notifications/delete-notification/${id}`
+      );
+      setTimeout(() => {
+        setNotifications((prev) => prev.filter((n) => n._id !== id));
+        setDismissing(null);
+      }, 300);
+    } catch (err) {
+      console.error("Failed to delete notification:", err);
       setDismissing(null);
-    }, 300);
+    }
   };
 
+  const navigate = useNavigate()
+
+  const handleNotifClick = (notif) => {
+    if (!notif.isRead) markRead(notif._id);
+
+    if (notif.metadata.link) {
+      if (notif.type === "REQUEST_LINK_PARENT_CHILD") {
+        navigate(`${notif.metadata.link}&parentEmail=${notif.metadata.emailParent}`);
+      }
+      navigate(notif.metadata.link)
+    }
+  }
+
+  // ── Render ───────────────────────────────────────────────────
   return (
     <div className="notif-page">
       <div className="notif-wrapper">
-        <CloseIcon className="close-icon" onClick={() => onClose()} />
+        <CloseIcon className="close-icon" onClick={onClose} />
 
         <div className="notif-list-wrapper">
           {/* Header */}
@@ -185,10 +218,15 @@ export default function Notifications({ onClose }) {
                 <span className="notif-badge">{unreadCount} new</span>
               )}
             </div>
-            <button className="notif-mark-all-btn" onClick={markAllRead} disabled={unreadCount === 0}>
+            <button
+              className="notif-mark-all-btn"
+              onClick={markAllRead}
+              disabled={unreadCount === 0}
+            >
               Mark all as read
             </button>
           </div>
+
           {/* Filter tabs */}
           <div className="notif-filters">
             {FILTERS.map((f) => (
@@ -201,39 +239,53 @@ export default function Notifications({ onClose }) {
               </button>
             ))}
           </div>
+
           {/* List */}
           <div className="notif-list">
-            {filtered.length === 0 ? (
+            {loading ? (
+              <div className="notif-empty"><p>Loading...</p></div>
+            ) : filtered.length === 0 ? (
               <div className="notif-empty">
                 <span className="notif-empty-icon">🔔</span>
                 <p>No notifications here</p>
               </div>
             ) : (
               filtered.map((notif) => {
-                const config = TYPE_CONFIG[notif.type];
+                const config = TYPE_CONFIG[notif.type] ?? TYPE_CONFIG.SYSTEM;
+                const initials = getInitials(notif.user);
+                const avatarColor = getAvatarColor(notif.idSender ?? 0);
+
                 return (
                   <div
-                    key={notif.id}
-                    className={`notif-item ${!notif.read ? "notif-item--unread" : ""} ${dismissing === notif.id ? "notif-item--dismissing" : ""}`}
-                    onClick={() => markRead(notif.id)}
+                    key={notif._id}
+                    className={`notif-item ${!notif.isRead ? "notif-item--unread" : ""} ${dismissing === notif._id ? "notif-item--dismissing" : ""}`}
+                    onClick={() => handleNotifClick(notif)}
                   >
                     {/* Unread dot */}
                     <div className="notif-dot-col">
-                      {!notif.read && <span className="notif-unread-dot" />}
+                      {!notif.isRead && <span className="notif-unread-dot" />}
                     </div>
+
                     {/* Avatar */}
                     <div
                       className="notif-avatar"
-                      style={{ background: notif.avatarColor + "22", color: notif.avatarColor }}
+                      style={{ background: avatarColor + "22", color: avatarColor }}
                     >
-                      {notif.avatar}
+                      {notif.user?.userImg
+                        ? <img src={notif.user.userImg} alt={initials} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+                        : initials
+                      }
                     </div>
+
                     {/* Content */}
                     <div className="notif-content">
                       <p className="notif-text">
-                        <span className="notif-name">{notif.name}</span>{" "}
-                        {notif.message}{" "}
-                        <span className="notif-target">"{notif.target}"</span>
+                        {notif.user && notif.user !== "no sender" && (
+                          <span className="notif-name">
+                            {notif.user.givenName} {notif.user.familyName}{" "}
+                          </span>
+                        )}
+                        {notif.message}
                       </p>
                       <div className="notif-meta">
                         <span
@@ -243,13 +295,14 @@ export default function Notifications({ onClose }) {
                           <span style={{ color: config.color }}>{config.icon}</span>
                           {config.label}
                         </span>
-                        <span className="notif-time">{notif.time}</span>
+                        <span className="notif-time">{timeAgo(notif.createdAt)}</span>
                       </div>
                     </div>
+
                     {/* Dismiss */}
                     <button
                       className="notif-dismiss-btn"
-                      onClick={(e) => { e.stopPropagation(); dismiss(notif.id); }}
+                      onClick={(e) => { e.stopPropagation(); dismiss(notif._id); }}
                       title="Dismiss"
                     >
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
@@ -262,7 +315,6 @@ export default function Notifications({ onClose }) {
             )}
           </div>
         </div>
-
       </div>
     </div>
   );

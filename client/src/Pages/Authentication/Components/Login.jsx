@@ -53,7 +53,7 @@ function Login() {
     // Clear previous errors
     setErrors({ identifier: "", password: "" });
 
-    axios.post("http://localhost:8080/auth/login", credentials, {
+    axios.post(`${process.env.REACT_APP_API_URL_GATEWAY}/auth/login`, credentials, {
       headers: {
         "Content-Type": "application/json"
       }

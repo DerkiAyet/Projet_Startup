@@ -10,18 +10,15 @@ import PublishSuccessPopup from '../Components/Publishsuccesspopup'
 import axios from 'axios'
 import PublishQuizSuccessPopup from '../Components/PublishQuizSuccessPopup'
 
-function CreatCourse() {
+function CreateCourse() {
 
   const [courseData, setCourseData] = useState({
     title: "",
     description: "",
     thumbnail: null,
-    category: {
-      id: 0,
-      subCategory: 0
-    },
+    category: { id: 0, subCategory: 0 },
     level: "",
-    lessons: [{ title: "", content: "" }],
+    lessons: [{ title: "", content: "", videoUrl: "", lessonType: "text" }],
   });
 
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
@@ -54,7 +51,7 @@ function CreatCourse() {
   useEffect(() => {
 
     axios.defaults.withCredentials = true
-    axios.get('http://localhost:8080/users/infos/get-teacher-expertise')
+    axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/users/infos/get-teacher-expertise`)
       .then((res) => setCategories(res.data))
       .catch((err) => console.error(err.response.data))
 
@@ -126,33 +123,109 @@ function CreatCourse() {
   const [showQuizBuilder, setShowQuizBuilder] = useState(false)
   const [publishedCourseId, setPublishedCourseId] = useState(null)
 
-  const handlePublish = async () => {
+  const editorRef = useRef(null);
+
+  const allLessonContentsRef = useRef({}); // { [lessonIndex]: content }
+  const videoInputRef = useRef(); // for the file picker
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [processingVideo, setProcessingVideo] = useState(false); // ← new state to handle video processing after upload, before it's ready to use in the lesson
+
+  useEffect(() => {
+    if (allLessonContentsRef.current[currentLessonIndex] === undefined) {
+      allLessonContentsRef.current[currentLessonIndex] =
+        courseData.lessons[currentLessonIndex]?.content || "";
+    }
+  }, [currentLessonIndex]);
+
+  const handleVideoUpload = async (file) => {
+    setUploadingVideo(true);
+    setUploadProgress(0);
+    setProcessingVideo(false);
+
+    const formData = new FormData();
+    formData.append("video", file);
+
     try {
+      const response = await axios.post(
+        `${process.env.REACT_APP_API_URL_GATEWAY}/content/courses/upload-video`,
+        formData,
+        {
+          timeout: 30 * 60 * 1000, // 30 minutes timeout for slow uploads
+          onUploadProgress: (progressEvent) => {
+            const percent = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            setUploadProgress(percent);
+            if (percent === 100) setProcessingVideo(true); // ← server is now streaming to Cloudinary
+          },
+        }
+      );
 
+      const videoUrl = response.data.videoUrl;
+      // Cloudinary thumbnail: same URL but replace extension with .jpg
+      const thumbnailUrl = videoUrl.replace(/\.[^/.]+$/, ".jpg");
+
+      allLessonContentsRef.current[currentLessonIndex] = {
+        ...allLessonContentsRef.current[currentLessonIndex],
+        videoUrl,
+        thumbnailUrl,
+        lessonType: "video",
+        content: "",
+      };
+
+      const updatedLessons = [...courseData.lessons];
+      updatedLessons[currentLessonIndex] = {
+        ...updatedLessons[currentLessonIndex],
+        videoUrl,
+        thumbnailUrl,
+        publicId: response.data.publicId, // for the delete process in backend for video in the cloud *we won't pass it of course when puclishing the course*
+        lessonType: "video",
+      };
+      setCourseData({ ...courseData, lessons: updatedLessons });
+
+    } catch (err) {
+      console.error("Video upload failed:", err);
+    } finally {
+      setUploadingVideo(false);
+      setProcessingVideo(false);
+    }
+  };
+
+  const handlePublish = async () => {
+    const finalLessons = courseData.lessons.map((lesson, i) => {
+      const ref = allLessonContentsRef.current[i];
+      return {
+        title: lesson.title,
+        lessonType: lesson.lessonType || "text",
+        content: lesson.lessonType === "video"
+          ? ""
+          : (ref?.content ?? lesson.content ?? ""),
+        videoUrl: lesson.lessonType === "video"
+          ? (lesson.videoUrl ?? ref?.videoUrl ?? "")
+          : "",
+      };
+    });
+
+    try {
       const formData = new FormData();
-
       formData.append("title", courseData.title);
       formData.append("description", courseData.description);
       formData.append("thumbnail", courseData.thumbnail);
       formData.append("level", courseData.level);
-
       formData.append("category", JSON.stringify(courseData.category));
-      formData.append("lessons", JSON.stringify(courseData.lessons));
+      formData.append("lessons", JSON.stringify(finalLessons));
       formData.append("tags", JSON.stringify(courseData.tags ?? []));
 
-      const response = await axios.post('http://localhost:8080/content/courses', formData)
-
-      setPublishedCourseId(response.data.course._id)
-
-      setShowSuccessPopup(true)
+      const response = await axios.post(`${process.env.REACT_APP_API_URL_GATEWAY}/content/courses`, formData);
+      setPublishedCourseId(response.data.course._id);
+      setShowSuccessPopup(true);
     } catch (err) {
-      console.error(err)
+      console.error(err);
     }
-  }
+  };
 
   const [addQuizSucces, setAddQuizSuccess] = useState(false)
-
-  //to fix the problem with copy/past in jodit:
 
   return (
     <div className='create-course-container'>
@@ -382,6 +455,33 @@ function CreatCourse() {
                   </button>
                 </div>
               </div>
+
+              <div style={{ display: "flex", gap: "0.8rem", marginBottom: "0.8rem" }}>
+                <button
+                  type="button"
+                  className={`draft-btn ${courseData.lessons[currentLessonIndex]?.lessonType !== "video" ? "submit-btn" : ""}`}
+                  onClick={() => {
+                    const updatedLessons = [...courseData.lessons];
+                    updatedLessons[currentLessonIndex].lessonType = "text";
+                    setCourseData({ ...courseData, lessons: updatedLessons });
+                  }}
+                >
+                  📝 Text
+                </button>
+                <button
+                  type="button"
+                  className={`draft-btn ${courseData.lessons[currentLessonIndex]?.lessonType === "video" ? "submit-btn" : ""}`}
+                  onClick={() => {
+                    const updatedLessons = [...courseData.lessons];
+                    updatedLessons[currentLessonIndex].lessonType = "video";
+                    setCourseData({ ...courseData, lessons: updatedLessons });
+                  }}
+                >
+                  🎬 Video
+                </button>
+              </div>
+
+
               <div className="lesson-nav-bar">
                 <button
                   className="lesson-nav-btn"
@@ -421,6 +521,7 @@ function CreatCourse() {
                   className="lesson-nav-btn lesson-nav-btn--next"
                   onClick={() => {
                     if (!handleErrorLesson()) return; // stop everything when the title is not written
+                    // saveCurrentLesson();
                     const updatedLessons = [...courseData.lessons];
                     // If we're on the last lesson, add a new one
                     if (currentLessonIndex === courseData.lessons.length - 1) {
@@ -441,25 +542,150 @@ function CreatCourse() {
                 </button>
               </div>
 
-              <JoditEditor
-                key={currentLessonIndex} // forces re-mount on lesson change so editor re-renders fresh content
+              {/* Conditional: Jodit or Video uploader */}
+              {courseData.lessons[currentLessonIndex]?.lessonType === "video" ? (
+                <div className="video-upload-zone">
+                  {courseData.lessons[currentLessonIndex]?.videoUrl ? (
+                    <div className="video-uploaded-preview">
+                      <img
+                        src={courseData.lessons[currentLessonIndex].thumbnailUrl}
+                        alt="video thumbnail"
+                        className="video-thumbnail"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                      {/* Floating action buttons top right */}
+                      <div className="video-float-actions">
+                        <button
+                          type="button"
+                          className="video-float-btn"
+                          title="Change video"
+                          onClick={() => videoInputRef.current.click()}
+                        >
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                          </svg>
+                        </button>
+                        <button
+                          type="button"
+                          className="video-float-btn video-float-btn--delete"
+                          title="Delete video"
+                          onClick={async () => {
+                            const publicId = courseData.lessons[currentLessonIndex].publicId;
+                            if (publicId) {
+                              try {
+                                await axios.delete(`${process.env.REACT_APP_API_URL_GATEWAY}/content/courses/video/${encodeURIComponent(publicId)}`);
+                              } catch (err) {
+                                console.error("Failed to delete from Cloudinary:", err);
+                              }
+                            }
+                            const updatedLessons = [...courseData.lessons];
+                            updatedLessons[currentLessonIndex].videoUrl = "";
+                            updatedLessons[currentLessonIndex].thumbnailUrl = "";
+                            updatedLessons[currentLessonIndex].publicId = "";
+                            setCourseData({ ...courseData, lessons: updatedLessons });
+                          }}
+                        >
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                            <path d="M10 11v6M14 11v6" />
+                            <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                          </svg>
+                        </button>
+                      </div>
+                      {/* Info badge bottom left */}
+                      <div className="video-info-badge">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                        <div className="video-info-text">
+                          <span className="video-info-title">Video ready</span>
+                          <span className="video-info-sub">Cloudinary · Ready to publish</span>
+                        </div>
+                      </div>
+                      <input
+                        type="file"
+                        accept="video/*"
+                        ref={videoInputRef}
+                        style={{ display: "none" }}
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            // delete old video first
+                            const oldPublicId = courseData.lessons[currentLessonIndex].publicId;
+                            if (oldPublicId) {
+                              axios.delete(`${process.env.REACT_APP_API_URL_GATEWAY}/content/courses/video/${encodeURIComponent(oldPublicId)}`).catch(console.error);
+                            }
+                            handleVideoUpload(file);
+                          }
+                        }}
+                      />
+                    </div>
+
+                  ) : uploadingVideo ? (
+                    <div className="video-uploading">
+                      <span className="video-uploading-label">
+                        {processingVideo ? "Processing on Cloudinary..." : `Uploading... ${uploadProgress}%`}
+                      </span>
+                      <div className="video-progress-track">
+                        <div
+                          className={`video-progress-bar ${processingVideo ? "video-progress-bar--processing" : ""}`}
+                          style={{ width: processingVideo ? "100%" : `${uploadProgress}%` }}
+                        />
+                      </div>
+                      {processingVideo && (
+                        <span className="video-uploading-sub">This may take a moment for large videos...</span>
+                      )}
+                    </div>
+
+                  ) : (
+                    <div className="video-pick">
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#A7A7A7" strokeWidth="1.5">
+                        <rect x="2" y="5" width="20" height="14" rx="2" />
+                        <path d="M10 9l5 3-5 3V9z" fill="#A7A7A7" stroke="none" />
+                      </svg>
+                      <span className="video-pick-label">Click to select a video file</span>
+                      <button
+                        type="button"
+                        className="submit-btn"
+                        style={{ padding: "0.5rem 1.5rem", borderRadius: "30px", border: "none", background: "var(--main-color-light)", color: "white", fontFamily: "'Nunito', sans-serif", fontWeight: 600, fontSize: "0.95rem", cursor: "pointer" }}
+                        onClick={() => videoInputRef.current.click()}
+                      >
+                        Select Video
+                      </button>
+                      <input
+                        type="file"
+                        accept="video/*"
+                        ref={videoInputRef}
+                        style={{ display: "none" }}
+                        onChange={(e) => {
+                          const file = e.target.files[0];
+                          if (file) handleVideoUpload(file);
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              ) : (<JoditEditor
+                key={currentLessonIndex}
+                ref={editorRef}
                 value={courseData.lessons[currentLessonIndex]?.content || ""}
-                onBlur={(newContent) => {
-                  const updatedLessons = [...courseData.lessons];
-                  updatedLessons[currentLessonIndex] = {
-                    ...updatedLessons[currentLessonIndex],
+                onChange={(newContent) => {
+                  allLessonContentsRef.current[currentLessonIndex] = {
+                    ...allLessonContentsRef.current[currentLessonIndex],
                     content: newContent,
+                    lessonType: "text",
+                    videoUrl: "",
                   };
-                  setCourseData({ ...courseData, lessons: updatedLessons });
                 }}
                 config={{
                   uploader: { insertImageAsBase64URI: true },
-                  clipboard: {
-                    processPasteHTML: true,
-                    processPasteFromWord: true,
-                  },
+                  clipboard: { processPasteHTML: true, processPasteFromWord: true },
+                   toolbarAdaptive: false
                 }}
-              />
+              />)}
+
               <div className="lesson-editor-actions">
                 <div className="lesson-editor-actions-right">
                   <span className="lesson-dots">
@@ -467,7 +693,7 @@ function CreatCourse() {
                       <span
                         key={i}
                         className={`lesson-dot ${i === currentLessonIndex ? "lesson-dot--active" : ""} ${courseData.lessons[i].content ? "lesson-dot--filled" : ""}`}
-                        onClick={() => setCurrentLessonIndex(i)}
+                        onClick={() => { setCurrentLessonIndex(i) }}
                       />
                     ))}
                   </span>
@@ -500,7 +726,7 @@ function CreatCourse() {
             courseId={publishedCourseId}
             onClose={() => setShowQuizBuilder(false)}
             onPublish={async (quizPayload) => {
-              const response = await axios.post(`http://localhost:8080/content/courses/${publishedCourseId}/quiz`, quizPayload)
+              const response = await axios.post(`${process.env.REACT_APP_API_URL_GATEWAY}/content/courses/${publishedCourseId}/quiz`, quizPayload)
               console.log('Quiz payload:', response.data)
               setShowQuizBuilder(false)
               setAddQuizSuccess(true)
@@ -521,4 +747,4 @@ function CreatCourse() {
 }
 
 
-export default CreatCourse
+export default CreateCourse

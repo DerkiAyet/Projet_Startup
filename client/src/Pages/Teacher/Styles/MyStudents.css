@@ -1,0 +1,406 @@
+/* ─── MyStudents.css ─────────────────────────────────────────────────────── */
+
+:root {
+    --ms-bg: #F7F6F3;
+    --ms-surface: #FFFFFF;
+    --ms-border: #EBEBEB;
+    --ms-text: #1A1A1A;
+    --ms-text-muted: #888780;
+    --ms-text-hint: #B4B2A9;
+    --ms-radius: 14px;
+    --ms-radius-sm: 8px;
+    --ms-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+/* ── Layout ── */
+.ms-container {
+    padding: 2rem 2rem 3rem;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    font-family: 'DM Sans', 'Segoe UI', sans-serif;
+    color: var(--ms-text);
+}
+
+/* ── Header ── */
+.ms-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.ms-title {
+    font-size: 1.6rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin: 0 0 2px;
+    color: var(--ms-text);
+}
+
+.ms-subtitle {
+    font-size: 0.85rem;
+    color: var(--ms-text-muted);
+    margin: 0;
+}
+
+.ms-tabs {
+    display: flex;
+    gap: 4px;
+    background: #fff;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+    padding: 3px;
+    border-radius: 10px;
+}
+
+.ms-tab {
+    padding: 6px 16px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--ms-text-muted);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    font-family: "Nunito", sans-serif;
+}
+
+.ms-tab.active {
+    background: #F29DB6;
+    color: #fff;
+    box-shadow: var(--ms-shadow);
+}
+
+/* ── Stats row ── */
+.ms-stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+.ms-stat-card {
+    background: var(--ms-surface);
+    border: 0.5px solid var(--ms-border);
+    border-radius: var(--ms-radius);
+    padding: 1.1rem 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: var(--ms-shadow);
+    transition: box-shadow 0.2s;
+}
+
+.ms-stat-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.ms-stat-accent {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.ms-stat-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.ms-stat-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.ms-stat-value {
+    font-size: 1.4rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--ms-text);
+    line-height: 1;
+}
+
+.ms-stat-label {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--ms-text);
+    margin-top: 3px;
+}
+
+.ms-stat-sub {
+    font-size: 0.72rem;
+    color: var(--ms-text-hint);
+}
+
+/* ── Generic card ── */
+.ms-card {
+    background: var(--ms-surface);
+    border: 0.5px solid var(--ms-border);
+    border-radius: var(--ms-radius);
+    padding: 1.2rem 1.4rem;
+    box-shadow: var(--ms-shadow);
+}
+
+.ms-card-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--ms-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 1rem;
+}
+
+/* ── Charts row ── */
+.ms-charts-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+/* ── Tooltip ── */
+.ms-tooltip {
+    background: var(--ms-surface);
+    border: 0.5px solid var(--ms-border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.ms-tooltip-label {
+    font-size: 0.75rem;
+    color: var(--ms-text-muted);
+    margin: 0 0 2px;
+}
+
+.ms-tooltip-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--ms-text);
+    margin: 0;
+}
+
+/* ── Bottom row ── */
+.ms-bottom-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+/* ── Assignments list ── */
+.ms-assign-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ms-assign-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: var(--ms-bg);
+    border-radius: var(--ms-radius-sm);
+    gap: 12px;
+    transition: background 0.15s;
+}
+
+.ms-assign-row:hover {
+    background: var(--ms-border);
+}
+
+.ms-assign-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+
+.ms-assign-title {
+    font-size: 0.83rem;
+    font-weight: 500;
+    color: var(--ms-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ms-assign-meta {
+    font-size: 0.75rem;
+    color: var(--ms-text-muted);
+}
+
+.ms-assign-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* ── Badges ── */
+.ms-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+.badge-pending {
+    background: #FAEEDA;
+    color: #854F0B;
+}
+
+.badge-graded {
+    background: #EAF3DE;
+    color: #3B6D11;
+}
+
+.badge-progress {
+    background: #E6F1FB;
+    color: #185FA5;
+}
+
+.ms-review-btn {
+    background: none;
+    border: none;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #EC4899;
+    cursor: pointer;
+    padding: 0;
+    white-space: nowrap;
+    transition: opacity 0.15s;
+}
+
+.ms-review-btn:hover {
+    opacity: 0.7;
+}
+
+/* ── Students ranking ── */
+.ms-students-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.ms-student-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 0.5px solid var(--ms-border);
+    transition: opacity 0.15s;
+}
+
+.ms-student-row:last-child {
+    border-bottom: none;
+}
+
+.ms-student-row:hover {
+    opacity: 0.8;
+}
+
+.ms-rank {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--ms-text-hint);
+    width: 20px;
+    flex-shrink: 0;
+}
+
+.ms-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    letter-spacing: 0.02em;
+}
+
+.ms-student-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+.ms-student-name {
+    font-size: 0.83rem;
+    font-weight: 500;
+    color: var(--ms-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ms-student-detail {
+    font-size: 0.72rem;
+    color: var(--ms-text-muted);
+}
+
+.ms-score-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+    flex-shrink: 0;
+    width: 80px;
+}
+
+.ms-mini-bar-bg {
+    width: 100%;
+    height: 4px;
+    background: var(--ms-border);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.ms-mini-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+}
+
+.ms-mini-pct {
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+/* ── Responsive ── */
+@media (max-width: 960px) {
+    .ms-stats-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .ms-charts-row,
+    .ms-bottom-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .ms-container {
+        padding: 1rem;
+    }
+
+    .ms-stats-row {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .ms-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

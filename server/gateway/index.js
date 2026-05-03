@@ -166,6 +166,7 @@ eurekaClient.start(async (error) => {
                 if (req.user) {
                     proxyReq.setHeader('X-User-Id', req.user.userId);
                     proxyReq.setHeader('X-User-Name', req.user.userName);
+                    proxyReq.setHeader('X-User-Role', req.user.userRole);
                 }
             },
             proxyRes: stripUpstreamCorsHeaders,
@@ -193,6 +194,7 @@ eurekaClient.start(async (error) => {
                 if (req.user) {
                     proxyReq.setHeader('X-User-Id', req.user.userId);
                     proxyReq.setHeader('X-User-Name', req.user.userName);
+                    proxyReq.setHeader('X-User-Role', req.user.userRole);
                 }
             },
             proxyRes: stripUpstreamCorsHeaders,
@@ -219,6 +221,7 @@ eurekaClient.start(async (error) => {
                 if (req.user) {
                     proxyReq.setHeader('X-User-Id', req.user.userId);
                     proxyReq.setHeader('X-User-Name', req.user.userName);
+                    proxyReq.setHeader('X-User-Role', req.user.userRole);
                 }
             },
             proxyRes: stripUpstreamCorsHeaders,
@@ -245,6 +248,7 @@ eurekaClient.start(async (error) => {
                 if (req.user) {
                     proxyReq.setHeader('X-User-Id', req.user.userId);
                     proxyReq.setHeader('X-User-Name', req.user.userName);
+                    proxyReq.setHeader('X-User-Role', req.user.userRole);
                 }
             },
             proxyRes: stripUpstreamCorsHeaders,

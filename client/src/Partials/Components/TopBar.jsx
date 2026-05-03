@@ -39,7 +39,7 @@ function TopBar({ minimizeNav, setMinimizeNav }) {
 
                         {profilePicture ? (
                             <div className="user-account">
-                                <img src={profilePicture} alt={`${givenName} ${familyName}`} />
+                                <img src={`${process.env.REACT_APP_API_URL_GATEWAY}/auth/uploads/${userAuth.userImg}`} alt={`${givenName} ${familyName}`} />
                             </div>
                         ) : (
                             <div className="user-initials-avatar" style={{ backgroundColor: 'var(--accent-pink)' }}>

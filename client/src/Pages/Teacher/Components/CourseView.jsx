@@ -13,7 +13,7 @@ export function CourseView({ LESSONS, viewerRef, handleChangePct, courseId, onCh
 
     useEffect(() => {
         if (userAuth.role === "student") {
-            axios.get(`http://localhost:8080/content/activity/enrollements/${courseId}`)
+            axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/activity/enrollements/${courseId}`)
                 .then((res) => {
                     setEnrollement(res.data)
                     setDoneLessons(new Set(res.data.lessonsCompleted))
@@ -40,7 +40,7 @@ export function CourseView({ LESSONS, viewerRef, handleChangePct, courseId, onCh
     };
 
     const toggleDone = () => {
-        axios.put(`http://localhost:8080/content/activity/enrollements/${enrollement._id}/lesson-completed/${lesson._id}`, {}, {
+        axios.put(`${process.env.REACT_APP_API_URL_GATEWAY}/content/activity/enrollements/${enrollement._id}/lesson-completed/${lesson._id}`, {}, {
             headers: { "Content-Type": "application/json" }
         })
             .then((res) => {
@@ -74,7 +74,10 @@ export function CourseView({ LESSONS, viewerRef, handleChangePct, courseId, onCh
             {!isQuizPage ? (
                 <ContentViewer
                     content={lesson.content}
+                    exerciseType={"text"}
                     title={lesson.title}
+                    lessonType={lesson.lessonType}
+                    videoUrl={lesson.videoUrl}
                 />
             ) : (
                 <div className="cd-page-card cd-quiz-page">

@@ -248,7 +248,7 @@
     display: flex;
     font-size: 0.75rem;
     gap: 5px;
-    color: var(--light-font-color);
+    color: #A6A6A6;
 }
 
 .courses-row-container {

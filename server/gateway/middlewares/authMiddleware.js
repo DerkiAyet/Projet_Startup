@@ -6,7 +6,7 @@ const authMiddleware = (req, res, next) => {
     if (!accessToken) {
         return renewToken(req, res, next);
     } else {
-        verify(accessToken, process.env.ACCESS_KEY, (err, decoded) => {
+        verify(accessToken, process.env.JWT_ACCESS_SECRET, (err, decoded) => {
             if (err) {
                 return renewToken(req, res, next);
             } else {
@@ -26,7 +26,7 @@ const renewToken = (req, res, next) => {
             errorToken: "No refresh token"
         });
     } else {
-        verify(refreshToken, process.env.REFRESH_KEY, (err, decoded) => {
+        verify(refreshToken, process.env.JWT_REFRESH_SECRET, (err, decoded) => {
             if (err) {
                 return res.status(400).json({
                     errorToken: "Invalid refresh token"
@@ -34,8 +34,9 @@ const renewToken = (req, res, next) => {
             } else {
                 const accessToken = sign({
                     userId: decoded.userId,
-                    userName: decoded.userName
-                }, process.env.ACCESS_KEY, {
+                    userName: decoded.userName,
+                    userRole: decoded.userRole
+                }, process.env.JWT_ACCESS_SECRET, {
                     expiresIn: '15m'
                 });
 

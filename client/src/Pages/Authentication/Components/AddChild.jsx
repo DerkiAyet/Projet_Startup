@@ -33,7 +33,7 @@ function AddChild() {
 
         setLoading(true)
 
-        axios.post('http://localhost:8080/users/infos/request-child', { email: childEmail }, {
+        axios.post(`${process.env.REACT_APP_API_URL_GATEWAY}/users/infos/request-child`, { email: childEmail }, {
             headers: {
                 "Content-Type": "application/json"
             }
@@ -126,7 +126,7 @@ function AddChild() {
                                 )}
                             </button>
                             <div className="login-line">
-                                {t('auth.maybeAddChildLater')} <Link to={"/login"} className='auth-link'>{t('auth.skip')}</Link>
+                                {t('auth.maybeAddChildLater')} <Link to={"/"} className='auth-link'>{t('auth.skip')}</Link>
                             </div>
                         </form>
                     </motion.div>

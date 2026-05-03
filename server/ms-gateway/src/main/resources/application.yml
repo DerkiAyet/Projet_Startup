@@ -1,0 +1,73 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://localhost:3000"
+            allowedMethods:
+              - "*"
+            allowedHeaders:
+              - "*"
+            allowCredentials: true
+
+      routes:
+        # ── AUTH — public, pas de token requis ──────────────────
+        - id: auth-service-public
+          uri: lb://SERVICE1-AUTH
+          predicates:
+            - Path=/auth/**
+          filters:
+            - StripPrefix=1
+
+        # ── USERS — protégé, passe par JwtAuthFilter ────────────
+        - id: auth-service-users
+          uri: lb://SERVICE1-AUTH
+          predicates:
+            - Path=/users/**
+          filters:
+            - StripPrefix=1
+
+        # ── CONTENT ─────────────────────────────────────────────
+        - id: content-service
+          uri: lb://SERVICE3-CONTENT
+          predicates:
+            - Path=/content/**
+          filters:
+            - StripPrefix=1
+
+        # ── POSTS ───────────────────────────────────────────────
+        - id: posts-service
+          uri: lb://SERVICE2-POSTS
+          predicates:
+            - Path=/posts/**
+          filters:
+            - StripPrefix=1
+
+        # ── NOTIFICATIONS ────────────────────────────────────────
+        - id: notifications-service
+          uri: lb://SERVICE4-NOTIFICATION
+          predicates:
+            - Path=/notifications/**
+          filters:
+            - StripPrefix=1
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
+    fetch-registry: true        # ← ajoute ça
+    register-with-eureka: true  # ← ajoute ça
+  instance:
+    preferIpAddress: true
+    hostname: localhost          # ← ajoute ça
+
+jwt:
+  access-secret: K9f3Av1Pr6TwM2zQ8sL4uJ0bx7nYcR5e
+  refresh-secret: W7yS2mE4qH8tN1dR5vY3kU9pZ6fB0cX2

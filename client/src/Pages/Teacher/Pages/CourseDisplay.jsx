@@ -113,7 +113,7 @@ export const CommentLine = ({ courseId, commentId, commentTxt, commentUserName, 
 
     const addReply = async (e) => {
         e.preventDefault();
-        const link = contentType === "course" ? "http://localhost:8080/content/courses" : contentType === "assignment" ? "http://localhost:8080/content/assignments" : "http://localhost:8080/content/tips"
+        const link = contentType === "course" ? `${process.env.REACT_APP_API_URL_GATEWAY}/content/courses` : contentType === "assignment" ? `${process.env.REACT_APP_API_URL_GATEWAY}/content/assignments` : `${process.env.REACT_APP_API_URL_GATEWAY}/content/tips`
 
         try {
             const res = await axios.post(
@@ -166,7 +166,7 @@ export const CommentLine = ({ courseId, commentId, commentTxt, commentUserName, 
 
     const toggleLikeReply = (replyId, setLiked) => {
 
-        const link = contentType === "course" ? "http://localhost:8080/content/courses" : contentType === "assignment" ? "http://localhost:8080/content/assignments/" : "http://localhost:8080/content/tips"
+        const link = contentType === "course" ? `${process.env.REACT_APP_API_URL_GATEWAY}/content/courses` : contentType === "assignment" ? `${process.env.REACT_APP_API_URL_GATEWAY}/content/assignments/` : `${process.env.REACT_APP_API_URL_GATEWAY}/content/tips`
 
         axios.post(`${link}/${courseId}/comment/${commentId}/reply/${replyId}/like`, {},
             { headers: { "Content-Type": "application/json" } })
@@ -295,7 +295,7 @@ export default function CourseDisplay() {
     const [teacherId, setTeacherId] = useState(null)
 
     useEffect(() => {
-        const link = type === "course" ? "http://localhost:8080/content/courses" : type === "assignment" ? "http://localhost:8080/content/assignments" : "http://localhost:8080/content/tips";
+        const link = type === "course" ? `${process.env.REACT_APP_API_URL_GATEWAY}/content/courses` : type === "assignment" ? `${process.env.REACT_APP_API_URL_GATEWAY}/content/assignments` : `${process.env.REACT_APP_API_URL_GATEWAY}/content/tips`;
         axios.get(`${link}/${id}`)
             .then((res) => {
                 setTopic(res.data);
@@ -326,7 +326,7 @@ export default function CourseDisplay() {
         if (!commentInput.trim()) return;
 
         axios.defaults.withCredentials = true
-        const link = type === "course" ? "http://localhost:8080/content/courses" : type === "assignment" ? "http://localhost:8080/content/assignments/" : "http://localhost:8080/content/tips"
+        const link = type === "course" ? `${process.env.REACT_APP_API_URL_GATEWAY}/content/courses` : type === "assignment" ? `${process.env.REACT_APP_API_URL_GATEWAY}/content/assignments/` : `${process.env.REACT_APP_API_URL_GATEWAY}/content/tips`
 
         try {
 
@@ -356,7 +356,7 @@ export default function CourseDisplay() {
     };
 
     const toggleLikeComment = (commentId, setLiked) => {
-        const link = type === "course" ? "http://localhost:8080/content/courses" : type === "assignment" ? "http://localhost:8080/content/assignments/" : "http://localhost:8080/content/tips"
+        const link = type === "course" ? `${process.env.REACT_APP_API_URL_GATEWAY}/content/courses` : type === "assignment" ? `${process.env.REACT_APP_API_URL_GATEWAY}/content/assignments/` : `${process.env.REACT_APP_API_URL_GATEWAY}/content/tips`
         axios
             .post(`${link}/${id}/comment/${commentId}/like`, {},
                 { headers: { "Content-Type": "application/json" } })
@@ -403,7 +403,7 @@ export default function CourseDisplay() {
 
 
     const handleSaveQuiz = async (answers) => {
-        await axios.put(`http://localhost:8080/content/activity/quiz-attempts/${attemptId}/save`, { answers: answers }, {
+        await axios.put(`${process.env.REACT_APP_API_URL_GATEWAY}/content/activity/quiz-attempts/${attemptId}/save`, { answers: answers }, {
             headers: { 'Content-Type': 'application/json' }
         })
         setShowQuizSolve(false)
@@ -411,7 +411,7 @@ export default function CourseDisplay() {
 
     const handleOpenQuiz = async (quiz) => {
         try {
-            const res = await axios.post('http://localhost:8080/content/activity/quiz-attempts/start', { quizId: quiz._id }, {
+            const res = await axios.post(`${process.env.REACT_APP_API_URL_GATEWAY}/content/activity/quiz-attempts/start`, { quizId: quiz._id }, {
                 headers: {
                     "Content-Type": "application/json"
                 }
@@ -438,7 +438,7 @@ export default function CourseDisplay() {
     }
 
     const handleSubmitQuiz = async (answers) => {
-        const response = await axios.put(`http://localhost:8080/content/activity/quiz-attempts/${attemptId}/submit`, { answers: answers }, {
+        const response = await axios.put(`${process.env.REACT_APP_API_URL_GATEWAY}/content/activity/quiz-attempts/${attemptId}/submit`, { answers: answers }, {
             headers: { 'Content-Type': 'application/json' }
         })
 

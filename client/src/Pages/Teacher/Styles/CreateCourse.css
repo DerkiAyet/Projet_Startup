@@ -754,3 +754,167 @@
     background: #E2E4E5;
     color: #1E293B;
 }
+
+/*----------for the video upload------*/
+
+.video-upload-zone {
+    width: 100%;
+    border: 1.5px dashed var(--light-border-color);
+    border-radius: 14px;
+    overflow: hidden;
+    min-height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.2s;
+}
+
+.video-upload-zone:hover {
+    border-color: var(--main-color-light);
+}
+
+/* ── uploaded state ── */
+.video-uploaded-preview {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.video-thumbnail {
+    width: 100%;
+    max-height: 400px;
+    object-fit: cover;
+    display: block;
+    border-radius: 12px;
+}
+
+.video-float-actions {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.video-float-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--dark-font-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    backdrop-filter: blur(4px);
+}
+
+.video-float-btn:hover {
+    background: var(--grey-bg-color);
+}
+
+.video-float-btn--delete {
+    color: #d43d3d;
+}
+
+.video-float-btn--delete:hover {
+    background: #ffecec;
+}
+
+.video-info-badge {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    background: rgba(0, 0, 0, 0.58);
+    border-radius: 10px;
+    padding: 0.45rem 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #fff;
+}
+
+.video-info-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.video-info-title {
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.video-info-sub {
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.7rem;
+    color: #ccc;
+}
+
+/* ── uploading state ── */
+.video-uploading {
+    width: 100%;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.video-uploading-label {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--dark-font-color);
+}
+
+.video-uploading-sub {
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.82rem;
+    color: var(--light-grey-font-color);
+}
+
+.video-progress-track {
+    width: 100%;
+    height: 8px;
+    background: var(--grey-bg-color);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.video-progress-bar {
+    height: 100%;
+    background: var(--main-color);
+    border-radius: 10px;
+    transition: width 0.3s ease;
+}
+
+.video-progress-bar--processing {
+    background-image: linear-gradient(90deg, var(--main-color) 25%, #A855F7 50%, var(--main-color) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+/* ── pick state ── */
+.video-pick {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 2.5rem;
+}
+
+.video-pick-label {
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.92rem;
+    color: var(--light-grey-font-color);
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

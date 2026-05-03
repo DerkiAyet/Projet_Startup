@@ -10,6 +10,17 @@ const { discoverAuthService, discoverNotifService } = require('../config/discove
 const SolvingModel = require('../models/Solving')
 const axios = require('axios')
 const multer = require('multer')
+const cloudinary = require('../config/cloudinary')
+const CHUNK_SIZE = 6 * 1024 * 1024; // 6MB chunk size for streaming uploads to Cloudinary
+const streamifier = require('streamifier');
+const fs = require('fs');
+const path = require('path');
+const { getUser, getSubject, getSubSubject, getTeacherExpertise, getStudentInterests } = require('../config/kafka/consumer');
+
+const diskStorage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, path.join(__dirname, '../tmp')),
+    filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
+});
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -21,23 +32,46 @@ const storage = multer.diskStorage({
     }
 })
 
-const upload = multer({ storage: storage })
+const upload = multer({
+    storage: storage,
+    limits: {
+        fieldSize: 50 * 1024 * 1024  // 50MB to handle base64 images in lesson HTML
+    }
+})
+
+const uploadVideo = multer({  // separate multer instance for videos with higher file size limit - this is for handling video uploads in lessons, not course thumbnails
+    storage: diskStorage, // using disk storage for videos to handle large file sizes without consuming too much memory
+    limits: { fileSize: 4 * 1024 * 1024 * 1024 } // 4GB limit
+});
 
 async function enrichContent(item, typeContent, authServiceBaseUrl, categoryNames = [], subCategoryNames = []) {
     try {
         // Teacher + category info
-        const [responseUser, responseCategory] = await Promise.all([
-            axios.get(`${authServiceBaseUrl}/get_user_byId/${item.teacherId}`),
-            axios.get(`${authServiceBaseUrl}/infos/subjects/${item.category.id}`)
-        ]);
+
+        let responseUser = getUser(item.teacherId)
+        if (!responseUser) {
+            const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${item.teacherId}`)
+            responseUser = data.user
+        }
+        let responseCategory = getSubject(item.category.id)
+        if (!responseCategory) {
+            const { data } = await axios.get(`${authServiceBaseUrl}/infos/subjects/${item.category.id}`)
+            responseCategory = data
+        }
 
         // Subcategory - handle gracefully if it doesn't exist
         let responseField = null;
         if (item.category.subCategory) {
             try {
-                responseField = await axios.get(
-                    `${authServiceBaseUrl}/infos/sub-subjects/${item.category.subCategory}`
-                );
+                responseField = getSubSubject(item.category.subCategory)
+
+                if (!responseField) {
+                    console.log(`Subcategory ${item.category.subCategory} not found in Kafka, trying API...`);
+                    const { data } = await axios.get(
+                        `${authServiceBaseUrl}/infos/sub-subjects/${item.category.subCategory}`
+                    );
+                    responseField = data;
+                }
             } catch (subError) {
                 console.log(`Subcategory ${item.category.subCategory} not found`);
                 responseField = null;
@@ -64,8 +98,8 @@ async function enrichContent(item, typeContent, authServiceBaseUrl, categoryName
 
         // Thumbnail fallback
         const thumbnail = item.thumbnail
-            ? `http://localhost:8080/content/uploads/${item.thumbnail}`
-            : `http://localhost:8080/auth/uploads/${responseCategory.data.subImg}`;
+            ? `${process.env.GATEWAY_URI}/content/uploads/${item.thumbnail}`
+            : `${process.env.GATEWAY_URI}/auth/uploads/${responseCategory.subImg}`;
 
         return {
             typeContent,
@@ -76,12 +110,12 @@ async function enrichContent(item, typeContent, authServiceBaseUrl, categoryName
             thumbnail,
             level: item.level,
             category: {
-                idSubject: responseCategory.data.idSubject,
-                name: responseCategory.data.name,
-                color: responseCategory.data.color
+                idSubject: responseCategory.idSubject,
+                name: responseCategory.name,
+                color: responseCategory.color
             },
             subCategory: responseField
-                ? { idSub: responseField.data.idSub, name: responseField.data.name }
+                ? { idSub: responseField.idSub, name: responseField.name }
                 : null,
             lessons: item.lessons,
             exercises: item.exercises,
@@ -97,11 +131,11 @@ async function enrichContent(item, typeContent, authServiceBaseUrl, categoryName
             quiz: quiz || null,
 
             teacher: {
-                userId: responseUser.data.user.id,
-                userName: responseUser.data.user.userName,
-                familyName: responseUser.data.user.familyName,
-                givenName: responseUser.data.user.givenName,
-                userImg: responseUser.data.user.userImg || responseUser.data.user.uerImg,
+                userId: responseUser.id,
+                userName: responseUser.userName,
+                familyName: responseUser.familyName,
+                givenName: responseUser.givenName,
+                userImg: responseUser.userImg || responseUser.uerImg,
                 role: "teacher"
             }
         };
@@ -134,10 +168,7 @@ router.post('/', upload.single('thumbnail'), async (req, res) => {
     }
 
     try {
-        const serviceAuthBaseUrl = await discoverAuthService();
-        const response = await axios.get(`${serviceAuthBaseUrl}/get_user_byId/${teacherId}`, { timeout: 5000 });
-
-        const userRole = response.data.user.role;
+        const userRole = req.headers['x-user-role'];
         if (userRole !== 'teacher') return res.status(403).json({ error: "Unauthorized" });
 
         const newCourse = await CourseModel.create({
@@ -159,6 +190,70 @@ router.post('/', upload.single('thumbnail'), async (req, res) => {
     }
 });
 
+router.post('/upload-video', uploadVideo.single('video'), async (req, res) => {
+    req.setTimeout(30 * 60 * 1000);
+    res.setTimeout(30 * 60 * 1000);
+
+    try {
+        if (!req.file) return res.status(400).json({ error: "No video file provided" });
+
+        const fileSize = fs.statSync(req.file.path).size;
+        const isLarge = fileSize > 50 * 1024 * 1024; // files over 50MB use chunked upload
+
+        const uploadResult = await new Promise((resolve, reject) => {
+            const uploadStream = isLarge
+                ? cloudinary.uploader.upload_chunked_stream(
+                    {
+                        resource_type: 'video',
+                        folder: 'course_videos',
+                        chunk_size: CHUNK_SIZE,
+                        timeout: 1800000,
+                    },
+                    (error, result) => {
+                        if (error) reject(error);
+                        else resolve(result);
+                    }
+                )
+                : cloudinary.uploader.upload_stream(
+                    {
+                        resource_type: 'video',
+                        folder: 'course_videos',
+                        timeout: 1800000,
+                    },
+                    (error, result) => {
+                        if (error) reject(error);
+                        else resolve(result);
+                    }
+                );
+
+            fs.createReadStream(req.file.path).pipe(uploadStream);
+        });
+
+        fs.unlink(req.file.path, () => { });
+
+        res.status(200).json({
+            videoUrl: uploadResult.secure_url,
+            publicId: uploadResult.public_id
+        });
+
+    } catch (error) {
+        if (req.file?.path) fs.unlink(req.file.path, () => { });
+        console.error("Video upload error:", error);
+        res.status(500).json({ error: "Video upload failed" });
+    }
+});
+
+router.delete('/video/:publicId', async (req, res) => {
+    try {
+        const publicId = decodeURIComponent(req.params.publicId);
+        await cloudinary.uploader.destroy(publicId, { resource_type: 'video' });
+        res.status(200).json({ message: "Video deleted successfully" });
+    } catch (error) {
+        console.error("Video delete error:", error);
+        res.status(500).json({ error: "Failed to delete video" });
+    }
+});
+
 router.get('/', async (req, res) => {
     try {
         const courses = await CourseModel.find();
@@ -167,12 +262,33 @@ router.get('/', async (req, res) => {
         const enrichedCourses = await Promise.all(
             courses.map(async (course) => {
                 try {
-                    const responseUser = await axios.get(`${authServiceBaseUrl}/get_user_byId/${course.teacherId}`);
-                    const responseCategory = await axios.get(`${authServiceBaseUrl}/infos/subjects/${course.category.id}`);
+                    let responseUser = getUser(course.teacherId)
+                    if (!responseUser) {
+                        const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${course.teacherId}`)
+                        responseUser = data.user
+                    }
+                    let responseCategory = getSubject(course.category.id)
+                    if (!responseCategory) {
+                        const { data } = await axios.get(`${authServiceBaseUrl}/infos/subjects/${course.category.id}`)
+                        responseCategory = data
+                    }
 
                     let responseField = null;
                     if (course.category.subCategory) {
-                        responseField = await axios.get(`${authServiceBaseUrl}/infos/sub-subjects/${course.category.subCategory}`);
+                        try {
+                            responseField = getSubSubject(course.category.subCategory)
+
+                            if (!responseField) {
+                                console.log(`Subcategory ${course.category.subCategory} not found in Kafka, trying API...`);
+                                const { data } = await axios.get(
+                                    `${authServiceBaseUrl}/infos/sub-subjects/${course.category.subCategory}`
+                                );
+                                responseField = data;
+                            }
+                        } catch (subError) {
+                            console.log(`Subcategory ${course.category.subCategory} not found`);
+                            responseField = null;
+                        }
                     }
 
                     const comments = await CommentModel.find({
@@ -185,8 +301,8 @@ router.get('/', async (req, res) => {
                     const quiz = await QuizeModel.findOne({ courseId: course._id });
 
                     const thumbnail = course.thumbnail
-                        ? `http://localhost:8080/content/uploads/${course.thumbnail}`
-                        : `http://localhost:8080/auth/uploads/${responseCategory.data.subImg}`;
+                        ? `${process.env.GATEWAY_URI}/content/uploads/${course.thumbnail}`
+                        : `${process.env.GATEWAY_URI}/auth/uploads/${responseCategory.data.subImg}`;
 
                     return {
                         _id: course._id,
@@ -196,14 +312,14 @@ router.get('/', async (req, res) => {
                         thumbnail,
                         level: course.level,
                         category: {
-                            idSubject: responseCategory.data.idSubject,
-                            name: responseCategory.data.name,
-                            color: responseCategory.data.color
+                            idSubject: responseCategory.idSubject,
+                            name: responseCategory.name,
+                            color: responseCategory.color
                         },
                         subCategory: responseField
                             ? {
-                                idSub: responseField.data.idSub,
-                                name: responseField.data.name
+                                idSub: responseField.idSub,
+                                name: responseField.name
                             }
                             : null,
                         lessons: course.lessons,
@@ -217,11 +333,11 @@ router.get('/', async (req, res) => {
                         createdAt: course.createdAt,
                         quiz: quiz || null,
                         teacher: {
-                            userId: responseUser.data.user.id,
-                            userName: responseUser.data.user.userName,
-                            familyName: responseUser.data.user.familyName,
-                            givenName: responseUser.data.user.givenName,
-                            userImg: responseUser.data.user.uerImg,
+                            userId: responseUser.id,
+                            userName: responseUser.userName,
+                            familyName: responseUser.familyName,
+                            givenName: responseUser.givenName,
+                            userImg: responseUser.uerImg,
                             role: "teacher"
                         } || null
                     };
@@ -235,6 +351,54 @@ router.get('/', async (req, res) => {
 
     } catch (error) {
         console.error("Error fetching courses:", error.message);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
+
+router.get('/recommended/me', async (req, res) => {
+    try {
+        const currentUserId = req.headers['x-user-id'];
+        const userRole = req.headers['x-user-role'];
+
+        let interestIds = [];
+        if (userRole === 'student') {
+            interestIds = getStudentInterests(currentUserId) || [];
+        } else if (userRole === 'teacher') {
+            interestIds = getTeacherExpertise(currentUserId) || [];
+        }
+
+        if (!interestIds || interestIds.length === 0) {
+            const authServiceBaseUrl = await discoverAuthService();
+            const { data } = await axios.get(
+                `${authServiceBaseUrl}/infos/get-user-intrests`,
+                { headers: { "x-user-id": currentUserId }, timeout: 5000 }
+            );
+            interestIds = data;
+        }
+
+        console.log("the intrest from kafka cache", interestIds)
+
+        // ── Fetch only courses whose category.id is in the user's interests ──
+        const courses = await CourseModel.find({
+            visibility: true,
+            "category.id": { $in: interestIds }
+        });
+
+        if (!courses.length) return res.json([]);
+
+        const authServiceBaseUrl = await discoverAuthService();
+
+        const enriched = (await Promise.all(
+            courses.map(c => enrichContent(c, "course", authServiceBaseUrl, [], []))
+        )).filter(Boolean);
+
+        // sort by most recent
+        enriched.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        res.json(enriched);
+
+    } catch (err) {
+        console.error("Error fetching recommended courses:", err.message);
         res.status(500).json({ error: "Internal server error" });
     }
 });
@@ -393,11 +557,15 @@ router.get('/teacher/:teacherId', async (req, res) => {
             courses.map(async (course) => {
                 try {
 
-                    const responseCategory = await axios.get(`${authServiceBaseUrl}/infos/subjects/${course.category.id}`);
-
+                    let responseCategory = getSubject(course.category.id)
+                    if (!responseCategory) {
+                        const { data } = await axios.get(`${authServiceBaseUrl}/infos/subjects/${course.category.id}`)
+                        responseCategory = data
+                    }
                     let responseField = null;
                     if (course.category.subCategory) {
-                        responseField = await axios.get(`${authServiceBaseUrl}/infos/sub-subjects/${course.category.subCategory}`);
+                        const { data } = await axios.get(`${authServiceBaseUrl}/infos/sub-subjects/${course.category.subCategory}`);
+                        responseField = data;
                     }
 
                     const comments = await CommentModel.find({
@@ -410,8 +578,8 @@ router.get('/teacher/:teacherId', async (req, res) => {
                     const quiz = await QuizeModel.findOne({ courseId: course._id });
 
                     const thumbnail = course.thumbnail
-                        ? `http://localhost:8080/content/uploads/${course.thumbnail}`
-                        : `http://localhost:8080/auth/uploads/${responseCategory.data.subImg}`;
+                        ? `${process.env.GATEWAY_URI}/content/uploads/${course.thumbnail}`
+                        : `${process.env.GATEWAY_URI}/auth/uploads/${responseCategory.subImg}`;
 
                     return {
                         _id: course._id,
@@ -421,14 +589,14 @@ router.get('/teacher/:teacherId', async (req, res) => {
                         thumbnail,
                         level: course.level,
                         category: {
-                            idSubject: responseCategory.data.idSubject,
-                            name: responseCategory.data.name,
-                            color: responseCategory.data.color
+                            idSubject: responseCategory.idSubject,
+                            name: responseCategory.name,
+                            color: responseCategory.color
                         },
                         subCategory: responseField
                             ? {
-                                idSub: responseField.data.idSub,
-                                name: responseField.data.name
+                                idSub: responseField.idSub,
+                                name: responseField.name
                             }
                             : null,
                         lessons: course.lessons,
@@ -468,11 +636,15 @@ router.get('/teacher-courses', async (req, res) => {
             courses.map(async (course) => {
                 try {
 
-                    const responseCategory = await axios.get(`${authServiceBaseUrl}/infos/subjects/${course.category.id}`);
-
+                    let responseCategory = getSubject(course.category.id)
+                    if (!responseCategory) {
+                        const { data } = await axios.get(`${authServiceBaseUrl}/infos/subjects/${course.category.id}`)
+                        responseCategory = data
+                    }
                     let responseField = null;
                     if (course.category.subCategory) {
-                        responseField = await axios.get(`${authServiceBaseUrl}/infos/sub-subjects/${course.category.subCategory}`);
+                        const { data } = await axios.get(`${authServiceBaseUrl}/infos/sub-subjects/${course.category.subCategory}`);
+                        responseField = data;
                     }
 
                     const comments = await CommentModel.find({
@@ -485,8 +657,8 @@ router.get('/teacher-courses', async (req, res) => {
                     const quiz = await QuizeModel.findOne({ courseId: course._id });
 
                     const thumbnail = course.thumbnail
-                        ? `http://localhost:8080/content/uploads/${course.thumbnail}`
-                        : `http://localhost:8080/auth/uploads/${responseCategory.data.subImg}`;
+                        ? `${process.env.GATEWAY_URI}/content/uploads/${course.thumbnail}`
+                        : `${process.env.GATEWAY_URI}/auth/uploads/${responseCategory.subImg}`;
 
                     return {
                         _id: course._id,
@@ -496,14 +668,14 @@ router.get('/teacher-courses', async (req, res) => {
                         thumbnail,
                         level: course.level,
                         category: {
-                            idSubject: responseCategory.data.idSubject,
-                            name: responseCategory.data.name,
-                            color: responseCategory.data.color
+                            idSubject: responseCategory.idSubject,
+                            name: responseCategory.name,
+                            color: responseCategory.color
                         },
                         subCategory: responseField
                             ? {
-                                idSub: responseField.data.idSub,
-                                name: responseField.data.name
+                                idSub: responseField.idSub,
+                                name: responseField.name
                             }
                             : null,
                         lessons: course.lessons,
@@ -538,18 +710,27 @@ router.get('/:id', async (req, res) => {
         if (!course) return res.status(404).json({ error: "course not found" });
 
         const authServiceBaseUrl = await discoverAuthService()
-        const responseUser = await axios.get(`${authServiceBaseUrl}/get_user_byId/${course.teacherId}`)
 
-        const responseCategory = await axios.get(`${authServiceBaseUrl}/infos/subjects/${course.category.id}`);
+        let responseUser = getUser(course.teacherId)
+        if (!responseUser) {
+            const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${course.teacherId}`)
+            responseUser = data.user
+        }
 
+        let responseCategory = getSubject(course.category.id)
+        if (!responseCategory) {
+            const { data } = await axios.get(`${authServiceBaseUrl}/infos/subjects/${course.category.id}`)
+            responseCategory = data
+        }
         let responseField = null;
         if (course.category.subCategory) {
-            responseField = await axios.get(`${authServiceBaseUrl}/infos/sub-subjects/${course.category.subCategory}`);
+            const { data } = await axios.get(`${authServiceBaseUrl}/infos/sub-subjects/${course.category.subCategory}`);
+            responseField = data;
         }
 
         const thumbnail = course.thumbnail
-            ? `http://localhost:8080/content/uploads/${course.thumbnail}`
-            : `http://localhost:8080/auth/uploads/${responseCategory.data.subImg}`;
+            ? `${process.env.GATEWAY_URI}/content/uploads/${course.thumbnail}`
+            : `${process.env.GATEWAY_URI}/auth/uploads/${responseCategory.subImg}`;
 
         const enrollemnts = await EnrollementModel.find({ courseId: course._id })
 
@@ -560,10 +741,11 @@ router.get('/:id', async (req, res) => {
         if (comments) {
             enrichedComments = await Promise.all(
                 comments.map(async (c) => {
-                    const response = await axios.get(
-                        `${authServiceBaseUrl}/get_user_byId/${c.userId}`,
-                        { timeout: 5000 }
-                    );
+                    let resolvedCommentUser = getUser(c.userId)
+                    if (!resolvedCommentUser) {
+                        const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${c.userId}`)
+                        resolvedCommentUser = data.user
+                    }
 
                     const replies = c.replies
                     let enrichedReplies
@@ -571,20 +753,22 @@ router.get('/:id', async (req, res) => {
                     if (replies) {
                         enrichedReplies = await Promise.all(
                             replies.map(async (r) => {
-                                const response = await axios.get(
-                                    `${authServiceBaseUrl}/get_user_byId/${r.userId}`,
-                                    { timeout: 5000 }
-                                );
+
+                                let resolvedUser = getUser(r.userId)
+                                if (!resolvedUser) {
+                                    const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${r.userId}`)
+                                    resolvedUser = data.user
+                                }
 
                                 return {
                                     _id: r._id,
                                     text: r.text,
                                     likes: r.likes,
-                                    userName: response.data.user.userName,
-                                    familyName: response.data.user.familyName,
-                                    givenName: response.data.user.givenName,
-                                    userImg: response.data.user.uerImg,
-                                    role: response.data.user.role
+                                    userName: resolvedUser.userName,
+                                    familyName: resolvedUser.familyName,
+                                    givenName: resolvedUser.givenName,
+                                    userImg: resolvedUser.uerImg,
+                                    role: resolvedUser.role
                                 }
                             })
                         )
@@ -595,11 +779,11 @@ router.get('/:id', async (req, res) => {
                         text: c.text,
                         replies: enrichedReplies,
                         likes: c.likes,
-                        userName: response.data.user.userName,
-                        familyName: response.data.user.familyName,
-                        givenName: response.data.user.givenName,
-                        userImg: response.data.user.uerImg,
-                        role: response.data.user.role,
+                        userName: resolvedCommentUser.userName,
+                        familyName: resolvedCommentUser.familyName,
+                        givenName: resolvedCommentUser.givenName,
+                        userImg: resolvedCommentUser.uerImg,
+                        role: resolvedCommentUser.role,
                     }
                 })
             )
@@ -614,14 +798,14 @@ router.get('/:id', async (req, res) => {
                 thumbnail,
                 level: course.level,
                 category: {
-                    idSubject: responseCategory.data.idSubject,
-                    name: responseCategory.data.name,
-                    color: responseCategory.data.color
+                    idSubject: responseCategory.idSubject,
+                    name: responseCategory.name,
+                    color: responseCategory.color
                 },
                 subCategory: responseField
                     ? {
-                        idSub: responseField.data.idSub,
-                        name: responseField.data.name
+                        idSub: responseField.idSub,
+                        name: responseField.name
                     }
                     : null,
                 lessons: course.lessons,
@@ -637,11 +821,11 @@ router.get('/:id', async (req, res) => {
             },
             comments: enrichedComments,
             teacher: {
-                userId: responseUser.data.user.id,
-                userName: responseUser.data.user.userName,
-                familyName: responseUser.data.user.familyName,
-                givenName: responseUser.data.user.givenName,
-                userImg: responseUser.data.user.uerImg,
+                userId: responseUser.id,
+                userName: responseUser.userName,
+                familyName: responseUser.familyName,
+                givenName: responseUser.givenName,
+                userImg: responseUser.uerImg,
                 role: "teacher"
             } || null
         }

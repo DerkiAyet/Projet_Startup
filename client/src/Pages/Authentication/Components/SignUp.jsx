@@ -146,7 +146,7 @@ function SignUp() {
 
         axios.defaults.withCredentials = true;
 
-        axios.post("http://localhost:8080/auth/register", userInfos, {
+        axios.post(`${process.env.REACT_APP_API_URL_GATEWAY}/auth/register`, userInfos, {
             headers: {
                 "Content-Type": "application/json"
             }

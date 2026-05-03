@@ -5,6 +5,8 @@ const CommentModel = require('../models/Comments')
 const { discoverAuthService } = require('../config/discovery.service')
 const axios = require('axios')
 const multer = require('multer')
+const { getUser, getSubject, getSubSubject } = require('../config/kafka/consumer')
+
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -30,10 +32,7 @@ router.post('/', upload.single('thumbnail'), async (req, res) => {
     }
 
     try {
-        const serviceAuthBaseUrl = await discoverAuthService();
-        const response = await axios.get(`${serviceAuthBaseUrl}/get_user_byId/${teacherId}`, { timeout: 5000 });
-
-        const userRole = response.data.user.role;
+         const userRole = req.headers['x-user-role'];
         if (userRole !== 'teacher') return res.status(403).json({ error: "Unauthorized" });
 
         const newTip = await TipModel.create({

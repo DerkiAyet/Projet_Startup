@@ -70,8 +70,7 @@ export const studentMobileNav = [
 
 // Parent Navigation
 export const parentMainNav = [
-    { title: 'mainNav.dashboard', icon: DashbordIcon, path: "/" },
-    { title: 'mainNav.myChildren', icon: ChildrenIcon, path: "/my-children" },
+    { title: 'mainNav.myChildren', icon: ChildrenIcon, path: "/" },
     { title: 'mainNav.searchCourses', icon: SearchIcon, path: "/search" },
     { title: 'mainNav.parentHub', icon: PeopleIcon, path: "/parent-hub" },
     { title: 'mainNav.chats', icon: ChatIcon, path: '/chats' },

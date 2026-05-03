@@ -18,7 +18,7 @@ import AddChild from './Pages/Authentication/Components/AddChild';
 import PostsFeed from './Pages/Home/Pages/PostsFeed';
 import Chat from './Pages/Home/Pages/Chat';
 import CalendarPage from './Pages/Teacher/Pages/Calendar';
-import CreatCourse from './Pages/Teacher/Pages/CreateCourse';
+import CreateCourse from './Pages/Teacher/Pages/CreateCourse';
 import Courses from './Pages/Teacher/Pages/MyCourses';
 // import Notifications from './Pages/Home/Pages/Notifications';
 import CourseDisplay from './Pages/Teacher/Pages/CourseDisplay';
@@ -29,6 +29,11 @@ import IntrestsPopup from './Pages/Authentication/Components/IntrestsPopup';
 import SearchPage from './Pages/Student/Pages/Search';
 import StudentActivity from './Pages/Student/Pages/Activity';
 import AssignmentSolve from './Pages/Student/Pages/AssignmentSolve';
+import MyStudents from './Pages/Teacher/Pages/MyStudents';
+import AssignmentReview from './Pages/Teacher/Pages/AssignmentReview';
+import MyChildren from './Pages/Parent/Pages/MyChildren';
+import CreateChild from './Pages/Parent/Pages/CreateChild';
+import ConfirmParent from './Pages/Student/Pages/ConfirmParent';
 
 export const AppContext = createContext();
 
@@ -36,7 +41,7 @@ function App() {
 
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode');
-    return saved ? JSON.parse(saved) : true;
+    return saved ? JSON.parse(saved) : false;
   });
 
   useEffect(() => {
@@ -72,7 +77,9 @@ function App() {
       try {
         axios.defaults.withCredentials = true;
 
-        const res = await axios.get('http://localhost:8080/users/verify');
+        const res = await axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/users/verify`);
+
+        console.log("GATEWAY URL:", process.env.REACT_APP_API_URL_GATEWAY);
 
         setUserAuth({
           userId: res.data.userId,
@@ -125,7 +132,7 @@ function App() {
 
   const submitIntrests = (intrestsSelected) => {
 
-    const link = userAuth.role === "teacher" ? 'http://localhost:8080/users/infos/teacher/expertise' : 'http://localhost:8080/users/infos/student/interests'
+    const link = userAuth.role === "teacher" ? `${process.env.REACT_APP_API_URL_GATEWAY}/users/infos/teacher/expertise` : `${process.env.REACT_APP_API_URL_GATEWAY}/users/infos/student/interests`
 
     axios.defaults.withCredentials = true
     axios.post(link, { interests: intrestsSelected }, {
@@ -141,6 +148,23 @@ function App() {
 
   }
 
+  const getHomePage = () => {
+    const role = userAuth.role;
+
+    switch (role) {
+      case "teacher":
+        return <PostsFeed />;
+      case "student":
+        return <PostsFeed />;
+      case "parent":
+        return <MyChildren />;
+      case "admin":
+        return <section> dashbord of admin </section>;
+      default:
+        return <section>No user</section>;
+    }
+  }
+
   return (
     <AppContext.Provider value={{ darkMode, setDarkMode, isRtl, setIsRtl, lang, setLang, userAuth, setUserAuth, getPosts, setGetPosts }}>
       <SocketProvider >
@@ -153,32 +177,34 @@ function App() {
             <Route path='/forget-password' element={<h1>forget password</h1>} />
             <Route path='/reset-password/:token' element={<h1>reset password</h1>} />
             <Route path='/welcome' element={<LandingPage />} />
+            <Route path='/create-child' element={<CreateChild />} />
+            <Route path='/confirm-parent' element={<ConfirmParent />} />
 
             {/* Main route based on role */}
             <Route path="/" element={getLayout()}>
               {/* Placeholder routes */}
-              <Route index element={<PostsFeed />} />
+              <Route index element={getHomePage()} />
               <Route path="courses" element={<Courses />} />
               <Route path="courses/:id" element={<CourseDisplay />} />
               <Route path="calendar" element={<CalendarPage />} />
-              <Route path="my-students" element={<section className='main-container'>My Students</section>} />
+              <Route path="my-students" element={<MyStudents />} />
               <Route path="chats" element={<Chat />} />
-              <Route path="create-course" element={<CreatCourse />} />
+              <Route path="create-course" element={<CreateCourse />} />
               <Route path="create-assignment" element={<CreateAssignment />} />
               <Route path="create-tip" element={<CreateTip />} />
               <Route path="ai-bot" element={<section className='main-container'>AI Assistant</section>} />
               <Route path="search" element={<SearchPage />} />
               <Route path="activities" element={<StudentActivity />} />
               <Route path="activities/solve-assignment/:id" element={<AssignmentSolve />} />
+              <Route path="/activities/review-assignment/:solutionId" element={<AssignmentReview />} />
               <Route path="progress" element={<section className='main-container'>Progress & Achievements</section>} />
               <Route path="ocr" element={<section className='main-container'>OCR Scanner</section>} />
               <Route path="share" element={<section className='main-container'>Share Resources</section>} />
-              <Route path="my-children" element={<section className='main-container'>My Children</section>} />
+              <Route path='parent-hub' element={<PostsFeed />} />
               <Route path="dashboard" element={<section className='main-container'>Dashboard</section>} />
               <Route path="users" element={<section className='main-container'>Users</section>} />
               <Route path="reports" element={<section className='main-container'>Reports</section>} />
               <Route path="profile" element={<section className='main-container'>Profile</section>} />
-              <Route path="settings" element={<section className='main-container'>Settings</section>} />
             </Route>
           </Routes>
           <ToastContainer position="top-right" autoClose={10000} />

@@ -7,6 +7,8 @@ const multer = require('multer');
 const path = require('path');
 const { discoverAuthService, discoverNotifService } = require('../config/discovery.service')
 const axios = require('axios')
+const { getUser, getStudentInterests, getTeacherExpertise } = require('../config/kafka/consumer');
+const { publishNotification } = require('../config/kafka/producer')
 
 // Configure storage
 const storage = multer.diskStorage({
@@ -54,120 +56,137 @@ router.get("/", async (req, res) => {
         if (!currentUserId)
             return res.status(400).json({ error: "Missing user ID" });
 
-        // Discover AUTH-SERVICE URL from Eureka
-        const authServiceBaseUrl = await discoverAuthService();
+        const userRole = req.headers['x-user-role'];
 
-        // Fetch user interests from AUTH service
-        const { data: userInterests } = await axios.get(
-            `${authServiceBaseUrl}/infos/get-user-intrests`,
-            {
-                headers: {
-                    "x-user-id": currentUserId
-                },
-                timeout: 5000
-            }
-        );
+        const fromCache = getTeacherExpertise(currentUserId);
+        console.log("fromCache result:", fromCache);
 
-        // If no interests, return empty result
+
+        let userInterests;
+        if (userRole === 'student') {
+            userInterests = getStudentInterests(currentUserId);
+        } else if (userRole === 'teacher') {
+            userInterests = getTeacherExpertise(currentUserId);
+        }
+
+        // Fallback HTTP si pas encore en cache
+        if (!userInterests || userInterests.length === 0) {
+            const authServiceBaseUrl = await discoverAuthService();
+            const { data } = await axios.get(
+                `${authServiceBaseUrl}/infos/get-user-intrests`,
+                { headers: { "x-user-id": currentUserId }, timeout: 5000 }
+            );
+            userInterests = data;
+        }
+
         if (!Array.isArray(userInterests) || userInterests.length === 0) {
             return res.json([]);
         }
 
-        // Fetch all posts
         const posts = await Post.find().sort({ createdAt: -1 });
 
-        // Filter posts by authors who share at least ONE interest
         const filteredPosts = [];
+
         for (const post of posts) {
-
-            try {
-                // Fetch post author's interests
-                const { data: authorInterests } = await axios.get(
-                    `${authServiceBaseUrl}/infos/get-user-intrests`,
-                    {
-                        headers: {
-                            "x-user-id": post.userId
-                        },
-                        timeout: 5000
-                    }
-                );
-
-                // Check intersection
-                const shareCommon = authorInterests.some((id) =>
-                    userInterests.includes(id)
-                );
-
-                if (shareCommon) {
-                    filteredPosts.push(post);
-                }
-
-            } catch (err) {
-                console.log("Error checking author interests:", err.message);
+            let authorInterests = getStudentInterests(String(post.userId));
+            if (!authorInterests || authorInterests.length === 0) {
+                authorInterests = getTeacherExpertise(String(post.userId));
             }
+
+            // ✅ Fallback HTTP si pas en cache
+            if (!authorInterests || authorInterests.length === 0) {
+                try {
+                    const authServiceBaseUrl = await discoverAuthService();
+                    const { data } = await axios.get(
+                        `${authServiceBaseUrl}/infos/get-user-intrests`,
+                        { headers: { "x-user-id": post.userId }, timeout: 5000 }
+                    );
+                    authorInterests = data;
+                } catch (err) {
+                    console.log(`Fallback failed for author ${post.userId}:`, err.message);
+                    continue; // skip ce post si on ne peut pas récupérer ses interests
+                }
+            }
+
+            if (!authorInterests || authorInterests.length === 0) continue;
+
+            const shareCommon = authorInterests.some((id) =>
+                userInterests.map(String).includes(String(id))
+            );
+
+            if (shareCommon) filteredPosts.push(post);
         }
 
         // Enrich filtered posts with full user + comments detail
         const enrichedPosts = await Promise.all(
             filteredPosts.map(async (post) => {
                 try {
-                    const { data } = await axios.get(
-                        `${authServiceBaseUrl}/get_user_byId/${post.userId}`,
-                        { timeout: 5000 }
-                    );
+                    let resolvedUser = getUser(String(post.userId));
+                    if (!resolvedUser) {
+                        const authServiceBaseUrl = await discoverAuthService();
+                        const { data } = await axios.get(
+                            `${authServiceBaseUrl}/get_user_byId/${post.userId}`,
+                            { timeout: 5000 }
+                        );
+                        resolvedUser = data.user;
+                    }
 
                     const commentsCount = post.comments.reduce((acc, c) => {
-                        const repliesCount = c.replies ? c.replies.length : 0;
-                        return acc + 1 + repliesCount;
+                        return acc + 1 + (c.replies ? c.replies.length : 0);
                     }, 0);
 
-                    let enrichedComments = [];
+                    const enrichedComments = await Promise.all(
+                        (post.comments || []).map(async (c) => {
 
-                    if (post.comments) {
-                        enrichedComments = await Promise.all(
-                            post.comments.map(async (c) => {
-                                const userRes = await axios.get(
+                            let resolvedCommentUser = getUser(String(c.userId));
+                            if (!resolvedCommentUser) {
+                                const authServiceBaseUrl = await discoverAuthService();
+                                const { data } = await axios.get(
                                     `${authServiceBaseUrl}/get_user_byId/${c.userId}`,
                                     { timeout: 5000 }
                                 );
+                                resolvedCommentUser = data.user;
+                            }
 
-                                let enrichedReplies = [];
+                            const enrichedReplies = await Promise.all(
+                                (c.replies || []).map(async (r) => {
 
-                                if (c.replies) {
-                                    enrichedReplies = await Promise.all(
-                                        c.replies.map(async (r) => {
-                                            const replyUser = await axios.get(
-                                                `${authServiceBaseUrl}/get_user_byId/${r.userId}`,
-                                                { timeout: 5000 }
-                                            );
+                                    let resolvedReplyUser = getUser(String(r.userId));
+                                    if (!resolvedReplyUser) {
+                                        const authServiceBaseUrl = await discoverAuthService();
+                                        const { data } = await axios.get(
+                                            `${authServiceBaseUrl}/get_user_byId/${r.userId}`,
+                                            { timeout: 5000 }
+                                        );
+                                        resolvedReplyUser = data.user;
+                                    }
 
-                                            return {
-                                                _id: r._id,
-                                                text: r.text,
-                                                likes: r.likes,
-                                                userName: replyUser.data.user.userName,
-                                                familyName: replyUser.data.user.familyName,
-                                                givenName: replyUser.data.user.givenName,
-                                                userImg: replyUser.data.user.uerImg,
-                                                role: replyUser.data.user.role,
-                                            };
-                                        })
-                                    );
-                                }
+                                    return {
+                                        _id: r._id,
+                                        text: r.text,
+                                        likes: r.likes,
+                                        userName: resolvedReplyUser.userName,
+                                        familyName: resolvedReplyUser.familyName,
+                                        givenName: resolvedReplyUser.givenName,
+                                        userImg: resolvedReplyUser.userImg,
+                                        role: resolvedReplyUser.role,
+                                    };
+                                })
+                            );
 
-                                return {
-                                    _id: c._id,
-                                    text: c.text,
-                                    replies: enrichedReplies,
-                                    likes: c.likes,
-                                    userName: userRes.data.user.userName,
-                                    familyName: userRes.data.user.familyName,
-                                    givenName: userRes.data.user.givenName,
-                                    userImg: userRes.data.user.uerImg,
-                                    role: userRes.data.user.role
-                                };
-                            })
-                        );
-                    }
+                            return {
+                                _id: c._id,
+                                text: c.text,
+                                replies: enrichedReplies,
+                                likes: c.likes,
+                                userName: resolvedCommentUser.userName,
+                                familyName: resolvedCommentUser.familyName,
+                                givenName: resolvedCommentUser.givenName,
+                                userImg: resolvedCommentUser.userImg,
+                                role: resolvedCommentUser.role
+                            };
+                        })
+                    );
 
                     return {
                         _id: post._id,
@@ -184,24 +203,20 @@ router.get("/", async (req, res) => {
                         createdAt: post.createdAt,
                         comments: enrichedComments,
                         likesCount: post.likes.length,
-                        commentsCount: commentsCount,
+                        commentsCount,
                         user: {
-                            userId: data.user.id,
-                            userName: data.user.userName,
-                            familyName: data.user.familyName,
-                            givenName: data.user.givenName,
-                            userImg: data.user.uerImg,
-                            role: data.user.role
+                            userId: resolvedUser.id,
+                            userName: resolvedUser.userName,
+                            familyName: resolvedUser.familyName,
+                            givenName: resolvedUser.givenName,
+                            userImg: resolvedUser.userImg,
+                            role: resolvedUser.role
                         }
                     };
 
                 } catch (err) {
                     console.error("Failed to enrich post:", err.message);
-
-                    return {
-                        ...post.toObject(),
-                        user: null
-                    };
+                    return { ...post.toObject(), user: null };
                 }
             })
         );
@@ -213,6 +228,123 @@ router.get("/", async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
+router.get('/parent-hub', async (req, res) => {
+    try {
+        const userRole = req.headers['x-user-role'];
+        if (userRole !== "parent") return res.status(403).json({ error: "Action unauthorized" })
+
+        const posts = await Post.find({ isParentHub: true }).sort({ createdAt: -1 })
+        const enrichedPosts = await Promise.all(
+            posts.map(async (post) => {
+                try {
+                    let resolvedUser = getUser(String(post.userId));
+                    if (!resolvedUser) {
+                        const authServiceBaseUrl = await discoverAuthService();
+                        const { data } = await axios.get(
+                            `${authServiceBaseUrl}/get_user_byId/${post.userId}`,
+                            { timeout: 5000 }
+                        );
+                        resolvedUser = data.user;
+                    }
+
+                    const commentsCount = post.comments.reduce((acc, c) => {
+                        return acc + 1 + (c.replies ? c.replies.length : 0);
+                    }, 0);
+
+                    const enrichedComments = await Promise.all(
+                        (post.comments || []).map(async (c) => {
+
+                            let resolvedCommentUser = getUser(String(c.userId));
+                            if (!resolvedCommentUser) {
+                                const authServiceBaseUrl = await discoverAuthService();
+                                const { data } = await axios.get(
+                                    `${authServiceBaseUrl}/get_user_byId/${c.userId}`,
+                                    { timeout: 5000 }
+                                );
+                                resolvedCommentUser = data.user;
+                            }
+
+                            const enrichedReplies = await Promise.all(
+                                (c.replies || []).map(async (r) => {
+
+                                    let resolvedReplyUser = getUser(String(r.userId));
+                                    if (!resolvedReplyUser) {
+                                        const authServiceBaseUrl = await discoverAuthService();
+                                        const { data } = await axios.get(
+                                            `${authServiceBaseUrl}/get_user_byId/${r.userId}`,
+                                            { timeout: 5000 }
+                                        );
+                                        resolvedReplyUser = data.user;
+                                    }
+
+                                    return {
+                                        _id: r._id,
+                                        text: r.text,
+                                        likes: r.likes,
+                                        userName: resolvedReplyUser.userName,
+                                        familyName: resolvedReplyUser.familyName,
+                                        givenName: resolvedReplyUser.givenName,
+                                        userImg: resolvedReplyUser.userImg,
+                                        role: resolvedReplyUser.role,
+                                    };
+                                })
+                            );
+
+                            return {
+                                _id: c._id,
+                                text: c.text,
+                                replies: enrichedReplies,
+                                likes: c.likes,
+                                userName: resolvedCommentUser.userName,
+                                familyName: resolvedCommentUser.familyName,
+                                givenName: resolvedCommentUser.givenName,
+                                userImg: resolvedCommentUser.userImg,
+                                role: resolvedCommentUser.role
+                            };
+                        })
+                    );
+
+                    return {
+                        _id: post._id,
+                        userId: post.userId,
+                        content: post.content,
+                        mediaUrl: post.mediaUrl,
+                        mediaType: post.mediaType,
+                        mediaSize: post.mediaSize,
+                        visibility: post.visibility,
+                        tags: post.tags,
+                        mentions: post.mentions,
+                        urls: post.urls,
+                        likes: post.likes,
+                        createdAt: post.createdAt,
+                        comments: enrichedComments,
+                        likesCount: post.likes.length,
+                        commentsCount,
+                        user: {
+                            userId: resolvedUser.id,
+                            userName: resolvedUser.userName,
+                            familyName: resolvedUser.familyName,
+                            givenName: resolvedUser.givenName,
+                            userImg: resolvedUser.userImg,
+                            role: resolvedUser.role
+                        }
+                    };
+
+                } catch (err) {
+                    console.error("Failed to enrich post:", err.message);
+                    return { ...post.toObject(), user: null };
+                }
+            })
+        );
+
+        res.json(enrichedPosts);
+
+    } catch (err) {
+        console.error("Error fetching posts:", err);
+        res.status(500).json({ error: err.message });
+    }
+})
 
 // CREATE POST
 router.post("/", upload.single('media'), async (req, res) => {
@@ -248,28 +380,24 @@ router.post("/", upload.single('media'), async (req, res) => {
             mediaSize: mediaInfo?.size || null,
             tags: tags,
             mentions: mentions,
-            urls: mentions
+            urls: mentions,
+            isParentHub: req.body.isParentHub
         });
 
         // notify followers
         const myFollowers = await Follow.find({ followeeId: userId }).select("followerId");
 
-        const serviceNotifBaseUrl = await discoverNotifService();
-
         await Promise.all(
-            myFollowers.map(async (follower) => {
-
-                axios.post(`${serviceNotifBaseUrl}/notify`, {
+            myFollowers.map(follower =>
+                publishNotification('NEW_POST', {
                     idSender: userId,
                     idReceiver: follower.followerId,
                     title: `new post from: ${userName}`,
                     message: `${userName} has recently published a new post`,
                     metadata: newPost,
-                    type: "NEW_POST"
-                }).catch(err => console.error(`Failed to notify ${follower.followerId}:`, err))
-
-            })
-        )
+                })
+            )
+        );
 
         res.status(201).json(newPost);
     } catch (err) {
@@ -290,18 +418,22 @@ router.get("/post-info/:id", async (req, res) => {
 
         let user = null;
         try {
-            // 3️⃣ Fetch the user info
-            const { data } = await axios.get(
-                `${authServiceBaseUrl}/get_user_byId/${post.userId}`,
-                { timeout: 5000 }
-            );
+            const userData = await getUser(post.userId);
+            let resolvedUser = userData
+
+            if (!resolvedUser) {
+                const authServiceBaseUrl = await discoverAuthService();
+                const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${post.userId}`, { timeout: 5000 });
+                resolvedUser = data.user
+            }
+
             user = {
-                userId: data.user.id,
-                userName: data.user.userName,
-                familyName: data.user.familyName,
-                givenName: data.user.givenName,
-                userImg: data.user.uerImg,
-                role: data.user.role
+                userId: resolvedUser.id,
+                userName: resolvedUser.userName,
+                familyName: resolvedUser.familyName,
+                givenName: resolvedUser.givenName,
+                userImg: resolvedUser.userImg,
+                role: resolvedUser.role
             } || null;
         } catch (err) {
             console.error("Failed to fetch user:", err.message);
@@ -380,16 +512,13 @@ router.post("/:id/like", async (req, res) => {
         } else {
             post.likes.push({ userId });
 
-            const serviceNotifBaseUrl = await discoverNotifService();
-
-            axios.post(`${serviceNotifBaseUrl}/notify`, {
+            await publishNotification('NEW_LIKE', {
                 idSender: userId,
                 idReceiver: post.userId,
                 title: `new like from: ${userName}`,
-                message: `${userName} liked you post`,
+                message: `${userName} liked your post`,
                 metadata: post,
-                type: "NEW_LIKE"
-            }).catch(err => console.error(`Failed to notify ${post.userId}:`, err))
+            });
         }
 
         await post.save();
@@ -412,14 +541,13 @@ router.post("/:id/comment", async (req, res) => {
 
         const serviceNotifBaseUrl = await discoverNotifService();
 
-        axios.post(`${serviceNotifBaseUrl}/notify`, {
+        await publishNotification('NEW_COMMENT', {
             idSender: req.headers["x-user-id"],
             idReceiver: post.userId,
             title: `new comment from: ${req.headers["x-user-name"]}`,
             message: `${req.headers["x-user-name"]} commented on your post`,
             metadata: post,
-            type: "NEW_COMMENT"
-        }).catch(err => console.error(`Failed to notify ${post.userId}:`, err))
+        });
 
         await post.save();
         res.json(post);
@@ -446,16 +574,14 @@ router.post('/:postId/comment/:commentId/like', async (req, res) => {
             comment.likes = comment.likes.filter(like => like.userId != userId);
         } else {
             comment.likes.push({ userId });
-            const serviceNotifBaseUrl = await discoverNotifService();
 
-            axios.post(`${serviceNotifBaseUrl}/notify`, {
-                idSender: req.headers["x-user-id"],
+            await publishNotification('NEW_LIKE', {
+                idSender: userId,
                 idReceiver: comment.userId,
                 title: `${req.headers["x-user-name"]} liked your comment`,
                 message: `${req.headers["x-user-name"]} liked your comment`,
                 metadata: post,
-                type: "NEW_LIKE"
-            }).catch(err => console.error(`Failed to notify ${post.userId}:`, err))
+            });
         }
 
         await post.save();
@@ -489,16 +615,14 @@ router.post('/:postId/comment/:commentId/reply/:replyId/like', async (req, res) 
             reply.likes = reply.likes.filter(like => like.userId != userId);
         } else {
             reply.likes.push({ userId });
-            const serviceNotifBaseUrl = await discoverNotifService();
 
-            axios.post(`${serviceNotifBaseUrl}/notify`, {
-                idSender: req.headers["x-user-id"],
+            await publishNotification('NEW_LIKE', {
+                idSender: userId,
                 idReceiver: reply.userId,
-                title: `${req.headers["x-user-name"]} liked your comment`,
-                message: `${req.headers["x-user-name"]} liked your comment`,
+                title: `${req.headers["x-user-name"]} liked your reply`,
+                message: `${req.headers["x-user-name"]} liked your reply`,
                 metadata: post,
-                type: "NEW_LIKE"
-            }).catch(err => console.error(`Failed to notify ${post.userId}:`, err))
+            });
         }
 
         await post.save();
@@ -522,16 +646,13 @@ router.post("/:postId/comment/:commentId/reply", async (req, res) => {
             text: req.body.text
         });
 
-        const serviceNotifBaseUrl = await discoverNotifService();
-
-        axios.post(`${serviceNotifBaseUrl}/notify`, {
+        await publishNotification('NEW_REPLY', {
             idSender: req.headers["x-user-id"],
             idReceiver: comment.userId,
             title: `new reply from: ${req.headers["x-user-name"]} on your recent comment`,
             message: `${req.headers["x-user-name"]} replied to you`,
             metadata: post,
-            type: "NEW_REPLY"
-        }).catch(err => console.error(`Failed to notify ${post.userId}:`, err))
+        });
 
         await post.save();
         res.json(post);
@@ -579,19 +700,17 @@ router.post('/follow', async (req, res) => {
         } else {
             // Follow
             await Follow.create({ followerId, followeeId });
-            const serviceNotifBaseUrl = await discoverNotifService();
 
-            axios.post(`${serviceNotifBaseUrl}/notify`, {
-                idSender: req.headers["x-user-id"],
+            await publishNotification('NEW_FOLLOW', {
+                idSender: followerId,
                 idReceiver: followeeId,
                 title: `Welcome your new follower: ${req.headers["x-user-name"]}`,
                 message: `${req.headers["x-user-name"]} is following you now`,
                 metadata: {
-                    newFollwerId: followerId,
+                    newFollowerId: followerId,
                     followerUserName: req.headers['x-user-name']
                 },
-                type: "NEW_FOLLOW"
-            }).catch(err => console.error(`Failed to notify ${post.userId}:`, err))
+            });
 
             return res.status(201).json({ followAdded: "Following successfully" });
         }
@@ -610,23 +729,26 @@ router.get('/get-followers', async (req, res) => {
 
         const followersIds = followers.map((f) => f.followerId)
 
-        const authServiceBaseUrl = await discoverAuthService();
-
         const enrichedFollowers = await Promise.all(
             followers.map(async (follower) => {
                 try {
 
-                    const { data } = await axios.get(
-                        `${authServiceBaseUrl}/get_user_byId/${follower.followerId}`,
-                        { timeout: 5000 }
-                    );
+                    const userData = await getUser(follower.followerId);
+                    let resolvedUser = userData
+
+                    if (!resolvedUser) {
+                        const authServiceBaseUrl = await discoverAuthService();
+                        const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${follower.followerId}`, { timeout: 5000 });
+                        resolvedUser = data.user
+                    }
 
                     return {
-                        followerUserName: data.user.userName,
-                        followerFamilyName: data.user.familyName,
-                        followerGivenName: data.user.givenName,
-                        followerUserImg: data.user.uerImg,
-                        followerUserRole: data.user.role
+                        id: follower.followerId,
+                        userName: resolvedUser.userName,
+                        familyName: resolvedUser.familyName,
+                        givenName: resolvedUser.givenName,
+                        userImg: resolvedUser.uerImg,
+                        role: resolvedUser.role
                     }
 
                 } catch (error) {
@@ -654,23 +776,26 @@ router.get('/get-followees', async (req, res) => {
         const followers = await Follow.find({ followerId: userId })
         const followeesIds = followers.map((f) => f.followeeId)
 
-        const authServiceBaseUrl = await discoverAuthService();
-
         const enrichedFollowees = await Promise.all(
             followers.map(async (followee) => {
                 try {
 
-                    const { data } = await axios.get(
-                        `${authServiceBaseUrl}/get_user_byId/${followee.followeeId}`,
-                        { timeout: 5000 }
-                    );
+                    const userData = await getUser(followee.followeeId);
+                    let resolvedUser = userData
+
+                    if (!resolvedUser) {
+                        const authServiceBaseUrl = await discoverAuthService();
+                        const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${followee.followeeId}`, { timeout: 5000 });
+                        resolvedUser = data.user
+                    }
 
                     return {
-                        followeeUserName: data.user.userName,
-                        followeeFamilyName: data.user.familyName,
-                        followeeGivenName: data.user.givenName,
-                        followeeUserImg: data.user.uerImg,
-                        followeeUserRole: data.user.role
+                        id: followee.followeeId,
+                        userName: resolvedUser.userName,
+                        familyName: resolvedUser.familyName,
+                        givenName: resolvedUser.givenName,
+                        userImg: resolvedUser.uerImg,
+                        role: resolvedUser.role
                     }
 
                 } catch (error) {
@@ -726,18 +851,25 @@ router.get("/suggestions", async (req, res) => {
         );
 
         // 4️⃣ Enrich candidates with user info via Auth Service
-        const authServiceBaseUrl = await discoverAuthService();
         const enrichedSuggestions = await Promise.all(
             candidates.map(async candidateId => {
                 try {
-                    const { data } = await axios.get(`${authServiceBaseUrl}/users/${candidateId}`, { timeout: 5000 });
+
+                    const userData = await getUser(candidateId);
+                    let resolvedUser = userData
+
+                    if (!resolvedUser) {
+                        const authServiceBaseUrl = await discoverAuthService();
+                        const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${candidateId}`, { timeout: 5000 });
+                        resolvedUser = data.user
+                    }
                     return {
-                        id: data.user.id,
-                        userName: data.user.userName,
-                        familyName: data.user.familyName,
-                        givenName: data.user.givenName,
-                        userImg: data.user.uerImg,
-                        role: data.user.role
+                        id: resolvedUser.id,
+                        userName: resolvedUser.userName,
+                        familyName: resolvedUser.familyName,
+                        givenName: resolvedUser.givenName,
+                        userImg: resolvedUser.uerImg,
+                        role: resolvedUser.role
                     };
                 } catch (error) {
                     console.error("Failed to fetch user info:", error.message);

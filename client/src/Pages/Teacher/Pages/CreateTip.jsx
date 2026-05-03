@@ -49,7 +49,7 @@ function CreateTip() {
     useEffect(() => {
 
         axios.defaults.withCredentials = true
-        axios.get('http://localhost:8080/users/infos/get-teacher-expertise')
+        axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/users/infos/get-teacher-expertise`)
             .then((res) => setCategories(res.data))
             .catch((err) => console.error(err.response.data))
 
@@ -117,7 +117,7 @@ function CreateTip() {
             formData.append("category", JSON.stringify(tipData.category));
 
 
-            await axios.post('http://localhost:8080/content/tips', formData)
+            await axios.post(`${process.env.REACT_APP_API_URL_GATEWAY}/content/tips`, formData)
 
             setShowSuccessPopup(true)
         } catch (err) {
@@ -361,6 +361,7 @@ function CreateTip() {
                                 }}
                                 config={{
                                     uploader: { insertImageAsBase64URI: true },
+                                    toolbarAdaptive: false
                                 }}
                             />
 

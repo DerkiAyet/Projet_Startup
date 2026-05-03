@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useContext, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import '../Styles/CoursesDisplay.css'
 import { ReactComponent as ChartIcon } from '../../../Assets/icons/CourseIcons/bar-chart.svg'
@@ -10,6 +10,7 @@ import { ReactComponent as GridIcon } from '../../../Assets/icons/CourseIcons/gr
 import { ReactComponent as LineIcon } from '../../../Assets/icons/CourseIcons/line-mode.svg'
 import NotFound from '../../../Assets/images/find-course.png'
 import axios from 'axios'
+import { AppContext } from '../../../App'
 
 
 
@@ -38,6 +39,9 @@ const StarRating = ({ rating }) => {
 
 // ─── Grid Detail Panel ────────────────────────────────────────────────────────
 export const CourseDetailPanel = ({ course, onClose, typeView }) => {
+
+    const { userAuth } = useContext(AppContext)
+
     const avg = averageRating(course.avgRating)
 
     const content =
@@ -52,7 +56,7 @@ export const CourseDetailPanel = ({ course, onClose, typeView }) => {
     const handleEnroll = (e) => {
         e.preventDefault()
 
-        axios.post(`http://localhost:8080/content/activity/enrollements/${course._id}`, {}, {
+        axios.post(`${process.env.REACT_APP_API_URL_GATEWAY}/content/activity/enrollements/${course._id}`, {}, {
             headers: {
                 "Content-Type": "application/json"
             }
@@ -78,7 +82,7 @@ export const CourseDetailPanel = ({ course, onClose, typeView }) => {
                 </div>
             </div>
             <div className="detail-panel-body">
-                <span className="course-cat" style={{ color: `#${course.category.color}` }}> {course.category.name} {course.subCategory ? ` - ${course.subCategory.name}` : ''} </span>
+                <span className="course-cat" style={{ color: `#${course.category.color}` }}> {course.category?.name} {course.subCategory ? ` - ${course.subCategory?.name}` : ''} </span>
                 <h2>{course.title}</h2>
                 <StarRating rating={avg} />
                 <p className="detail-description">{course.description}</p>
@@ -118,7 +122,9 @@ export const CourseDetailPanel = ({ course, onClose, typeView }) => {
                 </div>
 
                 {
-                    typeView === "Courses" ? <button className="enroll-btn" onClick={handleEnroll}>Enroll Now</button> : <button className="enroll-btn" onClick={goToSolve}>Solve Now</button>
+                    typeView === "Courses" ?
+                        (userAuth.role === "student" ? <button className="enroll-btn" onClick={handleEnroll}>Enroll Now</button> : <button className="enroll-btn" onClick={() => navigate(`/courses/${course._id}?type=course`)}>View Course</button>) :
+                        (userAuth.role === "student" ? <button className="enroll-btn" onClick={goToSolve}>Solve Now</button> : <button className="enroll-btn" onClick={goToSolve}>View Assignment</button>)
                 }
 
             </div>
@@ -150,8 +156,9 @@ export const CourseCard = ({ course, onClick, isSelected, typeView }) => {
                 <MenuIcon className="menu-card-icon" />
             </div>
             <div className="course-infos-box">
-                <span className='course-cat'>{course.category.name} {course.subCategory ? ` - ${course.subCategory.name}` : ''} </span>
+                <span className='course-cat' style={{ color: `#${course.category.color}` }}>{course.category?.name} {course.subCategory ? ` - ${course.subCategory?.name}` : ''} </span>
                 <h3>{course.title}</h3>
+                <h5 className='made-by'>Instructor: {course?.teacher?.givenName} {course?.teacher?.familyName}</h5>
                 <div className="course-features">
                     <div className="flex-left">
                         <div className="flex-line" style={{ display: "flex", alignItems: "center", gap: "5px" }}>
@@ -172,6 +179,9 @@ export const CourseCard = ({ course, onClick, isSelected, typeView }) => {
 
 // ─── Course Card (Line / Row) ─────────────────────────────────────────────────
 export const CourseCardLine = ({ course, typeView }) => {
+
+    const { userAuth } = useContext(AppContext)
+
     const [expanded, setExpanded] = useState(false)
     const avg = averageRating(course.avgRating)
     const content =
@@ -185,7 +195,7 @@ export const CourseCardLine = ({ course, typeView }) => {
     const handleEnroll = (e) => {
         e.preventDefault()
 
-        axios.post(`http://localhost:8080/content/activity/enrollements/${course._id}`, {}, {
+        axios.post(`${process.env.REACT_APP_API_URL_GATEWAY}/content/activity/enrollements/${course._id}`, {}, {
             headers: {
                 "Content-Type": "application/json"
             }
@@ -209,7 +219,8 @@ export const CourseCardLine = ({ course, typeView }) => {
                 <div className="course-infos-box">
                     <div className="top-wrapper">
                         <h3>{course.title}</h3>
-                        <span className='course-cat' style={{ color: `#${course.category.color}` }}>{course.category.name} {course.subCategory ? ` - ${course.subCategory.name}` : ''} </span>
+                        <span className='course-cat' style={{ color: `#${course.category.color}` }}>{course.category?.name} {course.subCategory ? ` - ${course.subCategory?.name}` : ''} </span>
+                        <h5 className='made-by'>Instructor: {course?.teacher?.givenName} {course?.teacher?.familyName}</h5>
                     </div>
                     <div className="course-features">
                         <div className="flex-left">
@@ -260,7 +271,9 @@ export const CourseCardLine = ({ course, typeView }) => {
                             </ul>}
                         </div>
                         {
-                            typeView === "Courses" ? <button className="enroll-btn" onClick={handleEnroll}>Enroll Now</button> : <button className="enroll-btn" onClick={goToSolve}>Solve Now</button>
+                            typeView === "Courses" ?
+                                (userAuth.role === "student" ? <button className="enroll-btn" onClick={handleEnroll}>Enroll Now</button> : <button className="enroll-btn" onClick={() => navigate(`/courses/${course._id}?type=course`)}>View Course</button>) :
+                                (userAuth.role === "student" ? <button className="enroll-btn" onClick={goToSolve}>Solve Now</button> : <button className="enroll-btn" onClick={goToSolve}>View Assignment</button>)
                         }
                     </div>
                 </div>
@@ -271,7 +284,7 @@ export const CourseCardLine = ({ course, typeView }) => {
 
 
 function CoursesView({ courses, assignments, searched, loading, query, selectedCats }) {
-    const categories = ["Courses", "Assignments", "Tips"]
+    const categories = ["Courses", "Assignments", "Quizes", "Tips"]
     const [currentCategory, setCurrentCategory] = useState("Courses")
     const [categoryIndex, setCategoryIndex] = useState(0)
     const [viewClicked, setViewClicked] = useState(false)
@@ -312,6 +325,14 @@ function CoursesView({ courses, assignments, searched, loading, query, selectedC
                         </div>
                     </div>
                 </div>
+
+                {
+                    !searched && (
+                        <div className="recommendations-line" style={{ display: "flex", width: "100%", alignItems: "flex-start", marginBottom: "1rem", borderBottom: "1px solid #D9E1E7", paddingBottom: "0.5rem", fontFamily: "Nunito, sans serif", color: "#8A8A8A" }}>
+                            Recommended for you ~
+                        </div>
+                    )
+                }
 
                 {searched && loading && (
                     <div className="search-loading">

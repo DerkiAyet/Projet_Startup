@@ -96,7 +96,7 @@ export const CommentLine = ({ postId, commentId, commentTxt, commentUserName, co
 
         try {
             const res = await axios.post(
-                `http://localhost:8080/posts/${postId}/comment/${commentId}/reply`,
+                `${process.env.REACT_APP_API_URL_GATEWAY}/posts/${postId}/comment/${commentId}/reply`,
                 { text: `@${commentUserName} ${reply}` },
                 {
                     headers: {
@@ -150,7 +150,7 @@ export const CommentLine = ({ postId, commentId, commentTxt, commentUserName, co
         console.log("replyId:", replyId);
 
         axios
-            .post(`http://localhost:8080/posts/${postId}/comment/${commentId}/reply/${replyId}/like`, {},
+            .post(`${process.env.REACT_APP_API_URL_GATEWAY}/posts/${postId}/comment/${commentId}/reply/${replyId}/like`, {},
                 { headers: { "Content-Type": "application/json" } })
             .then((res) => {
                 const updatedComment = res.data.comments.find(c => c._id === commentId);
@@ -326,7 +326,7 @@ function PostPage() {
 
         try {
 
-            const res = await axios.post(`http://localhost:8080/posts/${post._id}/comment`,
+            const res = await axios.post(`${process.env.REACT_APP_API_URL_GATEWAY}/posts/${post._id}/comment`,
                 { text: commentBody.commentText },
                 {
                     headers: {
@@ -377,7 +377,7 @@ function PostPage() {
     const toggleLike = () => {
         axios
             .post(
-                `http://localhost:8080/posts/${post._id}/like`,
+                `${process.env.REACT_APP_API_URL_GATEWAY}/posts/${post._id}/like`,
                 {},
                 { headers: { "Content-Type": "application/json" } }
             )
@@ -423,7 +423,7 @@ function PostPage() {
     const toggleFollow = (followeeId) => {
         axios.defaults.withCredentials = true
 
-        axios.post('http://localhost:8080/posts/follow', { followeeId: followeeId }, {
+        axios.post(`${process.env.REACT_APP_API_URL_GATEWAY}/posts/follow`, { followeeId: followeeId }, {
             headers: {
                 "Content-Type": "application/json"
             }
@@ -459,7 +459,7 @@ function PostPage() {
 
     const toggleLikeComment = (commentId, setLiked) => {
         axios
-            .post(`http://localhost:8080/posts/${post._id}/comment/${commentId}/like`, {},
+            .post(`${process.env.REACT_APP_API_URL_GATEWAY}/posts/${post._id}/comment/${commentId}/like`, {},
                 { headers: { "Content-Type": "application/json" } })
             .then((res) => {
                 const updatedComment = res.data.comments.find(c => c._id === commentId);
@@ -507,7 +507,7 @@ function PostPage() {
                         </div>
                     ) : post.mediaType === 'video' ? (
                         <video
-                            src={`http://localhost:8080/posts/uploads/${post.mediaUrl}` || 'https://www.w3schools.com/html/mov_bbb.mp4'}
+                            src={`${process.env.REACT_APP_API_URL_GATEWAY}/posts/uploads/${post.mediaUrl}` || 'https://www.w3schools.com/html/mov_bbb.mp4'}
                             controls
                             loop
                             playsInline
@@ -515,7 +515,7 @@ function PostPage() {
                         />
                     ) : (
                         <img
-                            src={`http://localhost:8080/posts/uploads/${post.mediaUrl}` || 'https://picsum.photos/seed/postpage/600/600'}
+                            src={`${process.env.REACT_APP_API_URL_GATEWAY}/posts/uploads/${post.mediaUrl}` || 'https://picsum.photos/seed/postpage/600/600'}
                             alt="post"
                         />
                     )}
