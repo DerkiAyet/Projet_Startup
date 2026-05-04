@@ -21,6 +21,9 @@ import { useContext } from "react";
 import { AppContext } from "../../../App";
 import QuizSolve from "../../Student/Components/QuizSolve";
 import QuizViewer from "../Components/QuizViewer";
+import RecommendContent from "../../Parent/Components/RecommendContent";
+import ToastMessage from '../../../Partials/Components/ToastMessage';
+
 
 const RECOMMENDATIONS = [
     {
@@ -278,7 +281,6 @@ export const CommentLine = ({ courseId, commentId, commentTxt, commentUserName, 
     );
 };
 
-// ── Component ────────────────────────────────────────────
 export default function CourseDisplay() {
 
     const { userAuth } = useContext(AppContext)
@@ -450,6 +452,29 @@ export default function CourseDisplay() {
     const [openViewer, setOpenViewer] = useState(false);
     const [openEditBuilder, setOpenEditBuilder] = useState(false);
 
+    //------------Recommendation-------------
+
+    const [recommendationClicked, setRecommendationClicked] = useState(false)
+    const [toast, setToast] = useState({ visible: false, message: '', subMessage: '' });
+    const recomRef = useRef('')
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (recomRef.current && !recomRef.current.contains(event.target)) {
+                setRecommendationClicked(false);
+            }
+        }
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [])
+
+    const triggerToast = (message, subMessage = 'Just now') => {
+        setToast({ visible: true, message, subMessage });
+    };
+
     return (
         <div className="course-display-container">
             <HeaderContent
@@ -481,6 +506,13 @@ export default function CourseDisplay() {
                     {type === "tip" && topic?.content && <TipView content={topic.content} />}
                     {type === "assignment" &&
                         <AssignementView PROBLEMATIQUES={topic?.assignment?.exercises || []} viewerRef={viewerRef} assignmentId={topic?.assignment?._id} />
+                    }
+
+                    {userAuth.role === "parent" &&
+                        <div className="cd-recommand-line">
+                            <p>Would you recommend it for your child?</p>
+                            <button onClick={() => setRecommendationClicked(true)}>Recommend!</button>
+                        </div>
                     }
 
                     {/* Comments */}
@@ -692,6 +724,17 @@ export default function CourseDisplay() {
                     onEdit={() => { setOpenViewer(false); setOpenEditBuilder(true); }}
                 />
             }
+            {
+                recommendationClicked &&
+                <RecommendContent contentType={type} content={content} itemRef={recomRef} addSucess={() => triggerToast("Recommended with succes", "Your recommendation has been sent to your children.")} onClose={() => setRecommendationClicked(false)} />
+            }
+
+            <ToastMessage
+                visible={toast.visible}
+                message={toast.message}
+                subMessage={toast.subMessage}
+                onClose={() => setToast(t => ({ ...t, visible: false }))}
+            />
         </div>
     );
 }

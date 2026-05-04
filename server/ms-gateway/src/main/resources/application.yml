@@ -58,6 +58,14 @@ spring:
           filters:
             - StripPrefix=1
 
+        # ── CONTENT-HUB ────────────────────────────────────────
+        - id: content-hub-service
+          uri: lb://SERVICE6-CONTENT-HUB
+          predicates:
+            - Path=/content-hub/**
+          filters:
+            - StripPrefix=1
+
 eureka:
   client:
     serviceUrl:

@@ -187,7 +187,7 @@ const createChildByParent = (studentName, tempPassword, loginLink) => {
   `;
 };
 
-const createParentApprovalEmail = (studentName, approveLink) => {
+const createParentApprovalEmail = (studentName, approveLink, parentEmail) => {
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -228,7 +228,7 @@ const createParentApprovalEmail = (studentName, approveLink) => {
               </h2>
 
               <p style="margin:0 0 20px 0;font-size:15px;line-height:1.7;color:#555555;">
-                Your parent wants to link their Edtech account with yours.
+                Your parent wants with the email ${parentEmail} to link their Edtech account with yours.
                 You have the right to approve or refuse this request.
               </p>
 

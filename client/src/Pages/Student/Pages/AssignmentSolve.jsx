@@ -160,7 +160,7 @@ function AssignmentSolve() {
     }).length;
 
     return Math.round((solvedCount / problemsSolved.length) * 100);
-
+ 
   }, [problemsSolved]);
 
   const [showModal, setShowModal] = useState(false);

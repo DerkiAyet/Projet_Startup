@@ -18,7 +18,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.get("/health", (req, res) => res.status(200).json({ status: "UP" }));
 app.get("/info", (req, res) =>
     res.json({
-        service: "Node Auth Service",
+        service: "Node Posts Service",
         status: "UP",
         version: "1.0.0",
     })

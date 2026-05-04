@@ -30,6 +30,7 @@ const NotificationSchema = new mongoose.Schema({
       'NEW_REPLY',
       'URGENT_NOTIFICATION',
       'NEW_MESSAGE',
+      'NEW_RECOMMENDATION',
       'SYSTEM',
     ],
     required: true

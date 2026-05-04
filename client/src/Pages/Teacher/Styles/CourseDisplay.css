@@ -455,7 +455,7 @@
 
 /* ── Comments ────────────────────────────────────────── */
 
-.cd-comments {
+.cd-comments, .cd-recommand-line {
     background: var(--cd-white);
     border: 1.5px solid var(--cd-border);
     border-radius: 16px;
@@ -463,6 +463,43 @@
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
+}
+
+.cd-recommand-line {
+    padding: 1rem 1.5rem;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.cd-recommand-line p{
+    font-family: 'Pacifico', cursive;
+    font-size: 1rem;
+    color: var(--cd-dark);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-weight: 600;
+}
+
+.cd-recommand-line button{
+    border: 1.5px solid transparent;
+    background-color: var(--cd-pink);
+    color: var(--cd-white);
+    border-radius: 10px;
+    padding: 0.45rem 0.8rem;
+    font-family: "Nunito", sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    transition: 0.3s;
+    cursor: pointer;
+}
+
+.cd-recommand-line button:hover{
+    border: 1.5px solid var(--cd-pink);
+    background-color: transparent;
+    color: var(--cd-pink);
 }
 
 .cd-comments-title {

@@ -156,6 +156,15 @@ function MyChildren() {
     const [barData, setBarData] = useState([])
     const [lineData, setLineData] = useState([])
 
+    const [recommendations, setRecommendations] = useState([])
+    const fetchRecommendations = async (childId) => {
+        try {
+            const res = await axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content-hub/recommendations/children/${childId}/my-recommendations`)
+            setRecommendations(res.data)
+        } catch (error) {
+            console.error(error)
+        }
+    }
 
     useEffect(() => {
         const fetchData = async () => {
@@ -175,6 +184,7 @@ function MyChildren() {
                     totalQuizAttempts: c.totalQuizAttempts
                 })))
                 setSelectedChild(res.data.childrenStats?.[0])
+                fetchRecommendations(res.data.childrenStats?.[0]?.studentId)
                 setDonutData({
                     solutions: res.data.childrenStats?.[0].totalSubmissions,
                     quizAttempts: res.data.childrenStats?.[0].totalQuizAttempts,
@@ -212,6 +222,7 @@ function MyChildren() {
             name: c.subCategoryName,
             avg: c.avgScorePercentage
         })))
+        fetchRecommendations(child.studentId)
     }
 
     return (
@@ -259,8 +270,29 @@ function MyChildren() {
                     </div>
                     <div className="mc-charts-row">
                         <ActivityDonut data={donutData} />
-                        <div className="mc-card">
-                            <p className="mc-card-title">Student Achievements</p>
+                        <div className="mc-card mc-rec-card">
+                            <p className="mc-card-title">My Recommendations for the child</p>
+                            {recommendations.length === 0 ? (
+                                <div className="mc-rec-empty">
+                                    <span className="mc-rec-empty-icon">✦</span>
+                                    <span>No recommendations yet</span>
+                                </div>
+                            ) : (
+                                <div className="mc-rec-list">
+                                    {recommendations.map((rec) => (
+                                        <div key={rec.id} className="mc-rec-item">
+                                            <div className="mc-rec-dot" style={{ background: `#${rec.category?.color}` || '#EC4899' }} />
+                                            <div className="mc-rec-info">
+                                                <span className="mc-rec-title">{rec.contentTitle}</span>
+                                                <span className="mc-rec-sub">{rec.category?.name}{rec.subCategory ? ` · ${rec.subCategory.name}` : ''}</span>
+                                            </div>
+                                            <span className={`mc-rec-badge ${rec.viewed ? '--seen' : '--new'}`}>
+                                                {rec.viewed ? 'Seen' : 'New'}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

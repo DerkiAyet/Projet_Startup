@@ -102,7 +102,7 @@ router.post("/request-child", async (req, res) => {
             from: `"Edtech Team" <${process.env.GMAIL_USER}>`,
             to: email,
             subject: "Your parent wants to link with your account",
-            html: createParentApprovalEmail(email, approveLink)
+            html: createParentApprovalEmail(email, `${process.env.CLIENT_ADDRESS}/${approveLink}`, parent.email)
         });
 
         res.status(200).json({

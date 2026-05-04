@@ -1,30 +1,28 @@
-const express = require('express');
-const cookieParser = require('cookie-parser');
-const cors = require('cors');
-require('dotenv').config({ path: './config_service/config.env' });
-const { connectProducer } = require('./config_service/kafka/producer');
+require('dotenv').config({ path: './config_server/config.env' });
+
+const express = require('express')
+const eurekaClient = require('./config_server/eureka.client')
+const { startConsumer } = require('./config_server/kafka/consumer')
+const { startProducer } = require('./config_server/kafka/producer')
 
 const db = require('./models');
 const path = require('path');
 
-// Create Eureka client instance
-const eurekaClient = require('./config_service/eureka.client');
-
-const app = express();
-
-// Middleware setup
-app.use(express.json());
-app.use(cookieParser());
+const app = express()
+app.use(express.json())
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.get("/health", (req, res) => res.status(200).json({ status: "UP" }));
 app.get("/info", (req, res) =>
     res.json({
-        service: "Node Auth Service",
-        status: "UP", 
+        service: "Node Content Hub Service",
+        status: "UP",
         version: "1.0.0",
     })
 );
+
+const recRoute = require('./routes/recommendations')
+app.use('/recommendations', recRoute)
 
 eurekaClient.start((error) => {
     console.log(error || "Node service registered with Eureka");
@@ -38,20 +36,12 @@ process.on("SIGINT", () => {
     });
 });
 
-// Import routes
-const authRoutes = require('./routes/Auth');
-app.use('/', authRoutes);
-
-const userRoutes = require('./routes/Users')
-app.use('/infos', userRoutes)
-
-db.sequelize.sync().then(async() => {
-    await connectProducer();
+db.sequelize.sync().then(async () => {
+    await startConsumer()
+    await startProducer()
     app.listen(process.env.PORT, () => {
         console.log(`Node service is running on port ${process.env.PORT}`);
-    });
+    })
 }).catch((err) => {
     console.error("Unable to connect to the database:", err);
 });
-
-

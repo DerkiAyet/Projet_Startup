@@ -736,7 +736,7 @@ const NewGroup = ({ onClose, itemRef, users, onConvoCreated }) => {
                             onKeyDown={handleKey}
                         />
                     </div>
-
+ 
                     <div className="search-result-wrap">
                         {resultSearch.map((user) => {
                             const isSelected = selected.some(u => u.id === user.id);
@@ -751,7 +751,7 @@ const NewGroup = ({ onClose, itemRef, users, onConvoCreated }) => {
                                     <div className="convo-info">
                                         <div className="convo-top">
                                             <span className="convo-name">{`${user.givenName} ${user.familyName}`}</span>
-                                            {isSelected && <i className="ri-checkbox-circle-fill" style={{ color: '#fff' }} />}
+                                            {isSelected && <i className="ri-checkbox-circle-fill" style={{ color: '#EC4899' }} />}
                                         </div>
                                         <div className="convo-bottom">
                                             <span className="convo-preview" style={{ textTransform: 'capitalize' }}>{user.role}</span>

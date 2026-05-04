@@ -666,7 +666,7 @@ router.get('/my-children/stats', async (req, res) => {
             let grandTotalMax   = 0;
 
             (subData?.submissions ?? []).forEach(({ assignmentId, score }) => {
-                // ✅ use subCatId not categoryId
+                // use subCatId not categoryId
                 const meta = maxScoreMap[assignmentId?.toString()];
                 if (!meta) return;
 
