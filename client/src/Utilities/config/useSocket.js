@@ -10,7 +10,7 @@ export const SocketProvider = ({ children }) => {
 
   // Initialize socket once
   useEffect(() => {
-    const newSocket = io('http://localhost:7003', {
+    const newSocket = io(process.env.REACT_APP_NOTIFICATION_URL, {
       withCredentials: true,
       autoConnect: true,
     });

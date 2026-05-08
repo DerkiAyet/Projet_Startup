@@ -4,7 +4,7 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.INTEGER,
             primaryKey: true,
             references: {
-                model: 'Students',
+                model: 'students',
                 key: 'idStudent'
             },
             onDelete: 'CASCADE',
@@ -14,7 +14,7 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.INTEGER,
             primaryKey: true,
             references: {
-                model: 'Subjects',
+                model: 'subjects',
                 key: 'idSubject'
             },
             onDelete: 'CASCADE',

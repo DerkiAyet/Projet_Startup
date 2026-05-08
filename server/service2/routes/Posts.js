@@ -5,7 +5,7 @@ const Follow = require("../models/Followers");
 const Save = require("../models/Savings")
 const multer = require('multer');
 const path = require('path');
-const { discoverAuthService, discoverNotifService } = require('../config/discovery.service')
+const { discoverAuthService } = require('../config/discovery.service')
 const axios = require('axios')
 const { getUser, getStudentInterests, getTeacherExpertise } = require('../config/kafka/consumer');
 const { publishNotification } = require('../config/kafka/producer')
@@ -538,8 +538,6 @@ router.post("/:id/comment", async (req, res) => {
             userId: req.headers["x-user-id"],
             text: req.body.text
         });
-
-        const serviceNotifBaseUrl = await discoverNotifService();
 
         await publishNotification('NEW_COMMENT', {
             idSender: req.headers["x-user-id"],

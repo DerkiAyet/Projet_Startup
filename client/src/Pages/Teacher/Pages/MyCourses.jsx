@@ -12,6 +12,7 @@ import { ReactComponent as LineIcon } from '../../../Assets/icons/CourseIcons/li
 import { AppContext } from '../../../App'
 import axios from 'axios'
 import { Link } from 'react-router-dom'
+import { fixMediaUrl } from '../../../Utilities/utils/fixMedia'
 
 
 
@@ -53,7 +54,7 @@ export const CourseDetailPanel = ({ course, onClose, typeView }) => {
         <div className="course-detail-panel">
             <button className="detail-panel-close" onClick={onClose}>✕</button>
             <div className="detail-panel-img">
-                <img src={course.thumbnail} alt={course.title} />
+                <img src={fixMediaUrl(course.thumbnail)} alt={course.title} />
                 <div className="detail-panel-level">
                     <ChartIcon /> {course.level}
                 </div> 
@@ -117,7 +118,7 @@ export const CourseCard = ({ course, onClick, isSelected, typeView }) => {
             onClick={() => onClick(course)}
         >
             <div className="course-img-box">
-                <img src={course.thumbnail} alt={course.title} />
+                <img src={fixMediaUrl(course.thumbnail)} alt={course.title} />
                 {
                     typeView !== "Tips" &&
                     <div className="level-box">
@@ -159,7 +160,7 @@ export const CourseCardLine = ({ course, typeView }) => {
             {/* ── Always-visible row ── */}
             <div className="card-row-left">
                 <div className="course-img-row-box">
-                    <img src={course.thumbnail} alt={course.title} />
+                    <img src={fixMediaUrl(course.thumbnail)} alt={course.title} />
                 </div>
                 <div className="course-infos-box">
                     <div className="top-wrapper">

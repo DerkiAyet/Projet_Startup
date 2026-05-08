@@ -302,10 +302,10 @@ router.post('/add-subject', upload.single('subImg'), async (req, res) => {
             const newSubject = await Subjects.create({ name: name, subImg: subImg, color: color })
 
             await publishSubject({
-                idSubject: subject._id,
-                name: subject.name,
-                color: subject.color,
-                subImg: subject.subImg
+                idSubject: newSubject.idSubject,
+                name: newSubject.name,
+                color: newSubject.color,
+                subImg: newSubject.subImg
             });
 
             return res.status(200).json({

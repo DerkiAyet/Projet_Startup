@@ -30,6 +30,7 @@ coverage/
 .node_repl_history
 
 # Environment variables
+config.env
 .env
 .env.local
 .env.development.local

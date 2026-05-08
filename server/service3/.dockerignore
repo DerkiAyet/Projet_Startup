@@ -1,0 +1,7 @@
+node_modules/
+config/config.env
+config_service/config.env
+*.log
+.git
+.gitignore
+README.md

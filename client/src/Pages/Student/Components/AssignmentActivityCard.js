@@ -4,6 +4,7 @@ import { ReactComponent as TimeIcon } from '../../../Assets/icons/CourseIcons/ti
 import { ReactComponent as VisibleIcon } from '../../../Assets/icons/CourseIcons/visible.svg'
 import { ReactComponent as DeleteIcon } from '../../../Assets/icons/CourseIcons/delete.svg'
 import { useNavigate } from 'react-router-dom';
+import { fixMediaUrl } from '../../../Utilities/utils/fixMedia'
 
 export const AssignmentActivityCard = ({ solution }) => {
     const assignment = solution.assignment
@@ -34,7 +35,7 @@ export const AssignmentActivityCard = ({ solution }) => {
             <div className="line-flex">
                 <div className="card-row-left">
                     <div className="course-img-row-box">
-                        <img src={assignment.thumbnail} alt={assignment.title} />
+                        <img src={fixMediaUrl(solution.thumbnail)} alt={assignment.title} />
                     </div>
                     <div className="course-infos-box">
                         <div className="top-wrapper">

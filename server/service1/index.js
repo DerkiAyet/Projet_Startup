@@ -45,7 +45,22 @@ app.use('/', authRoutes);
 const userRoutes = require('./routes/Users')
 app.use('/infos', userRoutes)
 
-db.sequelize.sync().then(async() => {
+async function syncDatabase() {
+    await db.Users.sync();      // parent first
+    await db.Adresses.sync();   // then child
+    await db.ResetPassword.sync()
+    await db.Admins.sync();
+    await db.Teachers.sync();
+    await db.Students.sync();
+    await db.Parents.sync();
+    await db.Subjects.sync();
+    await db.SubSubjects.sync();
+    await db.ChildParent.sync();
+    await db.TeacherExpertise.sync();
+    await db.StudentInterest.sync();
+}
+
+syncDatabase().then(async() => {
     await connectProducer();
     app.listen(process.env.PORT, () => {
         console.log(`Node service is running on port ${process.env.PORT}`);

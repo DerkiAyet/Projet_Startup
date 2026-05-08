@@ -10,7 +10,7 @@ spring:
         corsConfigurations:
           '[/**]':
             allowedOrigins:
-              - "http://localhost:3000"
+              - "${CLIENT_ORIGIN:http://localhost:3000}"
             allowedMethods:
               - "*"
             allowedHeaders:
@@ -58,6 +58,21 @@ spring:
           filters:
             - StripPrefix=1
 
+        # ── let the NOTIFICATIONS Socket public ────────────────────────────────────────
+        - id: notifications-socket-http
+          uri: lb://SERVICE4-NOTIFICATION
+          predicates:
+            - Path=/notifications-ws/**
+          filters:
+            - StripPrefix=1
+
+        - id: notifications-socket-ws
+          uri: lb:ws://SERVICE4-NOTIFICATION
+          predicates:
+            - Path=/notifications-ws/**
+          filters:
+            - StripPrefix=1
+
         # ── CONTENT-HUB ────────────────────────────────────────
         - id: content-hub-service
           uri: lb://SERVICE6-CONTENT-HUB
@@ -69,12 +84,12 @@ spring:
 eureka:
   client:
     serviceUrl:
-      defaultZone: http://localhost:8761/eureka/
-    fetch-registry: true        # ← ajoute ça
-    register-with-eureka: true  # ← ajoute ça
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}   # Use the value of EUREKA_URL environment variable if it exists - If it doesn't exist → fall back to http://localhost:8761/eureka/
+    fetch-registry: true
+    register-with-eureka: true
   instance:
     preferIpAddress: true
-    hostname: localhost          # ← ajoute ça
+    hostname: ${HOSTNAME:gateway}
 
 jwt:
   access-secret: K9f3Av1Pr6TwM2zQ8sL4uJ0bx7nYcR5e

@@ -1,39 +1,377 @@
 version: '3.8'
 
+networks:
+  platform-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  mongo-data:
+  service1-uploads:
+  service2-uploads:
+  service3-uploads:
+  service6-uploads:
+
 services:
+
+  # ─────────────────────────────────────────
+  # ZOOKEEPER
+  # ─────────────────────────────────────────
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: zookeeper
+    networks:
+      - platform-network
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - "2181:2181"
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  # ─────────────────────────────────────────
+  # KAFKA
+  # ─────────────────────────────────────────
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: kafka
+    networks:
+      - platform-network
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     ports:
       - "9092:9092"
-      - "29092:29092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
 
+  # ─────────────────────────────────────────
+  # KAFKA UI
+  # ─────────────────────────────────────────
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: kafka-ui
+    networks:
+      - platform-network
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     ports:
       - "8090:8080"
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+
+  # ─────────────────────────────────────────
+  # MYSQL
+  # ─────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    networks:
+      - platform-network
+    environment:
+      MYSQL_ROOT_PASSWORD: ayet2004
+      MYSQL_DATABASE: db_authentication
+    volumes:
+      - mysql-data:/var/lib/mysql
+    ports:
+      - "3307:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-payet2004"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────
+  # PHPMYADMIN
+  # ─────────────────────────────────────────
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: phpmyadmin
+    networks:
+      - platform-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_USER: root
+      PMA_PASSWORD: ayet2004
+
+  # ─────────────────────────────────────────
+  # MONGODB
+  # ─────────────────────────────────────────
+  mongo:
+    image: mongo:7.0
+    container_name: mongo
+    networks:
+      - platform-network
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  # ─────────────────────────────────────────
+  # MONGO EXPRESS (MongoDB UI)
+  # ─────────────────────────────────────────
+  mongo-express:
+    image: mongo-express:latest
+    container_name: mongo-express
+    networks:
+      - platform-network
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongo
+      ME_CONFIG_MONGODB_PORT: 27017
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: admin
+
+  # ─────────────────────────────────────────
+  # EUREKA (registry)
+  # ─────────────────────────────────────────
+  registry:
+    build:
+      context: ./server/registry
+      dockerfile: Dockerfile
+    container_name: registry
+    networks:
+      - platform-network
+    ports:
+      - "8761:8761"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 8
+      start_period: 30s  # give Spring time to boot before first check - for the skip actuator addition in pom.xml just giving it some time
+
+  # ─────────────────────────────────────────
+  # GATEWAY
+  # ─────────────────────────────────────────
+  gateway:
+    build:
+      context: ./server/ms-gateway
+      dockerfile: Dockerfile
+    container_name: gateway
+    networks:
+      - platform-network
+    depends_on:
+      registry:
+        condition: service_healthy
+    ports:
+      - "8082:8082"
+    environment:
+      EUREKA_URL: http://registry:8761/eureka/
+      CLIENT_ORIGIN: http://localhost:3000
+
+  # ─────────────────────────────────────────
+  # SERVICE 1 — AUTH (MySQL)
+  # ─────────────────────────────────────────
+  service1:
+    build:
+      context: ./server/service1
+      dockerfile: Dockerfile
+    container_name: service1
+    networks:
+      - platform-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      registry:
+        condition: service_healthy
+    volumes:
+      - service1-uploads:/app/uploads
+    environment:
+      PORT: 7000
+      JWT_ACCESS_SECRET: K9f3Av1Pr6TwM2zQ8sL4uJ0bx7nYcR5e
+      JWT_REFRESH_SECRET: W7yS2mE4qH8tN1dR5vY3kU9pZ6fB0cX2
+      PARENT_APPROVAL_SECRET: G5n$W2t^R8v&X1b!J4uQ6zP
+      SQL_DB: db_authentication
+      SQL_USER: root
+      SQL_PWD: ayet2004
+      SQL_HOST: mysql
+      CLIENT_ADDRESS: http://localhost:3000
+      EUREKA_HOST: registry
+      EUREKA_PORT: 8761
+      KAFKA_BROKER: kafka:9092
+      HOST: service1
+      IP: service1
+      GMAIL_USER: startupedtech97@gmail.com
+      GMAIL_PASS: etlm eury vraz iiep
+      NOTIFICATIONS_SERVICE_URL: http://service4-notifications:7003
+      NOTIFICATIONS_SERVICE_NAME: SERVICE4-NOTIFICATION
+
+  # ─────────────────────────────────────────
+  # SERVICE 2 — POSTS (MongoDB)
+  # ─────────────────────────────────────────
+  service2:
+    build:
+      context: ./server/service2
+      dockerfile: Dockerfile
+    container_name: service2
+    networks:
+      - platform-network
+    depends_on:
+      mongo:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      registry:
+        condition: service_healthy
+    volumes:
+      - service2-uploads:/app/uploads
+    environment:
+      PORT: 7001
+      SERVICE_NAME: SERVICE2-POSTS
+      MONGO_URI: mongodb://mongo:27017/posts
+      EUREKA_HOST: registry
+      EUREKA_PORT: 8761
+      KAFKA_BROKER: kafka:9092
+      HOST: service2
+      IP: service2
+      AUTH_SERVICE_URL: http://service1:7000
+      AUTH_SERVICE_NAME: SERVICE1-AUTH
+
+  # ─────────────────────────────────────────
+  # SERVICE 3 — CONTENT (MongoDB)
+  # ─────────────────────────────────────────
+  service3:
+    build:
+      context: ./server/service3
+      dockerfile: Dockerfile
+    container_name: service3
+    networks:
+      - platform-network
+    depends_on:
+      mongo:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      registry:
+        condition: service_healthy
+    volumes:
+      - service3-uploads:/app/uploads
+    environment:
+      PORT: 7002
+      SERVICE_NAME: SERVICE3-CONTENT
+      MONGO_URI: mongodb://mongo:27017/content-creation
+      EUREKA_HOST: registry
+      EUREKA_PORT: 8761
+      GATEWAY_URI: http://gateway:8082
+      KAFKA_BROKER: kafka:9092
+      HOST: service3
+      IP: service3
+      CLOUDINARY_CLOUD_NAME: dtsd05l1g
+      CLOUDINARY_API_KEY: 937969482755128
+      CLOUDINARY_API_SECRET: Tkt4VoBaqqiqMKx3YWoprM-0Xj8
+      AUTH_SERVICE_URL: http://service1:7000
+      AUTH_SERVICE_NAME: SERVICE1-AUTH
+
+  # ─────────────────────────────────────────
+  # SERVICE 4 — NOTIFICATIONS (MongoDB)
+  # ─────────────────────────────────────────
+  service4-notifications:
+    build:
+      context: ./server/service4-notifications
+      dockerfile: Dockerfile
+    container_name: service4-notifications
+    networks:
+      - platform-network
+    depends_on:
+      mongo:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      registry:
+        condition: service_healthy
+    ports:
+    - "7003:7003"
+    environment:
+      PORT: 7003
+      SERVICE_NAME: SERVICE4-NOTIFICATION
+      MONGO_URI: mongodb://mongo:27017/notification
+      EUREKA_HOST: registry
+      EUREKA_PORT: 8761
+      KAFKA_BROKER: kafka:9092
+      HOST: service4-notifications
+      IP: service4-notifications
+      AUTH_SERVICE_URL: http://service1:7000
+      AUTH_SERVICE_NAME: SERVICE1-AUTH
+
+  # ─────────────────────────────────────────
+  # SERVICE 6 — CONTENT HUB (MySQL)
+  # ─────────────────────────────────────────
+  service6-content-hub:
+    build:
+      context: ./server/service6-content-hub
+      dockerfile: Dockerfile
+    container_name: service6-content-hub
+    networks:
+      - platform-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      registry:
+        condition: service_healthy
+    volumes:
+      - service6-uploads:/app/uploads
+    environment:
+      PORT: 7005
+      SERVICE_NAME: SERVICE6-CONTENT-HUB
+      SQL_DB: db_content_hub
+      SQL_USER: root
+      SQL_PWD: ayet2004
+      SQL_HOST: mysql
+      EUREKA_HOST: registry
+      EUREKA_PORT: 8761
+      KAFKA_BROKER: kafka:9092
+      HOST: service6-content-hub
+      IP: service6-content-hub
+      AUTH_SERVICE_URL: http://service1:7000
+      AUTH_SERVICE_NAME: SERVICE1-AUTH
+
+  # ─────────────────────────────────────────
+  # CLIENT — React
+  # ─────────────────────────────────────────
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        - REACT_APP_API_URL_GATEWAY=http://localhost:8082  #  browser-facing URL (for the hosting we replace the localhost with the public ip address)
+        - REACT_APP_NOTIFICATION_URL=http://localhost:7003
+    container_name: client
+    networks:
+      - platform-network
+    depends_on:
+      - gateway
+    ports:
+      - "3000:3000"

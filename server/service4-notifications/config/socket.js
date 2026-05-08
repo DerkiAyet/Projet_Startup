@@ -6,6 +6,7 @@ const activeConversations = {}; // to track the active conversations
 
 function setupWebSocket(server) {
   io = new Server(server, {
+    path: '/socket.io',  // to access the socket
     cors: {
       origin: "http://localhost:3000",
       methods: ["GET", "POST"],
