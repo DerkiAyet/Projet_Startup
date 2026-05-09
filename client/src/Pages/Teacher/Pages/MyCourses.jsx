@@ -57,7 +57,7 @@ export const CourseDetailPanel = ({ course, onClose, typeView }) => {
                 <img src={fixMediaUrl(course.thumbnail)} alt={course.title} />
                 <div className="detail-panel-level">
                     <ChartIcon /> {course.level}
-                </div> 
+                </div>
             </div>
             <div className="detail-panel-body">
                 <span className="course-cat" style={{ color: `#${course.category.color}` }}> {course.category.name} {course.subCategory ? ` - ${course.subCategory.name}` : ''} </span>
@@ -122,7 +122,7 @@ export const CourseCard = ({ course, onClick, isSelected, typeView }) => {
                 {
                     typeView !== "Tips" &&
                     <div className="level-box">
-                        <ChartIcon /> 
+                        <ChartIcon />
                         {course.level}
                     </div>}
                 <MenuIcon className="menu-card-icon" />
@@ -237,13 +237,27 @@ function Courses() {
 
     const [courses, setCourses] = useState([]);
     const [assignments, setAssignments] = useState([]);
+    const [loading, setLoading] = useState(false)
 
     useEffect(() => {
-        axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/courses/teacher-courses`)
-            .then(res => setCourses(res.data));
+        const fetchData = async () => {
+            try {
+                setLoading(true)
 
-        axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/assignments/teacher-assigns`)
-            .then(res => setAssignments(res.data));
+                const coursesRes = await axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/courses/teacher-courses`)
+                setCourses(coursesRes.data);
+
+                const assignsRes = await axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/assignments/teacher-assigns`)
+                setAssignments(assignsRes.data);
+            } catch (error) {
+                console.error("Error while fetching:", error)
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        fetchData()
+
     }, []);
 
     const [searchQuery, setSearchQuery] = useState("");
@@ -303,6 +317,13 @@ function Courses() {
                         ))}
                     </div>
                 </div>
+
+                { loading && (
+                    <div className="search-loading">
+                        <div className="loading-spinner" />
+                        <span>Fetching Data…</span>
+                    </div>
+                )}
 
                 {currentCategory === "Courses" && <ViewCourses viewMode={viewMode} courses={filteredCourses} />}
                 {currentCategory === "Assignments" && <ViewAssignments viewMode={viewMode} assignments={filteredAssignments} />}

@@ -335,6 +335,13 @@ function CoursesView({ courses, assignments, searched, loading, query, selectedC
                     )
                 }
 
+                {!searched && loading && (
+                    <div className="search-loading">
+                        <div className="loading-spinner" />
+                        <span>Fetching Data...</span>
+                    </div>
+                )}
+
                 {searched && loading && (
                     <div className="search-loading">
                         <div className="loading-spinner" />

@@ -63,52 +63,71 @@ function SearchPage() {
     const [tips, setTips] = useState([])
 
     useEffect(() => {
-        axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/courses/recommended/me`)
-            .then((res) => { setCourses(res.data); console.log(res.data) })
-            .catch((err) => console.error(err.response.data))
+        const fetchData = async () => {
+            try {
+                setLoading(true)
 
-        axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/assignments/recommended/me`)
-            .then((res) => setAssignments(res.data))
-            .catch((err) => console.error(err.response.data))
+                const courseRes = await axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/courses/recommended/me`)
+                setCourses(courseRes.data)
+
+                const assignRes = await axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/assignments/recommended/me`)
+                setAssignments(assignRes.data)
+
+            } catch (error) {
+                console.error("Error:", error)
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        fetchData()
     }, [])
 
-    const handleSearch = () => {
+    const handleSearch = async () => {
         if (!query.trim() && selectedCats.length === 0) return;
 
         setFocused(false);
         setLoading(true);
         setSearched(true);
+        setResults([]);
+        setCourses([]);
+        setAssignments([]);
+        setTips([]);
 
-        // Extract category IDs
+        //extract the category ids properly first
         const categoryIds = selectedCats.map(cat => cat.idSubject);
+        const subcategoryNames = query.trim().split(/\s+/).filter(Boolean);
 
-        // Split query
-        const subcategoryNames = query
-            .trim()
-            .split(/\s+/) 
-            .filter(Boolean); // to delete the empty strings
-
-        // Build params
         const params = new URLSearchParams();
-        params.set("title", query)
+        params.set("title", query);
         if (subcategoryNames.length) params.set("subCategoryName", subcategoryNames.join(","));
         if (categoryIds.length) params.set("categoryId", categoryIds.join(","));
 
-        // Force minimum 1 second delay
-        const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
-        const request = axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/courses/search?${params.toString()}`);
+        try {
+            const minDelay = new Promise(resolve => setTimeout(resolve, 1000));
+            const request = axios.get(
+                `${process.env.REACT_APP_API_URL_GATEWAY}/content/courses/search?${params.toString()}`
+            );
 
-        Promise.all([request, minDelay])
-            .then(([res]) => {
-                const data = res.data;
+            const [res] = await Promise.all([request, minDelay]);
+            const data = res.data;
 
-                setResults(data);
+            const filtered = {
+                courses: data.filter(i => i.typeContent === "course"),
+                assignments: data.filter(i => i.typeContent === "assignment"),
+                tips: data.filter(i => i.typeContent === "tip")
+            };
 
-                setCourses(data.filter(i => i.typeContent === "course"));
-                setAssignments(data.filter(i => i.typeContent === "assignment"));
-                setTips(data.filter(i => i.typeContent === "tip"));
-            })
-            .finally(() => { setLoading(false); console.log(assignments) });
+            setResults(data);
+            setCourses(filtered.courses);
+            setAssignments(filtered.assignments);
+            setTips(filtered.tips);
+
+        } catch (error) {
+            console.error("Search failed:", error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleKeyDown = (e) => {

@@ -56,7 +56,7 @@ export default function StudentActivity() {
             })
 
         axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/activity/student-solutions`)
-            .then((res) => setAssignsSolved(res.data))
+            .then((res) => {setAssignsSolved(res.data); console.log(res.data)})
             .catch((err) => {
                 console.error("Error fetching solved quizes:", err);
             })
@@ -124,8 +124,8 @@ export default function StudentActivity() {
                 />
                 <StatsCard
                     icon={AssignmentIcon}
-                    title="Assignments Solved"
-                    value={4}
+                    title="Solutions sent"
+                    value={assignsSolved?.length}
                     subtitle={`Avg: ${85}%`}
                     color="#F59E0B"
                 />

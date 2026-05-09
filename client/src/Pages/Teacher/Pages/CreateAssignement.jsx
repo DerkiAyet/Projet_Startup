@@ -10,6 +10,7 @@ import { ReactComponent as UploadIcon } from '../../../Assets/icons/CourseIcons/
 import JoditEditor from "jodit-react"
 import PublishSuccessPopup from '../Components/Publishsuccesspopup'
 import axios from 'axios'
+import Loader from '../../../Partials/Components/Loader'
 
 const newMCQQuestion = () => ({
   questionContent: "",
@@ -166,8 +167,11 @@ function CreateAssignment() {
     setStep(1);
   };
 
+  const [loading, setLaoding] = useState(false)
+
   const handlePublish = async () => {
     try {
+      setLaoding(true)
       const formData = new FormData();
       formData.append("title", assignmentData.title);
       formData.append("description", assignmentData.description);
@@ -201,6 +205,8 @@ function CreateAssignment() {
       setShowSuccessPopup(true);
     } catch (err) {
       console.error(err);
+    } finally {
+      setLaoding(false)
     }
   };
 
@@ -210,6 +216,21 @@ function CreateAssignment() {
       <path d="M4.99929 4.18863L8.77899 0.220677C8.91347 0.0793351 9.09533 0 9.28493 0C9.47453 0 9.65649 0.0793351 9.79097 0.220677C9.85721 0.290046 9.90976 0.372607 9.94565 0.463596C9.98153 0.554585 10 0.652194 10 0.750779C10 0.849365 9.98153 0.946974 9.94565 1.03796C9.90976 1.12895 9.85721 1.21152 9.79097 1.28089L5.50595 5.77932C5.37147 5.92066 5.1896 6 5 6C4.8104 6 4.62853 5.92066 4.49405 5.77932L0.209032 1.28089C0.14279 1.21152 0.0902398 1.12895 0.0543536 1.03796C0.0184674 0.946974 0 0.849365 0 0.750779C0 0.652194 0.0184674 0.554585 0.0543536 0.463596C0.0902398 0.372607 0.14279 0.290046 0.209032 0.220677C0.343604 0.0795203 0.525523 0.000314919 0.715067 0.000314919C0.904612 0.000314919 1.08644 0.0795203 1.22101 0.220677L4.99929 4.18863Z" fill="#8A8A8A" />
     </svg>
   );
+
+  // to solve the problem of navigate back to the exercice of type text, well since we're using refs the actual exercie in the assignments isn't updated only when we publish the assignment
+  const handleNavigateExercise = (newIndex) => {
+    // Save current exercise content from ref to state before navigating
+    const updated = [...assignmentData.exercises];
+    if (updated[currentExerciseIndex].exerciseType === 'text') {
+      updated[currentExerciseIndex] = {
+        ...updated[currentExerciseIndex],
+        content: allExerciseContentsRef.current[currentExerciseIndex]?.content ?? updated[currentExerciseIndex].content,
+        solution: allExerciseContentsRef.current[currentExerciseIndex]?.solution ?? updated[currentExerciseIndex].solution,
+      };
+      setAssignmentData({ ...assignmentData, exercises: updated });
+    }
+    setCurrentExerciseIndex(newIndex);
+  };
 
   return (
     <div className='create-course-container'>
@@ -357,9 +378,9 @@ function CreateAssignment() {
                   className={`exercise-type-btn ${currentExercise.exerciseType === type ? "exercise-type-btn--active" : ""}`}
                   onClick={() => updateCurrentExercise("exerciseType", type)}
                 >
-                  {type === "text" && <span style={{display: "flex", alignItems: "center", gap: "0.3rem"}}> <EditIcon /> Text</span>}
-                  {type === "mcq" && <span style={{display: "flex", alignItems: "center", gap: "0.3rem"}}> <QuestionIcon /> MCQ</span>}
-                  {type === "file" && <span style={{display: "flex", alignItems: "center", gap: "0.3rem"}}> <UploadIcon /> File</span>}
+                  {type === "text" && <span style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}> <EditIcon /> Text</span>}
+                  {type === "mcq" && <span style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}> <QuestionIcon /> MCQ</span>}
+                  {type === "file" && <span style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}> <UploadIcon /> File</span>}
                 </button>
               ))}
             </div>
@@ -369,7 +390,7 @@ function CreateAssignment() {
               <button
                 className="lesson-nav-btn"
                 disabled={currentExerciseIndex === 0}
-                onClick={() => setCurrentExerciseIndex(prev => prev - 1)}
+                onClick={() => handleNavigateExercise(currentExerciseIndex - 1)}
               >
                 <BackIcon className="lesson-icon" />
                 Previous
@@ -392,18 +413,30 @@ function CreateAssignment() {
                 className="lesson-nav-btn lesson-nav-btn--next"
                 onClick={() => {
                   if (!handleErrorExercise()) return;
-                  const updated = [...assignmentData.exercises];
+
                   if (currentExerciseIndex === assignmentData.exercises.length - 1) {
+                    // Save current content to state first
+                    const updated = [...assignmentData.exercises];
+                    if (updated[currentExerciseIndex].exerciseType === 'text') {
+                      updated[currentExerciseIndex] = {
+                        ...updated[currentExerciseIndex],
+                        content: allExerciseContentsRef.current[currentExerciseIndex]?.content ?? updated[currentExerciseIndex].content,
+                        solution: allExerciseContentsRef.current[currentExerciseIndex]?.solution ?? updated[currentExerciseIndex].solution,
+                      };
+                    }
+                    // Add new exercise
                     updated.push({
                       title: `Exercise ${updated.length + 1}`,
                       exerciseType: "text",
-                      content: "", solution: "", points: 1, 
+                      content: "", solution: "", points: 1,
                       hasSolution: false, questions: [],
                       localFile: null, fileUrl: ""
                     });
                     setAssignmentData({ ...assignmentData, exercises: updated });
+                    setCurrentExerciseIndex(currentExerciseIndex + 1); // direct, not handleNavigateExercise
+                  } else {
+                    handleNavigateExercise(currentExerciseIndex + 1); // normal navigation
                   }
-                  setCurrentExerciseIndex(prev => prev + 1);
                 }}
               >
                 {currentExerciseIndex === assignmentData.exercises.length - 1
@@ -418,10 +451,11 @@ function CreateAssignment() {
                 <span style={{ fontFamily: "'Nunito', sans-serif", fontSize: "0.95rem", fontWeight: 600, color: "#1E293B" }}>Points</span>
                 <input
                   type="number"
-                  min={1}
+                  min={0.25}
+                  step={0.25}
                   placeholder="0"
                   value={currentExercise.points || ""}
-                  onChange={(e) => updateCurrentExercise("points", parseInt(e.target.value) || 1)}
+                  onChange={(e) => updateCurrentExercise("points", parseFloat(e.target.value) || 1)}
                   style={{
                     width: "80px", padding: "0.4rem 0.7rem", borderRadius: "10px",
                     border: "1.5px solid #A7A7A7", fontSize: "0.9rem", outline: "none",
@@ -443,7 +477,7 @@ function CreateAssignment() {
                       content: val,
                     };
                   }}
-                  config={{ uploader: { insertImageAsBase64URI: true },  toolbarAdaptive: false }}
+                  config={{ uploader: { insertImageAsBase64URI: true }, toolbarAdaptive: false }}
                 />
 
                 {/* Solution toggle */}
@@ -488,7 +522,7 @@ function CreateAssignment() {
                           solution: val,
                         };
                       }}
-                      config={{ uploader: { insertImageAsBase64URI: true },  toolbarAdaptive: false }}
+                      config={{ uploader: { insertImageAsBase64URI: true }, toolbarAdaptive: false }}
                     />
                   </div>
                 )}
@@ -640,10 +674,11 @@ function CreateAssignment() {
                       <span style={{ fontFamily: "'Nunito', sans-serif", fontSize: "0.82rem", color: "#1E293B", fontWeight: 600 }}>Points:</span>
                       <input
                         type="number"
-                        min={1}
+                        min={0.25}
+                        step={0.25}
                         className="mcq-points-input"
                         value={q.points}
-                        onChange={(e) => updateQuestion(qIdx, "points", parseInt(e.target.value) || 1)}
+                        onChange={(e) => updateQuestion(qIdx, "points", parseFloat(e.target.value) || 1)}
                       />
                       <label className="mcq-allow-multiple">
                         <input
@@ -681,7 +716,7 @@ function CreateAssignment() {
                     <span
                       key={i}
                       className={`lesson-dot ${i === currentExerciseIndex ? "lesson-dot--active" : ""} ${assignmentData.exercises[i].content || assignmentData.exercises[i].questions?.length > 0 || assignmentData.exercises[i].localFile ? "lesson-dot--filled" : ""}`}
-                      onClick={() => setCurrentExerciseIndex(i)}
+                      onClick={() => handleNavigateExercise(i)}
                     />
                   ))}
                 </span>
@@ -694,6 +729,10 @@ function CreateAssignment() {
           </div>
         )}
       </div>
+
+      {
+        loading && <Loader />
+      }
 
       {showSuccessPopup && (
         <PublishSuccessPopup

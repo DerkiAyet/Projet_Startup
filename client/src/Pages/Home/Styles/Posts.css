@@ -6,6 +6,8 @@
     --grey-text-color: #8E8E8E;
     --dark-text-color: #262626;
     --main-color-light: #EC489980;
+    --light-pink-accent-color: #F29DB6;
+    --light-grey-font-color: #8A8A8A;
 
     --lg-text: 1.1rem;
     --sm-text: 0.7rem;
@@ -264,8 +266,8 @@
     font-size: 1.3rem;
     opacity: 0;
     color: #fff;
-    text-shadow: 0 0 10px rgba(255,255,255,1),
-                 0 0 20px rgba(255,255,255,0.9);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 1),
+        0 0 20px rgba(255, 255, 255, 0.9);
     transform: translate(-50%, -50%) scale(0.4);
 }
 
@@ -275,12 +277,35 @@
 }
 
 /* Multiple stars → delay & directions */
-.new-post-btn .stars span:nth-child(1)::before { animation-delay: 0s;     transform-origin: -30px -40px; }
-.new-post-btn .stars span:nth-child(2)::before { animation-delay: 0.05s;  transform-origin: 40px -30px; }
-.new-post-btn .stars span:nth-child(3)::before { animation-delay: 0.1s;   transform-origin: -35px 35px; }
-.new-post-btn .stars span:nth-child(4)::before { animation-delay: 0.15s;  transform-origin: 35px 28px; }
-.new-post-btn .stars span:nth-child(5)::before { animation-delay: 0.2s;   transform-origin: 0px -60px; }
-.new-post-btn .stars span:nth-child(6)::before { animation-delay: 0.25s;  transform-origin: 0px 60px; }
+.new-post-btn .stars span:nth-child(1)::before {
+    animation-delay: 0s;
+    transform-origin: -30px -40px;
+}
+
+.new-post-btn .stars span:nth-child(2)::before {
+    animation-delay: 0.05s;
+    transform-origin: 40px -30px;
+}
+
+.new-post-btn .stars span:nth-child(3)::before {
+    animation-delay: 0.1s;
+    transform-origin: -35px 35px;
+}
+
+.new-post-btn .stars span:nth-child(4)::before {
+    animation-delay: 0.15s;
+    transform-origin: 35px 28px;
+}
+
+.new-post-btn .stars span:nth-child(5)::before {
+    animation-delay: 0.2s;
+    transform-origin: 0px -60px;
+}
+
+.new-post-btn .stars span:nth-child(6)::before {
+    animation-delay: 0.25s;
+    transform-origin: 0px 60px;
+}
 
 /* Star animation: rotation + explosion */
 @keyframes starBurst {
@@ -288,25 +313,48 @@
         opacity: 0;
         transform: scale(0.4) rotate(0deg);
     }
+
     20% {
         opacity: 1;
     }
+
     100% {
         opacity: 0;
         transform:
-            translate(var(--dx), var(--dy))
-            scale(1.6)
-            rotate(70deg);
+            translate(var(--dx), var(--dy)) scale(1.6) rotate(70deg);
     }
 }
 
 /* Direction values per star */
-.new-post-btn .stars span:nth-child(1)::before { --dx: -45px; --dy: -60px; }
-.new-post-btn .stars span:nth-child(2)::before { --dx: 55px;  --dy: -50px; }
-.new-post-btn .stars span:nth-child(3)::before { --dx: -50px; --dy: 40px; }
-.new-post-btn .stars span:nth-child(4)::before { --dx: 55px;  --dy: 35px; }
-.new-post-btn .stars span:nth-child(5)::before { --dx: 0px;   --dy: -80px; }
-.new-post-btn .stars span:nth-child(6)::before { --dx: 0px;   --dy: 70px; }
+.new-post-btn .stars span:nth-child(1)::before {
+    --dx: -45px;
+    --dy: -60px;
+}
+
+.new-post-btn .stars span:nth-child(2)::before {
+    --dx: 55px;
+    --dy: -50px;
+}
+
+.new-post-btn .stars span:nth-child(3)::before {
+    --dx: -50px;
+    --dy: 40px;
+}
+
+.new-post-btn .stars span:nth-child(4)::before {
+    --dx: 55px;
+    --dy: 35px;
+}
+
+.new-post-btn .stars span:nth-child(5)::before {
+    --dx: 0px;
+    --dy: -80px;
+}
+
+.new-post-btn .stars span:nth-child(6)::before {
+    --dx: 0px;
+    --dy: 70px;
+}
 
 .saved-success {
     position: absolute;
@@ -365,4 +413,28 @@
     align-self: flex-start;
     margin-top: 0.4rem;
     margin-left: 1rem;
+}
+
+.search-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem;
+    margin-top: 3rem;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.9rem;
+    color: var(--light-grey-font-color);
+}
+
+.loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--light-border-section);
+    border-top-color: var(--light-pink-accent-color);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }

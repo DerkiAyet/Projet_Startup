@@ -35,7 +35,7 @@ export const AssignmentActivityCard = ({ solution }) => {
             <div className="line-flex">
                 <div className="card-row-left">
                     <div className="course-img-row-box">
-                        <img src={fixMediaUrl(solution.thumbnail)} alt={assignment.title} />
+                        <img src={fixMediaUrl(assignment.thumbnail)} alt={assignment.title} />
                     </div>
                     <div className="course-infos-box">
                         <div className="top-wrapper">

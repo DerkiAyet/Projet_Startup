@@ -89,7 +89,7 @@ eureka:
     register-with-eureka: true
   instance:
     preferIpAddress: true
-    hostname: ${HOSTNAME:gateway}
+    hostname: ${HOSTNAME:localhost}
 
 jwt:
   access-secret: K9f3Av1Pr6TwM2zQ8sL4uJ0bx7nYcR5e

@@ -9,6 +9,7 @@ import QuizBuilder from '../Components/QuizBuilder'
 import PublishSuccessPopup from '../Components/Publishsuccesspopup'
 import axios from 'axios'
 import PublishQuizSuccessPopup from '../Components/PublishQuizSuccessPopup'
+import Loader from '../../../Partials/Components/Loader'
 
 function CreateCourse() {
 
@@ -192,6 +193,8 @@ function CreateCourse() {
     }
   };
 
+  const [loading, setLoading] = useState(false)
+
   const handlePublish = async () => {
     const finalLessons = courseData.lessons.map((lesson, i) => {
       const ref = allLessonContentsRef.current[i];
@@ -208,6 +211,7 @@ function CreateCourse() {
     });
 
     try {
+      setLoading(true)
       const formData = new FormData();
       formData.append("title", courseData.title);
       formData.append("description", courseData.description);
@@ -222,6 +226,8 @@ function CreateCourse() {
       setShowSuccessPopup(true);
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoading(false)
     }
   };
 
@@ -682,7 +688,7 @@ function CreateCourse() {
                 config={{
                   uploader: { insertImageAsBase64URI: true },
                   clipboard: { processPasteHTML: true, processPasteFromWord: true },
-                   toolbarAdaptive: false
+                  toolbarAdaptive: false
                 }}
               />)}
 
@@ -706,6 +712,12 @@ function CreateCourse() {
 
         }
       </div>
+
+      {
+        loading &&
+        <Loader />
+      }
+
       {
         showSuccessPopup && (
           <PublishSuccessPopup
@@ -726,10 +738,17 @@ function CreateCourse() {
             courseId={publishedCourseId}
             onClose={() => setShowQuizBuilder(false)}
             onPublish={async (quizPayload) => {
-              const response = await axios.post(`${process.env.REACT_APP_API_URL_GATEWAY}/content/courses/${publishedCourseId}/quiz`, quizPayload)
-              console.log('Quiz payload:', response.data)
-              setShowQuizBuilder(false)
-              setAddQuizSuccess(true)
+              try {
+                setLoading(true)
+                const response = await axios.post(`${process.env.REACT_APP_API_URL_GATEWAY}/content/courses/${publishedCourseId}/quiz`, quizPayload)
+                console.log('Quiz payload:', response.data)
+                setShowQuizBuilder(false)
+                setAddQuizSuccess(true)
+              } catch (error) {
+                console.error("error while publishing quiz", error)
+              } finally {
+                setLoading(false)
+              }
             }}
           />
         )

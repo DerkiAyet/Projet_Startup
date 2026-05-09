@@ -3,7 +3,7 @@ require('dotenv').config({ path: '../config.env' });
 
 const kafka = new Kafka({
     clientId: 'content-hub-service',
-    brokers: [process.env.KAFKA_BROKER || 'localhost:29092']
+    brokers: [process.env.KAFKA_BROKER || 'localhost:9093']
 });
 
 const usersCache = new Map();

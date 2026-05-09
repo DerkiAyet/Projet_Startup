@@ -180,7 +180,7 @@ function CreatePost({ isOpen, onClose }) {
     // Submit Post
     // -----------------------------
 
-    const { setPosts, setPostAdded } = useContext(TimeLineContext)
+    const { setPosts, setPostAdded, setLoadingCreate } = useContext(TimeLineContext)
 
     const onSubmit = async (e) => {
         e.preventDefault()
@@ -197,6 +197,7 @@ function CreatePost({ isOpen, onClose }) {
         formData.append("isParentHub", newPost.isParentHub)
 
         try {
+            setLoadingCreate(true)
             const res = await axios.post(`${process.env.REACT_APP_API_URL_GATEWAY}/posts/`, formData)
 
             const newPost = {
@@ -218,6 +219,8 @@ function CreatePost({ isOpen, onClose }) {
             setPostAdded(true)
         } catch (error) {
             console.error(error.response.data)
+        } finally {
+            setLoadingCreate(false)
         }
     }
 
@@ -290,7 +293,7 @@ function CreatePost({ isOpen, onClose }) {
                             <div className="user-profile-pic">
                                 {profilePicture ? (
                                     <div className="user-account">
-                                        <img src={profilePicture} alt="Profile" />
+                                        <img src={`${process.env.REACT_APP_API_URL_GATEWAY}/auth/uploads/${profilePicture}`} alt="Profile" />
                                     </div>
                                 ) : (
                                     <div className="user-initials-avatar" style={{ backgroundColor: 'var(--accent-pink)' }}>
