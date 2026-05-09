@@ -211,7 +211,7 @@ services:
       PORT: 7000
       JWT_ACCESS_SECRET: K9f3Av1Pr6TwM2zQ8sL4uJ0bx7nYcR5e
       JWT_REFRESH_SECRET: W7yS2mE4qH8tN1dR5vY3kU9pZ6fB0cX2
-      PARENT_APPROVAL_SECRET: G5n$W2t^R8v&X1b!J4uQ6zP
+      PARENT_APPROVAL_SECRET: Hx7mK2pQ9nL4vR8sT3wY6uA1dF5jB0cE
       SQL_DB: db_authentication
       SQL_USER: root
       SQL_PWD: ayet2004
@@ -323,6 +323,7 @@ services:
       IP: service4-notifications
       AUTH_SERVICE_URL: http://service1:7000
       AUTH_SERVICE_NAME: SERVICE1-AUTH
+      CLIENT_ORIGIN: http://localhost:3000
 
   # ─────────────────────────────────────────
   # SERVICE 6 — CONTENT HUB (MySQL)

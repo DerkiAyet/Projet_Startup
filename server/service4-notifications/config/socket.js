@@ -1,4 +1,6 @@
 const { Server } = require('socket.io');
+require('dotenv').config({ path: './config.env' });
+
 
 let io = null;
 const connectedUsers = {};
@@ -8,7 +10,7 @@ function setupWebSocket(server) {
   io = new Server(server, {
     path: '/socket.io',  // to access the socket
     cors: {
-      origin: "http://localhost:3000",
+      origin: process.env.CLIENT_ORIGIN,
       methods: ["GET", "POST"],
       credentials: true
     },
