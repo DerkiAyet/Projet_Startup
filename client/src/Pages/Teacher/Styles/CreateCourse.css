@@ -18,7 +18,8 @@
     box-sizing: border-box;
     display: flex;
     justify-content: center;
-    overflow-y: auto; /* allow scrolling */
+    overflow-y: auto;
+    /* allow scrolling */
 }
 
 .create-course-wrapper {
@@ -48,9 +49,10 @@
 
 .create-course-header p {
     font-family: 'Nunito', sans-serif;
-    font-size: var(--lg-font-size);
+    font-size: 1.1rem;
     font-weight: 600;
     margin-top: 0.5rem;
+    text-align: center;
 }
 
 .create-course-wrapper .create-course-form {
@@ -475,7 +477,7 @@
     background-color: #FDF2F8;
 }
 
-.lesson-nav-bar .lesson-icon.rotate-180{
+.lesson-nav-bar .lesson-icon.rotate-180 {
     transform: rotate(180deg);
 }
 
@@ -499,7 +501,7 @@
     color: var(--dark-font-color);
 }
 
-.jodit-container .jodit-workplace{
+.jodit-container .jodit-workplace {
     min-height: 50vh !important;
 }
 
@@ -593,8 +595,13 @@
 }
 
 @keyframes overlayIn {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 /* ── Card ────────────────────────────────────────────── */
@@ -614,8 +621,15 @@
 }
 
 @keyframes cardPop {
-    from { opacity: 0; transform: scale(0.82) translateY(20px); }
-    to   { opacity: 1; transform: scale(1)    translateY(0);    }
+    from {
+        opacity: 0;
+        transform: scale(0.82) translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
 }
 
 /* ── Confetti dots ───────────────────────────────────── */
@@ -633,22 +647,116 @@
     animation: confettiFall 1.2s ease-out forwards;
 }
 
-.confetti-dot--0  { background: #EC4899; top: 10%; left: 15%;  animation-delay: 0.1s; width: 10px; height: 10px; }
-.confetti-dot--1  { background: #F9A8D4; top: 5%;  left: 35%;  animation-delay: 0.2s; }
-.confetti-dot--2  { background: #FBBF24; top: 8%;  left: 60%;  animation-delay: 0.05s; width: 6px; height: 6px; }
-.confetti-dot--3  { background: #34D399; top: 12%; left: 80%;  animation-delay: 0.15s; width: 9px; height: 9px; }
-.confetti-dot--4  { background: #EC4899; top: 20%; left: 90%;  animation-delay: 0.3s; }
-.confetti-dot--5  { background: #818CF8; top: 5%;  left: 50%;  animation-delay: 0.25s; width: 7px; height: 7px; }
-.confetti-dot--6  { background: #F9A8D4; top: 18%; left: 5%;   animation-delay: 0.18s; }
-.confetti-dot--7  { background: #FBBF24; top: 3%;  left: 75%;  animation-delay: 0.08s; width: 11px; height: 11px; }
-.confetti-dot--8  { background: #34D399; top: 15%; left: 45%;  animation-delay: 0.35s; width: 6px; height: 6px; }
-.confetti-dot--9  { background: #EC4899; top: 6%;  left: 22%;  animation-delay: 0.22s; }
-.confetti-dot--10 { background: #818CF8; top: 20%; left: 65%;  animation-delay: 0.12s; width: 8px; height: 8px; }
-.confetti-dot--11 { background: #F9A8D4; top: 10%; left: 88%;  animation-delay: 0.28s; width: 7px; height: 7px; }
+.confetti-dot--0 {
+    background: #EC4899;
+    top: 10%;
+    left: 15%;
+    animation-delay: 0.1s;
+    width: 10px;
+    height: 10px;
+}
+
+.confetti-dot--1 {
+    background: #F9A8D4;
+    top: 5%;
+    left: 35%;
+    animation-delay: 0.2s;
+}
+
+.confetti-dot--2 {
+    background: #FBBF24;
+    top: 8%;
+    left: 60%;
+    animation-delay: 0.05s;
+    width: 6px;
+    height: 6px;
+}
+
+.confetti-dot--3 {
+    background: #34D399;
+    top: 12%;
+    left: 80%;
+    animation-delay: 0.15s;
+    width: 9px;
+    height: 9px;
+}
+
+.confetti-dot--4 {
+    background: #EC4899;
+    top: 20%;
+    left: 90%;
+    animation-delay: 0.3s;
+}
+
+.confetti-dot--5 {
+    background: #818CF8;
+    top: 5%;
+    left: 50%;
+    animation-delay: 0.25s;
+    width: 7px;
+    height: 7px;
+}
+
+.confetti-dot--6 {
+    background: #F9A8D4;
+    top: 18%;
+    left: 5%;
+    animation-delay: 0.18s;
+}
+
+.confetti-dot--7 {
+    background: #FBBF24;
+    top: 3%;
+    left: 75%;
+    animation-delay: 0.08s;
+    width: 11px;
+    height: 11px;
+}
+
+.confetti-dot--8 {
+    background: #34D399;
+    top: 15%;
+    left: 45%;
+    animation-delay: 0.35s;
+    width: 6px;
+    height: 6px;
+}
+
+.confetti-dot--9 {
+    background: #EC4899;
+    top: 6%;
+    left: 22%;
+    animation-delay: 0.22s;
+}
+
+.confetti-dot--10 {
+    background: #818CF8;
+    top: 20%;
+    left: 65%;
+    animation-delay: 0.12s;
+    width: 8px;
+    height: 8px;
+}
+
+.confetti-dot--11 {
+    background: #F9A8D4;
+    top: 10%;
+    left: 88%;
+    animation-delay: 0.28s;
+    width: 7px;
+    height: 7px;
+}
 
 @keyframes confettiFall {
-    0%   { opacity: 1; transform: translateY(0) rotate(0deg);     }
-    100% { opacity: 0; transform: translateY(60px) rotate(180deg); }
+    0% {
+        opacity: 1;
+        transform: translateY(0) rotate(0deg);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateY(60px) rotate(180deg);
+    }
 }
 
 /* ── Check icon ──────────────────────────────────────── */
@@ -671,8 +779,17 @@
 }
 
 @keyframes ringPulse {
-    0%, 100% { transform: scale(1);    opacity: 1;   }
-    50%       { transform: scale(1.12); opacity: 0.6; }
+
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.12);
+        opacity: 0.6;
+    }
 }
 
 .popup-icon-circle {
@@ -915,6 +1032,29 @@
 }
 
 @keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+@media (max-width: 768px) {
+
+    .create-course-container{
+        margin-bottom: 60px;
+    }
+
+    .create-course-wrapper {
+        flex: 1;
+        max-width: 100%;
+        min-width: 100%;
+    }
+
+    .select-flex-line {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
 }

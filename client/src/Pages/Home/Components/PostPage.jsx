@@ -476,7 +476,7 @@ function PostPage() {
             })
             .catch((err) => console.error(err));
     };
-
+ 
     return (
         <div className='post-page-overlay'>
             <div className="post-page-container" ref={postPageRef}>

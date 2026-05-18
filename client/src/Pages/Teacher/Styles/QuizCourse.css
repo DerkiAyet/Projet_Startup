@@ -46,7 +46,7 @@
 }
 
 .qb-modal-header-left {
-    display: flex;
+    display: flex; 
     align-items: center;
     gap: 0.9rem;
 }
@@ -564,4 +564,11 @@
 .qb-footer-btn--publish:hover {
     transform: translateY(-1px);
     box-shadow: 0 8px 24px rgba(236,72,153,0.45);
+}
+
+@media (max-width: 768px) {
+    .qb-sidebar {
+        min-width: 160px;
+        max-width: 170px;
+    }
 }

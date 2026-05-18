@@ -59,7 +59,6 @@ async function enrichContent(item, typeContent, authServiceBaseUrl, categoryName
             responseCategory = data
         }
 
-        // Subcategory - handle gracefully if it doesn't exist
         let responseField = null;
         if (item.category.subCategory) {
             try {
@@ -78,7 +77,6 @@ async function enrichContent(item, typeContent, authServiceBaseUrl, categoryName
             }
         }
 
-        // Comments + enrolls + quizzes only for COURSES
         let comments = [];
         let enrolls = [];
         let solutions = [];

@@ -480,16 +480,16 @@
     scrollbar-color: var(--light-scrollbar-thumb-start) var(--light-scrollbar-track);
 }
 
-.quiz-icon{
+.quiz-icon {
     width: 16px;
     height: 16px;
 }
 
-.quiz-icon path{
+.quiz-icon path {
     fill: var(--light-grey-font-color);
 }
 
-.quiz-card .level-box{
+.quiz-card .level-box {
     background-color: #fff;
 }
 
@@ -532,5 +532,17 @@
     .period-btn {
         padding: 0.5rem 1rem;
         font-size: 0.75rem;
+    }
+
+    .activity-bottom-container .course-card-line .card-row-left .course-img-row-box {
+        display: none;
+    }
+
+    .activity-bottom-container .course-card-line .card-row-right {
+        display: none;
+    }
+
+    .activity-page-header .header-right{
+        display: none;
     }
 }

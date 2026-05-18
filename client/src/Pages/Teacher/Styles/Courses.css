@@ -348,6 +348,7 @@
     flex-shrink: 0;
     height: 100vh;
     overflow-y: auto;
+    z-index: 1000;
 }
 
 @keyframes slideInPanel {
@@ -556,7 +557,7 @@
     font-size: 0.95rem;
     cursor: pointer;
     transition: background 0.2s, transform 0.15s;
-    margin-top: 0.5rem;
+    margin-top: auto !important;
     text-align: center;
 }
 
@@ -667,6 +668,41 @@
     animation: spin 0.7s linear infinite;
 }
 
+.tools-box {
+    display: none;
+}
+
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 768px) {
+    .courses-container {
+        height: calc(100vh - 110px);
+    }
+
+    .courses-page-header .filter-dropdown {
+        display: none !important;
+    }
+
+    .courses-grid-container .course-card {
+        min-width: 230px;
+        max-width: 235px;
+    }
+
+    .tools-box {
+        display: block;
+    }
+}
+
+@media (min-width: 768px) {
+    .courses-container {
+        height: calc(100vh - 110px);
+    }
+
+    .tools-box {
+        display: none !important;
+    }
 }

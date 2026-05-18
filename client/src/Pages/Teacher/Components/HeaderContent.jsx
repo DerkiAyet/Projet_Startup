@@ -12,7 +12,7 @@ function HeaderContent({ title, creatorName, creationDate, commentCount, saveCou
 
     const {userAuth} = useContext(AppContext)
 
-    return (
+    return ( 
         <div className="cd-header">
             <div className="link-line">
                 {

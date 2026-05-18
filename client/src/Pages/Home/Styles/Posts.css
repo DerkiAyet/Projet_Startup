@@ -438,3 +438,9 @@
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
+
+@media (max-width: 768px) {
+  .postsfeed-container{
+    height: calc(100vh - 110px);
+  }
+}

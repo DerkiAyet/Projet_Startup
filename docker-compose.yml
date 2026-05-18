@@ -188,7 +188,7 @@ services:
       - "8082:8082"
     environment:
       EUREKA_URL: http://registry:8761/eureka/
-      CLIENT_ORIGIN: http://localhost:3000
+      CLIENT_ORIGIN: http://41.111.227.18:3000
 
   # ─────────────────────────────────────────
   # SERVICE 1 — AUTH (MySQL)
@@ -218,7 +218,7 @@ services:
       SQL_USER: root
       SQL_PWD: ayet2004
       SQL_HOST: mysql
-      CLIENT_ADDRESS: http://localhost:3000
+      CLIENT_ADDRESS: http://41.111.227.18:3000
       EUREKA_HOST: registry
       EUREKA_PORT: 8761
       KAFKA_BROKER: kafka:9092
@@ -325,7 +325,7 @@ services:
       IP: service4-notifications
       AUTH_SERVICE_URL: http://service1:7000
       AUTH_SERVICE_NAME: SERVICE1-AUTH
-      CLIENT_ORIGIN: http://localhost:3000
+      CLIENT_ORIGIN: http://41.111.227.18:3000
 
   # ─────────────────────────────────────────
   # SERVICE 6 — CONTENT HUB (MySQL)
@@ -369,8 +369,8 @@ services:
       context: ./client
       dockerfile: Dockerfile
       args:
-        - REACT_APP_API_URL_GATEWAY=http://localhost:8082  #  browser-facing URL (for the hosting we replace the localhost with the public ip address)
-        - REACT_APP_NOTIFICATION_URL=http://localhost:7003
+        - REACT_APP_API_URL_GATEWAY=http://snaplearn.ddns.net:8082  #  browser-facing URL (for the hosting we replace the localhost with the public ip address)
+        - REACT_APP_NOTIFICATION_URL=http://snaplearn.ddns.net:7003
     container_name: client
     networks:
       - platform-network

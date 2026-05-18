@@ -72,7 +72,7 @@
 }
 
 
-.courses-page-header .flex-row{
+.courses-page-header .flex-row {
     width: 100%;
     justify-content: space-between;
 }
@@ -359,6 +359,7 @@
     flex-shrink: 0;
     height: 100vh;
     overflow-y: auto;
+    z-index: 1000;
 }
 
 @keyframes slideInPanel {
@@ -567,7 +568,7 @@
     font-size: 0.95rem;
     cursor: pointer;
     transition: background 0.2s, transform 0.15s;
-    margin-top: 0.5rem;
+    margin-top: auto !important;
     text-align: center;
 }
 
@@ -656,4 +657,15 @@
     display: flex;
     align-items: flex-start;
     padding-top: 0.25rem;
+}
+
+@media (max-width: 768px) {
+    .courses-grid-container {
+        grid-template-columns: repeat(auto-fill, minmax(235px, 1fr));
+    }
+
+    .courses-grid-container .course-card {
+        min-width: 230px;
+        max-width: 235px;
+    }
 }

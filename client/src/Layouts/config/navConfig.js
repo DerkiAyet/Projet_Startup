@@ -38,10 +38,10 @@ export const teacherTools = [
 ];
 
 export const teacherMobileNav = [
-    { icon: CalendarIcon, path: '/calendar' },
+    { icon: CoursesIcon, path: "/courses" },
     { icon: ChatIcon, path: '/chats' },
     { icon: HomeIcon, path: '/' },
-    { icon: CoursesIcon, path: "/courses" },
+    { icon: PeopleIcon, path: "/my-students" },
     { icon: ProfileIcon, path: "/profile" },
 ];
 
@@ -60,7 +60,7 @@ export const studentTools = [
 ];
 
 export const studentMobileNav = [
-    { icon: ChartIcon, path: '/progress' },
+    { icon: CoursesIcon, path: '/activities' },
     { icon: ChatIcon, path: '/chats' },
     { icon: HomeIcon, path: '/' },
     { icon: SearchIcon, path: "/search" },
@@ -81,7 +81,7 @@ export const parentTools = [
 ];
 
 export const parentMobileNav = [
-    { icon: ChildrenIcon, path: '/my-children' },
+    { icon: PeopleIcon, path: '/parent-hub' },
     { icon: ChatIcon, path: '/chats' },
     { icon: HomeIcon, path: '/' },
     { icon: SearchIcon, path: "/search" },

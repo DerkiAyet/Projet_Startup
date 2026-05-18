@@ -179,7 +179,7 @@
     overflow: hidden;
 }
 
-.comment-line .comment-user-img .user-initials-avatar{
+.comment-line .comment-user-img .user-initials-avatar {
     height: 35px;
     width: 35px;
 }
@@ -219,7 +219,7 @@
     resize: none;
 }
 
-.add-reply-container textarea::placeholder{
+.add-reply-container textarea::placeholder {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
@@ -410,5 +410,29 @@
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+@media (max-width: 768px) {
+    .post-page-container {
+        height: 65%;
+        max-width: 100%;
+    }
+
+    .post-page-container .post-img-container {
+        flex: 0 1 35%
+    }
+
+    .post-page-container .post-comments-section {
+        flex: 0 1 65%
+    }
+
+    .post-icon {
+        width: 20px;
+        height: 20px;
+    }
+
+    .comment-content .comment-txt{
+        font-size: 0.9rem;
     }
 }

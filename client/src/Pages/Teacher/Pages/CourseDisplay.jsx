@@ -567,7 +567,7 @@ export default function CourseDisplay() {
                     </div>
                 </div>
 
-                {/* ── Sidebar ── */}
+                {/* ── Sidebar ── */} 
                 <aside className="cd-sidebar">
 
                     {/* Course Details */}

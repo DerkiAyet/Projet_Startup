@@ -179,11 +179,13 @@ router.get("/", async (req, res) => {
                                 text: c.text,
                                 replies: enrichedReplies,
                                 likes: c.likes,
+                                userId: c.userId,
                                 userName: resolvedCommentUser.userName,
                                 familyName: resolvedCommentUser.familyName,
                                 givenName: resolvedCommentUser.givenName,
                                 userImg: resolvedCommentUser.userImg,
-                                role: resolvedCommentUser.role
+                                role: resolvedCommentUser.role,
+                                createdAt: c.createdAt
                             };
                         })
                     );

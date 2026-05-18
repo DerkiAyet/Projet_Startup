@@ -94,7 +94,7 @@
 }
 
 .as-header h1 {
-    font-family: 'Pacifico', cursive;
+    font-family: 'Geologica', sans-serif !important;
     font-size: 1.35rem;
     color: var(--dark-font-color);
     margin-bottom: 0.7rem;
@@ -1104,4 +1104,10 @@
 .mcq-solve-indicator--active {
     background: var(--main-color);
     border-color: var(--main-color);
+}
+
+@media (max-width: 768px) {
+    .as-container{
+        height: calc(100vh - 110px) !important;
+    }
 }

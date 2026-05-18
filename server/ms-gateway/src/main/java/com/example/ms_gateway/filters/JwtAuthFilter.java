@@ -49,39 +49,58 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getURI().getPath();
 
-        // ── OPTIONS preflight — let pass ──
         if (exchange.getRequest().getMethod().name().equals("OPTIONS")) {
             return chain.filter(exchange);
         }
 
-        // ── Public routes — let pass ──
         if (PUBLIC_PATHS.stream().anyMatch(path::startsWith)) {
             return chain.filter(exchange);
         }
 
+        // ── Extract tokens (cookie for web, header for mobile) ──
         HttpCookie accessCookie  = exchange.getRequest().getCookies().getFirst("accessToken");
         HttpCookie refreshCookie = exchange.getRequest().getCookies().getFirst("refreshToken");
 
-        System.out.println("ACCESS COOKIE:  " + (accessCookie  != null ? "PRESENT" : "NULL"));
-        System.out.println("REFRESH COOKIE: " + (refreshCookie != null ? "PRESENT" : "NULL"));
+        String authHeader        = exchange.getRequest().getHeaders().getFirst("Authorization");
+        String refreshHeader     = exchange.getRequest().getHeaders().getFirst("X-Refresh-Token");
+
+        String accessTokenValue  = null;
+        String refreshTokenValue = null;
+        boolean isMobile         = false;
+
+        // Determine source — cookie (web) or header (mobile)
+        if (accessCookie != null) {
+            accessTokenValue  = accessCookie.getValue();
+            refreshTokenValue = refreshCookie != null ? refreshCookie.getValue() : null;
+            isMobile          = false;
+        } else if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            accessTokenValue  = authHeader.substring(7);
+            refreshTokenValue = refreshHeader;
+            isMobile          = true;
+        }
+
+        System.out.println("CLIENT TYPE   : " + (isMobile ? "MOBILE" : "WEB"));
+        System.out.println("ACCESS TOKEN  : " + (accessTokenValue  != null ? "PRESENT" : "NULL"));
+        System.out.println("REFRESH TOKEN : " + (refreshTokenValue != null ? "PRESENT" : "NULL"));
 
         // ── Case 1 : accessToken present and valid ──
-        if (accessCookie != null) {
+        if (accessTokenValue != null) {
             try {
-                Claims claims = parseToken(accessCookie.getValue(), accessSecret);
+                Claims claims = parseToken(accessTokenValue, accessSecret);
                 System.out.println("ACCESS TOKEN VALID — userId: " + claims.get("userId"));
                 return chain.filter(injectHeaders(exchange, claims));
             } catch (ExpiredJwtException e) {
                 System.out.println("ACCESS TOKEN EXPIRED → trying refresh");
             } catch (Exception e) {
                 System.out.println("ACCESS TOKEN ERROR: " + e.getMessage());
+                return unauthorized(exchange, "Invalid access token");
             }
         }
 
         // ── Case 2 : renew with refreshToken ──
-        if (refreshCookie != null) {
+        if (refreshTokenValue != null) {
             try {
-                Claims claims = parseToken(refreshCookie.getValue(), refreshSecret);
+                Claims claims = parseToken(refreshTokenValue, refreshSecret);
                 System.out.println("REFRESH TOKEN VALID — userId: " + claims.get("userId"));
 
                 String newAccessToken = Jwts.builder()
@@ -93,19 +112,25 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
                         .signWith(getKey(accessSecret), SignatureAlgorithm.HS256)
                         .compact();
 
-                exchange.getResponse().addCookie(
-                        ResponseCookie.from("accessToken", newAccessToken)
-                                .maxAge(Duration.ofMinutes(15))
-                                .httpOnly(true)
-                                .path("/")
-                                .build()
-                );
+                if (isMobile) {
+                    // ── Mobile : return new access token in response header ──
+                    exchange.getResponse().getHeaders().add("X-New-Access-Token", newAccessToken);
+                } else {
+                    // ── Web : set new access token as cookie ──
+                    exchange.getResponse().addCookie(
+                            ResponseCookie.from("accessToken", newAccessToken)
+                                    .maxAge(Duration.ofMinutes(15))
+                                    .httpOnly(true)
+                                    .path("/")
+                                    .build()
+                    );
+                }
 
                 return chain.filter(injectHeaders(exchange, claims));
 
             } catch (ExpiredJwtException e) {
                 System.out.println("REFRESH TOKEN EXPIRED");
-                return unauthorized(exchange, "Refresh token expired");
+                return unauthorized(exchange, "Session expired, please log in again");
             } catch (SignatureException e) {
                 System.out.println("REFRESH TOKEN BAD SIGNATURE");
                 return unauthorized(exchange, "Invalid signature");
@@ -115,7 +140,7 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
             }
         }
 
-        return unauthorized(exchange, "No token");
+        return unauthorized(exchange, "No token provided");
     }
 
     private Key getKey(String secret) {

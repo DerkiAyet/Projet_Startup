@@ -469,3 +469,30 @@
     color: var(--light-grey-font-color);
     font-family: 'Nunito', sans-serif;
 }
+
+@media (max-width: 768px) {
+  .calendar-container{
+    min-height: calc(100vh - 110px);
+  }
+
+  .calendar-top-container{
+    display: none;
+  }
+
+  .calendar-bottom-container{
+    height: auto;
+    flex: 1;
+  }
+
+  .calendar-bottom-container .calendar-legend{
+    display: none;
+  }
+
+  .calendar-bottom-container .react-calendar{
+    flex: 1 1 75%;
+  }
+
+  .calendar-bottom-container .the-coming-events{
+    flex: 1 1 25%;
+  }
+}

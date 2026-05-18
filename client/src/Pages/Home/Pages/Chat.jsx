@@ -295,11 +295,15 @@ export default function Chat() {
         }
     };
 
+    const handleBack = () => {
+        setActiveConvo(null);
+    };
+
     return (
         <div className="chat-app">
 
             {/* ── Sidebar ── */}
-            <aside className="sidebar">
+            <aside className={`sidebar ${activeConvo ? 'hidden-mobile' : ''}`}>
                 <div className="sidebar-header">
                     <div className="search-wrap">
                         <i className="ri-search-line search-icon" />
@@ -373,6 +377,13 @@ export default function Chat() {
                         </div> :
                         <>
                             <div className="chat-header">
+                                <button
+                                    className="header-icon-btn back-btn"
+                                    onClick={handleBack}
+                                    style={{ display: 'none' }}
+                                >
+                                    <i className="ri-arrow-left-line" />
+                                </button>
                                 <Avatar name={getConvoName(activeConvo)} pic={getConvoImg(activeConvo)} />
                                 <div className="chat-header-info">
                                     <div className="chat-header-name">{getConvoName(activeConvo)}</div>
@@ -736,7 +747,7 @@ const NewGroup = ({ onClose, itemRef, users, onConvoCreated }) => {
                             onKeyDown={handleKey}
                         />
                     </div>
- 
+
                     <div className="search-result-wrap">
                         {resultSearch.map((user) => {
                             const isSelected = selected.some(u => u.id === user.id);

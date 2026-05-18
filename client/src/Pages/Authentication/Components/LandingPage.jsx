@@ -14,7 +14,7 @@ function LandingPage() {
 
     const { t } = useTranslation()
 
-    return (
+    return ( 
         <div className='lp_container'>
             <div className="lp_wrapper">
                 <header className="lp_header">

@@ -10,11 +10,18 @@ spring:
         corsConfigurations:
           '[/**]':
             allowedOrigins:
-              - "${CLIENT_ORIGIN:http://localhost:3000}"
+              - "${CLIENT_ORIGIN:http://localhost:3000}"  # web app — unchanged
+              - "http://localhost:8081"                    # Expo dev server
+              - "http://192.168.1.7:8081"                 # your PC IP — replace x
+              - "http://10.0.2.2:8081"   # ← add this for Android emulator (maps to localhost of the host machine)
             allowedMethods:
               - "*"
             allowedHeaders:
               - "*"
+              - "Authorization"        # ← needed for mobile Bearer token
+              - "X-Refresh-Token"      # ← needed for mobile refresh token
+            exposedHeaders:
+              - "X-New-Access-Token"   # ← mobile needs to READ this from response
             allowCredentials: true
 
       routes:

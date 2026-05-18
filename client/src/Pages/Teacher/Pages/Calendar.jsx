@@ -10,7 +10,7 @@ import { ReactComponent as TimeIcon } from '../../../Assets/icons/Calendar/time-
 import ChartImg from '../../../Assets/images/chart-img.png'
 import axios from 'axios'
 
-
+ 
 const localizer = dateFnsLocalizer({
     format, parse, startOfWeek, getDay,
     locales: { 'en-US': enUS },

@@ -9,9 +9,13 @@ import { ReactComponent as CommentIcon } from '../../../Assets/icons/CourseIcons
 import { ReactComponent as LessonIcon } from '../../../Assets/icons/CourseIcons/lessons-course.svg'
 import { ReactComponent as GridIcon } from '../../../Assets/icons/CourseIcons/grid-mode.svg'
 import { ReactComponent as LineIcon } from '../../../Assets/icons/CourseIcons/line-mode.svg'
+import { ReactComponent as ToolsIcon } from '../../../Assets/icons/NavIcons/tools.svg'
+import { ReactComponent as CreateCourseIcon } from '../../../Assets/icons/NavIcons/create-course.svg';
+import { ReactComponent as CreateExerciseIcon } from '../../../Assets/icons/NavIcons/create-exercice.svg';
+import { ReactComponent as CreateTipIcon } from '../../../Assets/icons/NavIcons/create-tip.svg';
 import { AppContext } from '../../../App'
 import axios from 'axios'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { fixMediaUrl } from '../../../Utilities/utils/fixMedia'
 
 
@@ -270,6 +274,10 @@ function Courses() {
         a?.title?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    const [toolsClicked, setToolsClicked] = useState(false)
+
+    const navigate = useNavigate()
+
     return (
         <div className='courses-container' onClick={() => viewClicked && setViewClicked(false)}>
             <div className="courses-wrapper">
@@ -284,7 +292,7 @@ function Courses() {
                             />
                             <SearchIcon />
                         </div>
-                        <div className="header-box filter-dropdown">
+                        <div className="header-box filter-dropdown cat-filter">
                             <span>All Categories</span>
                             <ArrowDown />
                         </div>
@@ -299,6 +307,25 @@ function Courses() {
                                         </li>
                                         <li onClick={(e) => { e.stopPropagation(); setViewMode("line"); setViewClicked(false); }}>
                                             Row Mode <LineIcon />
+                                        </li>
+                                    </ul>
+                                </div>
+                            )}
+                        </div>
+                        <div className="header-box tools-box cat-filter" onClick={(e) => { e.stopPropagation(); setToolsClicked((prev) => !prev) }}>
+                            <span>Tools</span>
+                            <ToolsIcon />
+                            {toolsClicked && (
+                                <div className="drop-down-box">
+                                    <ul>
+                                        <li onClick={(e) => { e.stopPropagation(); navigate('/create-course'); setToolsClicked(false) }}>
+                                            Create Course <CreateCourseIcon />
+                                        </li>
+                                        <li onClick={(e) => { e.stopPropagation(); navigate('/create-assignment'); setToolsClicked(false) }}>
+                                            Create Assignment <CreateExerciseIcon />
+                                        </li>
+                                        <li onClick={(e) => { e.stopPropagation(); navigate('/create-tip'); setToolsClicked(false) }}>
+                                            Create Tip <CreateTipIcon />
                                         </li>
                                     </ul>
                                 </div>

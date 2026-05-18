@@ -509,3 +509,9 @@
 #light-mode .social-auth-btn {
     color: var(--dark-font-color);
 }
+
+@media (max-width: 768px) {
+    .signup-container .img-wrapper{
+        display: none;
+    }
+}

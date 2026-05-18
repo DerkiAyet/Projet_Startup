@@ -71,6 +71,7 @@ function App() {
   })
 
   const navigate = useNavigate()
+  const [isVerifying, setIsVerifying] = useState(true); // 👈 add this
 
   useEffect(() => {
     const verifyUser = async () => {
@@ -102,6 +103,8 @@ function App() {
         // });
         navigate('/welcome')
         console.log(err);
+      } finally {
+        setIsVerifying(false); // 
       }
     };
 
@@ -163,6 +166,43 @@ function App() {
       default:
         return <section>No user</section>;
     }
+  }
+
+  if (isVerifying) {
+    return (
+      <div style={{
+        width: "100vw",
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#fff"
+      }}>
+        {/* Replace with your own logo/spinner */}
+        <div style={{
+          width: "48px",
+          height: "48px",
+          border: "4px solid #f0f0f0",
+          borderTop: "4px solid var(--main-color, #F29DB6)",
+          borderRadius: "50%",
+          animation: "spin 0.8s linear infinite"
+        }} />
+        <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+        <p style={{
+          marginTop: "1rem",
+          fontFamily: "'Nunito', sans-serif",
+          color: "#8A8A8A",
+          fontSize: "0.95rem"
+        }}>
+          Loading...
+        </p>
+      </div>
+    );
   }
 
   return (

@@ -598,7 +598,7 @@
 
 .new-chat-btn .add-options {
     position: absolute;
-    top: 110%;
+    top: 120%;
     left: 50%;
     padding: 0.5rem;
     background-color: var(--nc-modal-bg);
@@ -932,4 +932,57 @@
 
 .leave-group-btn i {
     font-size: 1rem;
+}
+
+@media (max-width: 768px) {
+
+  .chat-app {
+    height: calc(100dvh - 110px); /* dynamic viewport height - handles mobile browser chrome */
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Sidebar takes full width on mobile */
+  .sidebar {
+    width: 100%;
+    min-width: 100%;
+    border-right: none;
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    transition: transform 0.3s ease;
+  }
+
+  .sidebar.hidden-mobile {
+    transform: translateX(-100%);
+    pointer-events: none;
+  }
+
+  .new-chat-btn .add-options{
+    left: -38vw;
+  }
+
+  .chat-panel {
+    width: 100%;
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+  }
+
+  .members-panel {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .bubble {
+    max-width: 80%;
+  }
+
+  .nc-overlay .nc-container {
+    width: 92vw;
+  }
+
+  .back-btn {
+    display: flex !important;
+  }
 }

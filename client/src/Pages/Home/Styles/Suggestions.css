@@ -93,3 +93,9 @@
     color: var(--blue-bg-color);
     font-weight: 600;
 }
+
+@media (max-width: 768px) {
+  .suggestions-column{
+    display: none !important;
+  }
+}

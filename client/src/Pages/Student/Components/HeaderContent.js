@@ -38,21 +38,6 @@ function HeaderContent({ title, creatorName, creationDate, commentCount, saveCou
                         <AuthorIcon className='cd-icon-header' />
                         {creatorName}
                     </div>
-                    <div className="feature-line">
-                        <CalendarIcon className='cd-icon-header' />
-                        {creationDate}
-                    </div>
-                    <div className="feature-line">
-                        <CommentIcon className='cd-icon-header' />
-                        {commentCount} comments
-                    </div>
-                    <div className="feature-line">
-                        <SaveIcon className='cd-icon-header' />
-                        {saveCount} saves
-                    </div>
-                    <div className="feature-line rating-stars">
-                        {ratingAvg} stars
-                    </div>
                     {graded && (
                         <div className="feature-line">
                             <span style={{

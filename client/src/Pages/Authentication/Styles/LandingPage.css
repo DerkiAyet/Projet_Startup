@@ -238,7 +238,7 @@ a {
     background-position: center 250%;
 }
 
-.section-flex-box .section-btn, 
+.section-flex-box .section-btn,
 #join-section .section-btn {
     margin-top: 1.5rem;
     align-self: flex-start;
@@ -513,7 +513,7 @@ a {
     font-weight: 200;
 }
 
-#join-section .section-btn{
+#join-section .section-btn {
     align-self: center;
 }
 
@@ -675,8 +675,13 @@ a {
 }
 
 @keyframes blobFloat {
-    from { transform: translate(0px, 0px) scale(1); }
-    to   { transform: translate(18px, 22px) scale(1.05); }
+    from {
+        transform: translate(0px, 0px) scale(1);
+    }
+
+    to {
+        transform: translate(18px, 22px) scale(1.05);
+    }
 }
 
 /* Make sure content sits above blobs */
@@ -711,7 +716,7 @@ a {
     color: #fff;
     margin-left: -10px;
     font-family: 'Plus Jakarta Sans', sans-serif;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .avatar-bubble:first-child {
@@ -736,4 +741,63 @@ a {
     color: var(--light-font-color);
     font-weight: 400;
     font-family: 'Plus Jakarta Sans', sans-serif;
+}
+
+
+@media (max-width: 768px) {
+    .lp_header{
+        padding: 1rem 1.7rem !important;
+    }
+
+    .lp_header nav ul {
+        display: none;
+    }
+
+    .lp_container section .section-flex-box.img-box {
+        display: none;
+    }
+
+    #join-section img {
+        display: block;
+    }
+
+    .lp_container section .section-flex-box {
+        flex: 1 1 100%;
+        min-width: 100%
+    }
+
+    .courses-grid {
+        display: flex;
+        overflow-y: auto;
+    }
+
+    .courses-grid::-webkit-scrollbar {
+        display: none;
+    }
+
+    #courses-section .course-card {
+        min-width: 350px;
+    }
+
+    .sections-container  h1 {
+        font-size: 1.7rem !important;
+    }
+
+    #join-section .floating-join-box{
+        width: 100%;
+        gap: 0.2rem;
+    }
+
+    #join-section .floating-join-box p{
+        width: 80%;
+    }
+
+    .lp_footer .footer-top{
+        flex-wrap: wrap;
+    }
+
+    .lp_container section .section-btn{
+        padding: 0.7rem 0.85rem !important;
+        font-size: 1rem !important;
+    }
 }

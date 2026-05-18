@@ -56,7 +56,7 @@
 }
 
 .cd-header h1 {
-    font-family: 'Pacifico', cursive;
+    font-family: 'Geologica', cursive;
     font-size: 1.35rem;
     color: var(--cd-dark);
     margin: 0 0 1.2rem;
@@ -455,7 +455,8 @@
 
 /* ── Comments ────────────────────────────────────────── */
 
-.cd-comments, .cd-recommand-line {
+.cd-comments,
+.cd-recommand-line {
     background: var(--cd-white);
     border: 1.5px solid var(--cd-border);
     border-radius: 16px;
@@ -472,7 +473,7 @@
     justify-content: space-between;
 }
 
-.cd-recommand-line p{
+.cd-recommand-line p {
     font-family: 'Pacifico', cursive;
     font-size: 1rem;
     color: var(--cd-dark);
@@ -483,7 +484,7 @@
     font-weight: 600;
 }
 
-.cd-recommand-line button{
+.cd-recommand-line button {
     border: 1.5px solid transparent;
     background-color: var(--cd-pink);
     color: var(--cd-white);
@@ -496,7 +497,7 @@
     cursor: pointer;
 }
 
-.cd-recommand-line button:hover{
+.cd-recommand-line button:hover {
     border: 1.5px solid var(--cd-pink);
     background-color: transparent;
     color: var(--cd-pink);
@@ -1032,12 +1033,12 @@
     color: var(--cd-pink);
 }
 
-.cd-quiz-body span{
+.cd-quiz-body span {
     font-family: 'Geologica', sans-serif;
     margin-bottom: 1.2rem;
 }
 
-.cd-quiz-body button{
+.cd-quiz-body button {
     background: var(--cd-pink);
     border: 2px solid transparent;
     color: white;
@@ -1101,6 +1102,14 @@
 
     .cd-details-grid {
         grid-template-columns: 1fr 1fr;
+    }
+
+    .cd-sidebar {
+        display: none !important;
+    }
+
+    .cd-header .options-header-right {
+        display: none;
     }
 }
 

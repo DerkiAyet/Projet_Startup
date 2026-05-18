@@ -77,15 +77,20 @@ router.post('/register', async (req, res) => {
             userName: newUser.userName,
             userRole: newUser.role
         }, process.env.JWT_REFRESH_SECRET, {
-            expiresIn: '7d'
+            expiresIn: '14d'
         });
 
-        res.cookie('accessToken', accessToken, { maxAge: 900000 });
+        res.cookie('accessToken', accessToken, {
+            maxAge: 900000,
+            httpOnly: true,
+            sameSite: 'lax',   // lax instead of strict
+            secure: false       // false because HTTP not HTTPS
+        });
         res.cookie('refreshToken', refreshToken, {
             maxAge: 14 * 24 * 60 * 60 * 1000,
             httpOnly: true,
-            secure: true,
-            sameSite: 'strict'
+            sameSite: 'lax',   // lax instead of strict
+            secure: false
         });
 
         if (role === 'parent') {
@@ -121,6 +126,104 @@ router.post('/register', async (req, res) => {
         return res.status(201).json({
             message: 'User registered successfully',
             userId: newUser.id
+        });
+
+    } catch (error) {
+        console.error('Error during registration:', error);
+        return res.status(500).json({ error: 'An error occurred during registration' });
+    }
+})
+
+router.post('/mobile/register', async (req, res) => {
+
+    const { role, familyName, givenName, DateOfBirth, userName, email, password } = req.body;
+
+    try {
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const existingUser = await Users.findOne({ where: { email: email } });
+
+        if (existingUser) {
+            return res.status(400).json({ errorEmail: 'Email already in use' });
+        }
+
+        let finalUserName = userName;
+
+        if (!finalUserName) {
+            if (role === "admin") {
+                finalUserName = `admin_${familyName}_${Date.now()}`;
+            }
+        } else {
+            const existingUserName = await Users.findOne({ where: { userName: userName } })
+
+            if (existingUserName) {
+                return res.status(400).json({ errorUsername: 'UserName already in use' });
+            }
+        }
+
+        const newUser = await Users.create({
+            userName: finalUserName,
+            familyName: familyName,
+            givenName: givenName,
+            email: email,
+            pwd: hashedPassword,
+            dateOfBirth: DateOfBirth,
+            role: role
+        });
+
+        await publishUsers(newUser);
+
+        const accessToken = sign({
+            userId: newUser.id,
+            userName: newUser.userName,
+            userRole: newUser.role
+        }, process.env.JWT_ACCESS_SECRET, {
+            expiresIn: '15m'
+        });
+
+        const refreshToken = sign({
+            userId: newUser.id,
+            userName: newUser.userName,
+            userRole: newUser.role
+        }, process.env.JWT_REFRESH_SECRET, {
+            expiresIn: '90d'   //longer for mobile
+        });
+
+        if (role === 'parent') {
+            await Parents.create({
+                idParent: newUser.id,
+                userName: newUser.userName,
+                familyName: newUser.familyName,
+                givenName: newUser.givenName,
+            })
+        } else if (role === 'student') {
+            await Students.create({
+                idStudent: newUser.id,
+                userName: newUser.userName,
+                familyName: newUser.familyName,
+                givenName: newUser.givenName,
+            })
+        } else if (role === 'teacher') {
+            await Teachers.create({
+                idTeacher: newUser.id,
+                userName: newUser.userName,
+                familyName: newUser.familyName,
+                givenName: newUser.givenName,
+            })
+        } else {
+            await Admins.create({
+                familyName: newUser.familyName,
+                givenName: newUser.givenName,
+                email: newUser.email,
+                pwd: hashedPassword,
+            })
+        }
+
+        return res.status(201).json({
+            message: 'User registered successfully',
+            userId: newUser.id,
+            accessToken,
+            refreshToken  // mobile stores this in SecureStore
         });
 
     } catch (error) {
@@ -178,12 +281,17 @@ router.post('/login', async (req, res) => {
                     expiresIn: '14d'
                 });
 
-                res.cookie('accessToken', accessToken, { maxAge: 900000 });
+                res.cookie('accessToken', accessToken, {
+                    maxAge: 900000,
+                    httpOnly: true,
+                    sameSite: 'lax',   // lax instead of strict
+                    secure: false       // false because HTTP not HTTPS
+                });
                 res.cookie('refreshToken', refreshToken, {
                     maxAge: 14 * 24 * 60 * 60 * 1000,
                     httpOnly: true,
-                    secure: true,
-                    sameSite: 'strict'
+                    sameSite: 'lax',   // lax instead of strict
+                    secure: false       // false because HTTP not HTTPS
                 });
 
                 res.status(200).json({
@@ -193,6 +301,79 @@ router.post('/login', async (req, res) => {
                     givenName: user.givenName,
                     userImg: user.uerImg,
                     role: user.role
+                })
+
+            }
+        })
+
+    } catch (error) {
+
+        res.status(500).json({
+            error: "Internal server error while searching for the user"
+        })
+
+    }
+
+})
+
+router.post('/mobile/login', async (req, res) => {
+    const { identifier, password } = req.body;
+
+    try {
+
+        if (!identifier) {
+            return res.status(400).json({ error: "Please enter your email or username" });
+        }
+
+        // Detect if identifier is an email
+        const isEmail = identifier.includes('@');
+
+        const user = await Users.findOne({
+            where: isEmail
+                ? { email: identifier }
+                : { userName: identifier }
+        });
+
+        if (!user) {
+            return res.status(400).json({
+                errorUser: "User doesn't exist"
+            });
+        }
+
+        bcrypt.compare(password, user.pwd).then((match) => {
+            if (!match) {
+
+                return res.status(400).json({
+                    errorPassword: "wrong password"
+                })
+
+            } else {
+
+                const accessToken = sign({
+                    userId: user.id,
+                    userName: user.userName,
+                    userRole: user.role
+                }, process.env.JWT_ACCESS_SECRET, {
+                    expiresIn: '15m'
+                });
+
+                const refreshToken = sign({
+                    userId: user.id,
+                    userName: user.userName,
+                    userRole: user.role
+                }, process.env.JWT_REFRESH_SECRET, {
+                    expiresIn: '90d'
+                });
+
+                res.status(200).json({
+                    userId: user.id,
+                    userName: user.userName,
+                    familyName: user.familyName,
+                    givenName: user.givenName,
+                    userImg: user.uerImg,
+                    role: user.role,
+                    accessToken,
+                    refreshToken  // mobile stores this in SecureStore
                 })
 
             }

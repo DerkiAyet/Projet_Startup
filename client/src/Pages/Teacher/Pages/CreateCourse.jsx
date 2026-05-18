@@ -237,7 +237,7 @@ function CreateCourse() {
     <div className='create-course-container'>
       <div className="create-course-wrapper">
         {
-          step === 0 ?
+          step === 0 ? 
             <>
               <div className="create-course-header">
                 <h1 className='create-course-title'>Create New Course</h1>

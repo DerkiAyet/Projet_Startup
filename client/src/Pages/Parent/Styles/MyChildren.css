@@ -453,5 +453,17 @@
 
 .mc-rec-empty-icon {
     font-size: 1.2rem;
-    color: var(--mc-pink-accent-color);
+    color: var(--mc-pink-accent-color); 
+}
+
+/* ── Responsive ── */
+@media (max-width: 960px) {
+    .ms-stats-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .mc-charts-row,
+    .mc-bottom-row {
+        grid-template-columns: 1fr;
+    }
 }

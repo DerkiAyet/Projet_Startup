@@ -24,7 +24,9 @@
     align-items: center;
 }
 
-.search-page::-webkit-scrollbar { display: none; }
+.search-page::-webkit-scrollbar {
+    display: none;
+}
 
 /* ─── Hero ─────────────────────────────────────────────────────────────────── */
 
@@ -176,8 +178,15 @@
 }
 
 @keyframes pillPop {
-    from { opacity: 0; transform: scale(0.8); }
-    to   { opacity: 1; transform: scale(1); }
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 .selected-pill button {
@@ -192,7 +201,9 @@
     transition: opacity 0.15s;
 }
 
-.selected-pill button:hover { opacity: 1; }
+.selected-pill button:hover {
+    opacity: 1;
+}
 
 /* ─── Category dropdown ─────────────────────────────────────────────────────── */
 
@@ -212,8 +223,15 @@
 }
 
 @keyframes dropdownOpen {
-    from { opacity: 0; transform: translateY(-6px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .dropdown-label {
@@ -250,7 +268,7 @@
     transition: border-color 0.18s, background 0.18s, color 0.18s, transform 0.12s;
     position: relative;
 }
-
+ 
 .dropdown-cat-chip:hover {
     border-color: var(--light-pink-accent-color);
     background: #fff5f8;
@@ -370,11 +388,27 @@
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
-.made-by{
+.made-by {
     margin-top: 0.3rem;
     color: #8E8E8E;
     font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .search-page {
+        height: calc(100vh - 110px);
+    }
+
+    .courses-grid-container {
+        grid-template-columns: repeat(auto-fill, minmax(235px, 1fr));
+    }
+
+    .courses-page-header .filter-dropdown {
+        display: none !important;
+    }
 }
