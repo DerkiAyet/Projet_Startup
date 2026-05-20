@@ -4,6 +4,8 @@ import { ReactComponent as CloseIcon } from '../../Assets/icons/TimelineIcons/cl
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
+axios.defaults.withCredentials = true;
+
 const TYPE_CONFIG = {
   REQUEST_LINK_PARENT_CHILD: {
     icon: (

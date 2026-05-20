@@ -31,6 +31,11 @@ const NotificationSchema = new mongoose.Schema({
       'URGENT_NOTIFICATION',
       'NEW_MESSAGE',
       'NEW_RECOMMENDATION',
+      'JOIN_REQUEST',
+      'JOIN_ACCEPTED',
+      'JOIN_REJECTED',
+      'NEW_CLASSROOM_POST',
+      'SESSION_STARTED',
       'SYSTEM',
     ],
     required: true

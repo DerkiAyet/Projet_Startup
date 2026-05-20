@@ -2,7 +2,7 @@ const express = require('express')
 const cors = require('cors')
 require('dotenv').config({ path: './config/config.env' });
 const mongoose = require('mongoose')
-const { setupWebSocket } = require('./config/socket')
+const { setupWebSocket, getIO } = require('./config/socket')
 const { startConsumer } = require('./config/kafka/consumer')
 const { handleCreateNotification } = require('./routes/notify')
 
@@ -53,7 +53,7 @@ app.use('/messages', messageRouter)
 const startServer = async () => {
 
     try {
-        await startConsumer(handleCreateNotification);
+        await startConsumer(handleCreateNotification, getIO);
         console.log('[Kafka] Consumer started');
     } catch (err) {
         console.error('[Kafka] Consumer failed to start:', err.message);

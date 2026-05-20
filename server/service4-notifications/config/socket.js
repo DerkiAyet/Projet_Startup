@@ -85,6 +85,71 @@ function setupWebSocket(server) {
       });
     });
 
+
+    socket.on('join_classroom', ({ classroomId }) => {
+      socket.join(`classroom:${classroomId}`);
+      console.log(`Socket ${socket.id} joined classroom:${classroomId}`);
+    });
+
+    socket.on('leave_classroom', ({ classroomId }) => {
+      socket.leave(`classroom:${classroomId}`);
+    });
+
+    // ── Collaborative session (assignment) ───────────────────────
+
+    socket.on('join_session', ({ sessionId }) => {
+      socket.join(`session:${sessionId}`);
+      console.log(`Socket ${socket.id} joined session:${sessionId}`);
+    });
+
+    socket.on('leave_session', ({ sessionId }) => {
+      socket.leave(`session:${sessionId}`);
+    });
+
+    // Phase change — teacher triggers this
+    socket.on('session:phase_change', ({ sessionId, phase }) => {
+      // broadcast to everyone in the session including sender
+      io.to(`session:${sessionId}`).emit('session:phase_updated', {
+        sessionId,
+        phase
+      });
+    });
+
+    // Consensus lock — student claims the edit lock
+    socket.on('consensus:lock', ({ sessionId, exerciseId, userId }) => {
+      io.to(`session:${sessionId}`).emit('consensus:locked', {
+        sessionId,
+        exerciseId,
+        lockedBy: userId
+      });
+    });
+
+    // Consensus typing — broadcast text as student types
+    socket.on('consensus:typing', ({ sessionId, exerciseId, text, userId }) => {
+      socket.to(`session:${sessionId}`).emit('consensus:updated', {
+        sessionId,
+        exerciseId,
+        text,
+        updatedBy: userId
+      });
+    });
+
+    // Consensus unlock — student leaves the field
+    socket.on('consensus:unlock', ({ sessionId, exerciseId }) => {
+      io.to(`session:${sessionId}`).emit('consensus:unlocked', {
+        sessionId,
+        exerciseId
+      });
+    });
+
+    // Student submitted their individual sheet
+    socket.on('session:sheet_submitted', ({ sessionId, userId }) => {
+      socket.to(`session:${sessionId}`).emit('session:student_submitted', {
+        sessionId,
+        userId
+      });
+    });
+
     socket.on("disconnect", () => {
       console.log("Client disconnected:", socket.id);
       for (const [userId, info] of Object.entries(connectedUsers)) {
@@ -124,12 +189,25 @@ function sendSystemNotification(data) {
   });
 }
 
+function sendClassroomEvent(classroomId, event, data) {
+  if (!io) throw new Error("WebSocket server not initialized");
+  io.to(`classroom:${classroomId}`).emit(event, data);
+}
+
+function sendSessionEvent(sessionId, event, data) {
+  if (!io) throw new Error("WebSocket server not initialized");
+  io.to(`session:${sessionId}`).emit(event, data);
+}
+
+
 module.exports = {
   setupWebSocket,
   sendNotification,
   sendRoleNotification,
   sendBroadcastNotification,
   sendSystemNotification,
+  sendClassroomEvent,
+  sendSessionEvent,
   getIO: () => io,
   getActiveConversations: () => activeConversations,
   getConnectedUsers: () => connectedUsers

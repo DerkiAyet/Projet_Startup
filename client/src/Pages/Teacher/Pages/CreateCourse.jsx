@@ -11,6 +11,8 @@ import axios from 'axios'
 import PublishQuizSuccessPopup from '../Components/PublishQuizSuccessPopup'
 import Loader from '../../../Partials/Components/Loader'
 
+axios.defaults.withCredentials = true;
+
 function CreateCourse() {
 
   const [courseData, setCourseData] = useState({

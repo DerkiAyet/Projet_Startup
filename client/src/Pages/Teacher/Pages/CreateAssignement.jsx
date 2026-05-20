@@ -12,6 +12,8 @@ import PublishSuccessPopup from '../Components/Publishsuccesspopup'
 import axios from 'axios'
 import Loader from '../../../Partials/Components/Loader'
 
+axios.defaults.withCredentials = true;
+
 const newMCQQuestion = () => ({
   questionContent: "",
   options: [

@@ -7,6 +7,7 @@ import axios from "axios";
 import "../Styles/MyStudents.css";
 import ListStudents from "../Components/ListStudents";
 
+axios.defaults.withCredentials = true;
 
 const STUDENT_COLORS = [
     "#378ADD", "#7F77DD", "#1D9E75", "#BA7517",

@@ -10,13 +10,14 @@ const usersCache = new Map();
 
 const consumer = kafka.consumer({ groupId: 'notification-service-group' });
 
-const startConsumer = async (handleCreateNotification) => {
+const startConsumer = async (handleCreateNotification, getIO) => {
     await consumer.connect();
     console.log('[Kafka] Notification consumer connected');
 
     // ── one topic for all notification events ──
     await consumer.subscribe({ topic: 'notifications.events', fromBeginning: true });
     await consumer.subscribe({ topic: 'users.sync', fromBeginning: true })
+    await consumer.subscribe({ topic: 'socket.events', fromBeginning: true }); // pour les événements de socket (ex: classroom/session)
 
     await consumer.run({
         eachMessage: async ({ topic, message }) => {
@@ -44,6 +45,25 @@ const startConsumer = async (handleCreateNotification) => {
                 } catch (err) {
                     console.error('[Kafka] Failed to process notification event:', err.message);
                 }
+            }
+
+            if (topic === 'socket.events') {
+                try {
+                    const { room, event, data } = payload;
+                    const io = getIO();
+
+                    if (!io) {
+                        console.error('[Kafka] io not ready yet');
+                        return;
+                    }
+
+                    io.to(room).emit(event, data);
+                    console.log(`[Kafka] Emitted "${event}" to room "${room}"`);
+
+                } catch (err) {
+                    console.error('[Kafka] Failed to process socket event:', err.message);
+                }
+                return;
             }
         }
     });

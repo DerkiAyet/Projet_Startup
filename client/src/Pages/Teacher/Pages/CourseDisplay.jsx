@@ -24,6 +24,7 @@ import QuizViewer from "../Components/QuizViewer";
 import RecommendContent from "../../Parent/Components/RecommendContent";
 import ToastMessage from '../../../Partials/Components/ToastMessage';
 
+axios.defaults.withCredentials = true
 
 const RECOMMENDATIONS = [
     {

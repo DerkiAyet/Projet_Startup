@@ -58,29 +58,29 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
         }
 
         // ── Extract tokens (cookie for web, header for mobile) ──
-        HttpCookie accessCookie  = exchange.getRequest().getCookies().getFirst("accessToken");
+        HttpCookie accessCookie = exchange.getRequest().getCookies().getFirst("accessToken");
         HttpCookie refreshCookie = exchange.getRequest().getCookies().getFirst("refreshToken");
 
-        String authHeader        = exchange.getRequest().getHeaders().getFirst("Authorization");
-        String refreshHeader     = exchange.getRequest().getHeaders().getFirst("X-Refresh-Token");
+        String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
+        String refreshHeader = exchange.getRequest().getHeaders().getFirst("X-Refresh-Token");
 
-        String accessTokenValue  = null;
+        String accessTokenValue = null;
         String refreshTokenValue = null;
-        boolean isMobile         = false;
+        boolean isMobile = false;
 
         // Determine source — cookie (web) or header (mobile)
-        if (accessCookie != null) {
-            accessTokenValue  = accessCookie.getValue();
+        if (accessCookie != null || refreshCookie != null) {
+            accessTokenValue = accessCookie != null ? accessCookie.getValue() : null; // ← safe
             refreshTokenValue = refreshCookie != null ? refreshCookie.getValue() : null;
-            isMobile          = false;
+            isMobile = false;
         } else if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            accessTokenValue  = authHeader.substring(7);
+            accessTokenValue = authHeader.substring(7);
             refreshTokenValue = refreshHeader;
-            isMobile          = true;
+            isMobile = true;
         }
 
         System.out.println("CLIENT TYPE   : " + (isMobile ? "MOBILE" : "WEB"));
-        System.out.println("ACCESS TOKEN  : " + (accessTokenValue  != null ? "PRESENT" : "NULL"));
+        System.out.println("ACCESS TOKEN  : " + (accessTokenValue != null ? "PRESENT" : "NULL"));
         System.out.println("REFRESH TOKEN : " + (refreshTokenValue != null ? "PRESENT" : "NULL"));
 
         // ── Case 1 : accessToken present and valid ──
@@ -93,7 +93,6 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
                 System.out.println("ACCESS TOKEN EXPIRED → trying refresh");
             } catch (Exception e) {
                 System.out.println("ACCESS TOKEN ERROR: " + e.getMessage());
-                return unauthorized(exchange, "Invalid access token");
             }
         }
 
@@ -105,7 +104,7 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
 
                 String newAccessToken = Jwts.builder()
                         .setSubject(claims.getSubject())
-                        .claim("userId",   claims.get("userId"))
+                        .claim("userId", claims.get("userId"))
                         .claim("userName", claims.get("userName"))
                         .claim("userRole", claims.get("userRole"))
                         .setExpiration(new Date(System.currentTimeMillis() + 900_000))
@@ -122,8 +121,9 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
                                     .maxAge(Duration.ofMinutes(15))
                                     .httpOnly(true)
                                     .path("/")
-                                    .build()
-                    );
+                                    .sameSite("Lax") // match your auth service
+                                    .secure(false) // match your auth service (HTTP dev)
+                                    .build());
                 }
 
                 return chain.filter(injectHeaders(exchange, claims));
@@ -158,10 +158,9 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
 
     private ServerWebExchange injectHeaders(ServerWebExchange exchange, Claims claims) {
         return exchange.mutate().request(r -> r
-                .header("X-User-Id",   String.valueOf(claims.get("userId")))
+                .header("X-User-Id", String.valueOf(claims.get("userId")))
                 .header("X-User-Name", String.valueOf(claims.get("userName")))
-                .header("X-User-Role", String.valueOf(claims.get("userRole")))
-        ).build();
+                .header("X-User-Role", String.valueOf(claims.get("userRole")))).build();
     }
 
     private Mono<Void> unauthorized(ServerWebExchange exchange, String msg) {
@@ -174,5 +173,7 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
     }
 
     @Override
-    public int getOrder() { return -1; }
+    public int getOrder() {
+        return -1;
+    }
 }

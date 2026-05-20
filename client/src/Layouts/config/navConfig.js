@@ -27,6 +27,7 @@ export const teacherNavItems = [
     { title: 'mainNav.searchCourses', icon: SearchIcon, path: "/search" },
     { title: 'mainNav.calendar', icon: CalendarIcon, path: '/calendar' },
     { title: 'mainNav.students', icon: PeopleIcon, path: '/my-students' },
+    { title: 'mainNav.classrooms', icon: PeopleIcon, path: '/classrooms' },
     { title: 'mainNav.chats', icon: ChatIcon, path: '/chats' },
 ];
 
@@ -50,6 +51,7 @@ export const studentNavItems = [
     { title: 'mainNav.searchCourses', icon: SearchIcon, path: "/search" },
     { title: 'mainNav.myActivities', icon: CoursesIcon, path: "/activities" },
     { title: 'mainNav.myPerformance', icon: ChartIcon, path: "/progress" },
+    { title: 'mainNav.classrooms', icon: PeopleIcon, path: '/classrooms' },
     { title: 'mainNav.chats', icon: ChatIcon, path: '/chats' },
 ];
 

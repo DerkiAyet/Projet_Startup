@@ -92,7 +92,7 @@ const mock_children = [
 // const donutData = {
 //     solutions: 3,
 //     quizAttempts: 4,
-//     enrollments: 7
+//     enrollments: 7 
 // }
 
 const ChildCard = ({ color, child, active, handleClick }) => {

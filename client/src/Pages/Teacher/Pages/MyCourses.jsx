@@ -18,7 +18,7 @@ import axios from 'axios'
 import { Link, useNavigate } from 'react-router-dom'
 import { fixMediaUrl } from '../../../Utilities/utils/fixMedia'
 
-
+axios.defaults.withCredentials = true;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const averageRating = (ratings) => {

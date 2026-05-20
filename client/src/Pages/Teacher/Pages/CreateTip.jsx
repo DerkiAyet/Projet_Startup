@@ -8,6 +8,8 @@ import JoditEditor from "jodit-react";
 import PublishSuccessPopup from '../Components/Publishsuccesspopup'
 import axios from 'axios'
 
+axios.defaults.withCredentials = true;
+
 function CreateTip() {
 
     const [tipData, setTipData] = useState({

@@ -1,0 +1,811 @@
+:root {
+
+    --main-color: #EC4899;
+    --main-bg-color: #FDF2F8;
+    --white-bg-gradiant-color: #fff;
+
+    --stroke-form-color: #CBD5E1;
+    --dark-font-color: #1E293B;
+    --light-font-color: #475569;
+    --role-font-color: #0F172A;
+    --btn-submit-color: #FFB6C1;
+    --logo-size: 40px;
+
+    /* Border radius */
+    --radius-sm: 10px;
+    --radius-md: 15px;
+    --radius-lg: 20px;
+    --radius-xl: 30px;
+    --radius-full: 50%;
+
+    /* dark mode */
+    --bg-primary: linear-gradient(to bottom,
+            #1b1b1b 0%,
+            #121212 100%);
+    --bg-secondary: #1A1A1A;
+    --border-light: rgba(255, 255, 255, 0.128);
+    --text-primary: #E0E0E0;
+    --text-secondary: #cacaca;
+    --text-white: #FFFFFF;
+    --text-dark: #374151;
+    --accent-pink-light: #FCE7F3;
+
+}
+
+.add-homework-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(1px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1100;
+    padding: 1rem;
+    animation: qbOverlayIn 0.2s ease;
+}
+
+@keyframes qbOverlayIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.add-homework-overlay .add-homework-wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    font-family: "Plus Jakarta Sans", sans-serif;
+    padding: 3rem 0;
+    background-color: transparent;
+}
+
+.add-homework-wrapper .img-wrapper {
+    flex: 1 1 40%;
+    max-width: 40%;
+    display: flex;
+    flex-direction: column;
+}
+
+.img-wrapper img {
+    width: 100%;
+    height: auto;
+}
+
+.add-homework-wrapper .form-container {
+    border: 1.5px solid var(--border-light);
+    padding: 1rem 1.5rem;
+    border-radius: 32px;
+    min-width: 410px;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    /* box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2); */
+
+}
+
+.add-homework-form .motion-div {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 100%;
+    width: 100%;
+    flex: 1;
+}
+
+.form-container .add-homework-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    flex: 1;
+}
+
+.add-homework-form .title-box {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+}
+
+.title-box .top-line span:hover {
+    text-decoration: underline;
+}
+
+.add-homework-form .title-box img {
+    width: 350px;
+}
+
+.add-homework-form .logo-content {
+    width: var(--logo-size);
+    height: var(--logo-size);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    background-color: var(--main-color);
+    border-radius: var(--radius-md);
+}
+
+.add-homework-form .title-line {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    flex-grow: 0;
+    flex-shrink: 0;
+    position: relative;
+    width: 100%;
+}
+
+.add-homework-form .title-line svg {
+    height: 30px;
+    width: 30px;
+    position: absolute;
+    right: -0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+}
+
+.add-homework-form .title-line span,
+.success-box span {
+    font-size: 1.2rem;
+    color: var(--text-primary);
+    font-weight: bold;
+}
+
+.add-homework-overlay .success-box img {
+    height: 100px;
+}
+
+.add-homework-form .title-line p,
+.success-box p {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    white-space: normal;
+    word-wrap: break-word;
+    max-width: 100%;
+}
+
+.add-homework-form .choices-box {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.add-homework-form .choices-box .choice-line {
+    width: 100%;
+    background-color: var(--accent-pink-light);
+    padding: 0.9rem 0.85rem;
+    border: 1px solid var(--main-color);
+    box-shadow: 0 2px 5px rgba(236, 72, 153, 0.4);
+    border-radius: var(--radius-sm);
+    color: var(--text-dark);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+}
+
+.add-homework-form .login-line {
+    width: 100%;
+    text-align: center;
+    color: var(--text-secondary);
+    font-weight: 600;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+.add-homework-form .login-line .auth-link {
+    color: var(--main-color);
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.auth-link:hover {
+    text-decoration: underline;
+}
+
+.add-homework-wrapper .auth-icon path {
+    fill: var(--role-font-color);
+}
+
+.add-homework-form .return-line {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-top: 1rem;
+    cursor: pointer;
+}
+
+.add-homework-form .return-line span {
+    color: var(--main-color);
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.add-homework-form .go-back-icon {
+    transform: rotate(180deg);
+}
+
+.add-homework-form .go-back-icon path {
+    fill: var(--main-color)
+}
+
+.add-homework-form .inputs-box {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.add-homework-form .inputs-box .form-input {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.inputs-box .form-input label {
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.inputs-box .form-input .input-icon path {
+    fill: var(--text-secondary);
+}
+
+.inputs-box .form-input .input-birth-icon path {
+    stroke: var(--text-secondary);
+}
+
+.inputs-box .form-input .input-line {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1.2px solid var(--stroke-form-color);
+    display: flex;
+    border-radius: var(--radius-xl);
+    gap: 6px;
+}
+
+.form-input .input-line input {
+    height: 26px;
+    width: 100%;
+    outline: none;
+    border: 0;
+    background-color: transparent;
+    font-family: "Plus Jakarta Sans", sans-serif;
+    color: var(--text-white);
+}
+
+.form-input .input-line input ::placeholder {
+    color: var(--light-font-color);
+    font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+.add-homework-wrapper button {
+    font-weight: 600;
+    border-radius: var(--radius-xl);
+    font-family: "Plus Jakarta Sans", sans-serif;
+    padding: 0.6rem 0;
+    cursor: pointer;
+}
+
+.add-homework-form .submit-btn,
+.add-homework-form .cancel-btn {
+    border: 0;
+    margin-top: 0.5rem;
+    background-color: var(--btn-submit-color);
+    color: var(--white-bg-gradiant-color);
+    font-size: 0.98rem;
+    width: 100px;
+    border: 2px solid transparent;
+    transition: 0.3s;
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+    justify-content: center;
+}
+
+.add-homework-form .row-btns {
+    width: 100%;
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.add-homework-form .cancel-btn {
+    background-color: transparent;
+    border: 2px solid var(--text-secondary);
+    color: #0F172A;
+}
+
+.add-homework-form .submit-btn:hover {
+    background-color: transparent;
+    border: 2px solid var(--btn-submit-color);
+    color: var(--btn-submit-color);
+}
+
+.add-homework-form .submit-btn:hover svg path {
+    fill: var(--btn-submit-color);
+}
+
+.social-auth-btn {
+    border: 1.5px solid var(--stroke-form-color);
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    background-color: transparent;
+}
+
+.password-strength-bar {
+    display: flex;
+    gap: 4px;
+    margin-top: 0.3rem;
+    height: 5px;
+}
+
+.strength-segment {
+    flex: 1;
+    background-color: #E5E7EB;
+    /* light gray inactive */
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+.strength-segment.active {
+    background-color: #22C55E;
+    /* green when active */
+}
+
+.strength-label {
+    font-size: 0.85rem;
+    color: #475569;
+}
+
+.input-error,
+#light-mode .input-error {
+    border: 1px solid #ff4444 !important;
+    background: #ffecec;
+}
+
+.input-error input,
+#light-mode .input-error input {
+    background: #ffecec;
+    color: #1E293B;
+}
+
+.error-text,
+#light-mode .error-text {
+    font-size: 0.85rem;
+    color: #ff4444;
+    margin-top: 4px;
+    margin-left: 4px;
+}
+
+/*----------Add child form---------*/
+
+.inputs-box.child-box {
+    padding: 1rem 0.5rem;
+    border: 1.5px solid var(--stroke-form-color);
+    border-radius: var(--radius-lg);
+}
+
+.input-label {
+    margin-bottom: 0.3rem;
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+}
+
+.add-homework-wrapper .success-box {
+    background-color: var(--white-bg-gradiant-color);
+    border: 1.5px solid var(--stroke-form-color);
+    padding: 1.5rem;
+    border-radius: 32px;
+    min-width: 410px;
+    max-width: 420px;
+    display: flex;
+    /* Add this */
+    flex-direction: column;
+    /* Add this */
+    box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.1);
+    align-items: center;
+    justify-content: center;
+}
+
+.success-box p {
+    margin-top: 1rem;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.6;
+    width: 93%;
+}
+
+.success-box button {
+    border: 0;
+    padding: 0.5rem;
+    width: 180px;
+    margin-top: 0.5rem;
+    background-color: var(--main-color);
+    color: var(--white-bg-gradiant-color);
+    font-size: 1.1rem;
+    border: 2px solid transparent;
+    transition: 0.3s;
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1rem;
+    align-self: flex-end;
+}
+
+/* Loading spinner for submit button */
+.submit-btn.loading {
+    opacity: 0.8;
+    cursor: not-allowed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.submit-btn .spinner {
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #ffffff;
+    animation: spin 0.8s linear infinite;
+    display: inline-block;
+}
+
+/* Light mode spinner */
+#light-mode .submit-btn .spinner {
+    border: 3px solid rgba(236, 72, 153, 0.3);
+    border-top-color: #EC4899;
+}
+
+/* Dark mode hover effect for loading button */
+.submit-btn.loading:hover {
+    background-color: var(--btn-submit-color);
+    border: 2px solid transparent;
+    color: var(--white-bg-gradiant-color);
+}
+
+.submit-btn.loading:hover svg path {
+    fill: var(--white-bg-gradiant-color);
+}
+
+/* Animation keyframes */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Disabled input styling */
+.input-line input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.add-homework-form .select-flex {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    align-items: flex-end;
+}
+
+.add-homework-form .select-flex-line {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+}
+
+.add-homework-form .select-flex-line select {
+    /*---to hide the default arrow---*/
+    width: 100%;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.95rem;
+}
+
+.add-homework-form .select-flex-line option {
+    font-family: 'Nunito', sans-serif;
+}
+
+
+.add-homework-form .custom-select {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    height: 42px;
+    padding: 0 10px;
+    border-radius: 20px;
+    border: 1px solid #A7A7A7;
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: #8A8A8A;
+    background-color: white;
+    cursor: pointer;
+    outline: none;
+}
+
+.add-homework-form .select-icon {
+    color: #8A8A8A;
+    width: 10px;
+    height: 6px;
+    position: absolute;
+    right: 100px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: "none";
+}
+
+/* -------- content popup -------- */
+.content-popup {
+    width: 100%;
+    border: 1.5px solid var(--border-light);
+    border-radius: var(--radius-md);
+    background: #FDF2F8;
+    overflow: hidden;
+    max-height: 260px;
+    display: flex;
+    flex-direction: column;
+}
+
+.content-popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 0.9rem;
+    border-bottom: 1px solid #D9E1E7;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    font-family: "Plus Jakarta Sans", sans-serif;
+    flex-shrink: 0;
+}
+
+.popup-close-btn {
+    background: none;
+    border: none;
+    color: var(--bg-secondary);
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 0;
+    border-radius: 50%;
+}
+
+.content-popup-list {
+    overflow-y: auto;
+    flex: 1;
+}
+
+.content-popup-list::-webkit-scrollbar { width: 4px; }
+.content-popup-list::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 4px; }
+
+.content-popup-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0.6rem 0.9rem;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-bottom: 1px solid #D9E1E7;
+}
+
+.content-popup-item:hover {
+    background: rgba(255,255,255,0.05);
+}
+
+.popup-item-thumb {
+    width: 48px;
+    height: 36px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: rgba(236,72,153,0.15);
+}
+
+.popup-item-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.popup-thumb-fallback {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: var(--main-color);
+    font-size: 1rem;
+}
+
+.popup-item-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.popup-item-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--dark-font-color);
+    font-family: "Plus Jakarta Sans", sans-serif;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.popup-item-meta {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.popup-item-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    background: rgba(236,72,153,0.15);
+    color: var(--main-color);
+    border-radius: 20px;
+    padding: 2px 8px;
+    font-family: "DM Sans", sans-serif;
+}
+
+.popup-item-level {
+    font-size: 0.65rem;
+    color: #8A8A8A;
+    font-family: "DM Sans", sans-serif;
+    text-transform: capitalize;
+}
+
+.popup-item-arrow {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.popup-loading, .popup-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1.5rem;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+/* -------- selected ref preview -------- */
+.selected-ref-preview {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0.6rem 0.8rem;
+    border: 1.5px solid rgba(236,72,153,0.3);
+    border-radius: var(--radius-md);
+    background: rgba(236,72,153,0.07);
+}
+
+.selected-ref-preview .ref-thumb {
+    width: 48px;
+    height: 36px;
+    object-fit: cover;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.selected-ref-preview .ref-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.selected-ref-preview .ref-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-family: "Plus Jakarta Sans", sans-serif;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.selected-ref-preview .ref-category {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+.selected-ref-preview .ref-change-btn {
+    background: none;
+    border: 1px solid rgba(236,72,153,0.4);
+    color: var(--main-color);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: "Plus Jakarta Sans", sans-serif;
+    flex-shrink: 0;
+    transition: background 0.2s;
+}
+
+.selected-ref-preview .ref-change-btn:hover {
+    background: rgba(236,72,153,0.1);
+}
+
+/*--------light-mode-------*/
+
+
+#light-mode .add-homework-wrapper .form-container {
+    background: var(--white-bg-gradiant-color);
+    border: 1.5px solid var(--stroke-form-color);
+    box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.1);
+}
+
+#light-mode .add-homework-form .title-line span,
+#light-mode .success-box span {
+    color: var(--dark-font-color);
+}
+
+#light-mode .add-homework-form .title-line p,
+#light-mode .success-box p {
+    color: var(--light-font-color);
+}
+
+#light-mode .add-homework-form .login-line {
+    color: var(--dark-font-color);
+}
+
+#light-mode .add-homework-form .choices-box .choice-line {
+    background-color: var(--main-bg-color);
+    color: var(--role-font-color);
+
+}
+
+#light-mode .inputs-box .form-input label {
+    color: var(--dark-font-color);
+}
+
+#light-mode .inputs-box .form-input .input-icon path {
+    fill: var(--light-font-color);
+}
+
+#light-mode .form-input .input-line input {
+    color: var(--dark-font-color);
+}
+
+#light-mode .inputs-box .form-input .input-birth-icon path {
+    stroke: var(--dark-font-color);
+}
+
+#light-mode .social-auth-btn {
+    color: var(--dark-font-color);
+}

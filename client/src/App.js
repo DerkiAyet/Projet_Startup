@@ -34,6 +34,10 @@ import AssignmentReview from './Pages/Teacher/Pages/AssignmentReview';
 import MyChildren from './Pages/Parent/Pages/MyChildren';
 import CreateChild from './Pages/Parent/Pages/CreateChild';
 import ConfirmParent from './Pages/Student/Pages/ConfirmParent';
+import Classroom from './Pages/Teacher/Pages/Classroom';
+import ClassroomPage from './Pages/Teacher/Pages/ClassroomPage';
+
+axios.defaults.withCredentials = true;
 
 export const AppContext = createContext();
 
@@ -76,8 +80,6 @@ function App() {
   useEffect(() => {
     const verifyUser = async () => {
       try {
-        axios.defaults.withCredentials = true;
-
         const res = await axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/users/verify`);
 
         console.log("GATEWAY URL:", process.env.REACT_APP_API_URL_GATEWAY);
@@ -245,6 +247,8 @@ function App() {
               <Route path="users" element={<section className='main-container'>Users</section>} />
               <Route path="reports" element={<section className='main-container'>Reports</section>} />
               <Route path="profile" element={<section className='main-container'>Profile</section>} />
+              <Route path="classrooms" element={<Classroom />} />
+              <Route path='classrooms/:classroomId' element={<ClassroomPage />} />
             </Route>
           </Routes>
           <ToastContainer position="top-right" autoClose={10000} />

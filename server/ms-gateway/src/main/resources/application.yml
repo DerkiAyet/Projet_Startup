@@ -87,6 +87,14 @@ spring:
             - Path=/content-hub/**
           filters:
             - StripPrefix=1
+        
+        # ── CLASSROOM ────────────────────────────────────────
+        - id: classrooms-service
+          uri: lb://SERVICE7-CLASSROOMS
+          predicates:
+            - Path=/classrooms/**
+          filters:
+            - StripPrefix=1
 
 eureka:
   client:

@@ -24,7 +24,7 @@ const Avatar = ({ name, size, pic }) => (
                 <div className="avatar-placeholder">{initials(name)}</div>
         }
     </div>
-);
+); 
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
