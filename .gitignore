@@ -36,7 +36,7 @@ config.env
 .env.development.local
 .env.test.local
 .env.production.local
-docker-compose.yml
+
 
 # Editor folders
 .vscode/
@@ -61,3 +61,6 @@ temp/
 .yarn/unplugged/
 .yarn/build-state.yml
 .yarn/install-state.gz
+
+# hiding the production file
+docker-compose.yml
