@@ -277,7 +277,7 @@ function Courses() {
     const [toolsClicked, setToolsClicked] = useState(false)
 
     const navigate = useNavigate()
-
+ 
     return (
         <div className='courses-container' onClick={() => viewClicked && setViewClicked(false)}>
             <div className="courses-wrapper">

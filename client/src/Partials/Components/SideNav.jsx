@@ -13,7 +13,7 @@ import { SwitchAppearence } from './SwitchAppearence'
 import axios from 'axios';
 import Notifications from './Notifications';
 
-function SideNav({ minimizeNav, setMinimizeNav, navItems = [], tools = [], mobileNavItems = [] }) {
+function SideNav({ minimizeNav, setMinimizeNav, navItems = [], tools = [], mobileNavItems = [], itemTools = [] }) {
     const { t } = useTranslation();
     const { darkMode, setUserAuth, userAuth } = useContext(AppContext);
 
@@ -73,23 +73,33 @@ function SideNav({ minimizeNav, setMinimizeNav, navItems = [], tools = [], mobil
     const [currentIndexMain, setCurrentIndexMain] = useState(0);
     const [toolsCurrentIndex, settoolsCurrentIndex] = useState(null);
     const [subCurrentIndex, setSubCurrentIndex] = useState(null);
+    const [itemToolsCurrentIndex, setItemToolsCurrentIndex] = useState(null)
 
     const handleMainClick = (index) => {
         setCurrentIndexMain(index);
         settoolsCurrentIndex(null);
         setSubCurrentIndex(null);
+        setItemToolsCurrentIndex(null);
     }
 
     const handleToolsClick = (index) => {
         settoolsCurrentIndex(index);
         setCurrentIndexMain(null);
         setSubCurrentIndex(null);
+        setItemToolsCurrentIndex(null);
     }
 
     const handleSubClick = (index) => {
         setSubCurrentIndex(index);
         setCurrentIndexMain(null);
         settoolsCurrentIndex(null);
+        setItemToolsCurrentIndex(null);
+    }
+
+    const handleItemToolClick = (index) => {
+        setItemToolsCurrentIndex(index);
+        settoolsCurrentIndex(null);
+        setSubCurrentIndex(null);
     }
 
     const navigate = useNavigate();
@@ -140,7 +150,7 @@ function SideNav({ minimizeNav, setMinimizeNav, navItems = [], tools = [], mobil
                                         <span style={{ fontWeight: "700" }} className="text-font">{t('logo.title')}</span>
                                         <span style={{ fontSize: "12px", fontWeight: "600", color: darkMode ? "rgba(255, 255, 255, 0.128);" : "#00000050" }}>
                                             {
-                                                userType === "teacher" ? t('logo.roleTeacher') : userType === "student" ? t('logo.roleStudent') : t('logo.roleParent')
+                                                userType === "teacher" ? t('logo.roleTeacher') : userType === "student" ? t('logo.roleStudent') : userType === "parent" ? t('logo.roleParent') : t('logo.roleAdmin')
                                             }
                                         </span>
                                     </div>
@@ -162,12 +172,30 @@ function SideNav({ minimizeNav, setMinimizeNav, navItems = [], tools = [], mobil
                                         <item.icon className="nav-icon" />
                                         <span className={minimizeNav ? 'hide' : ''}>{t(item.title)}</span>
                                     </Link>
+                                    {
+                                        item.hasSubItems && (
+                                            <ul className='sub-items' style={{ display: `${currentIndexMain === idx ? "block" : "none"}` }}>
+                                                {
+                                                    itemTools.map((tool, idxx) => (
+                                                        <Link
+                                                            to={tool.path ?? '.'} //stays on the current path
+                                                            className={`link ${minimizeNav ? 'minimize-link' : ''} ${itemToolsCurrentIndex === idxx ? 'active' : ''}`}
+                                                            onClick={() => { zoom(); handleItemToolClick(idxx) }}
+                                                        >
+                                                            <tool.icon className="nav-icon" />
+                                                            <span className={minimizeNav ? 'hide' : ''}>{t(tool.title)}</span>
+                                                        </Link>
+                                                    ))
+                                                }
+                                            </ul>
+                                        )
+                                    }
                                 </li>
                             ))}
                         </ul>
 
                         {/* Tools Section (optional) */}
-                        {tools.length > 0 && (
+                        {tools.length > 0 ? (
                             <ul className="optional-items">
                                 <span style={{ fontSize: "0.9rem", margin: "8px 0", fontWeight: 600 }}>
                                     {t("tools.tools")}
@@ -184,8 +212,10 @@ function SideNav({ minimizeNav, setMinimizeNav, navItems = [], tools = [], mobil
                                         </Link>
                                     </li>
                                 ))}
-                            </ul>
-                        )}
+                            </ul>) : (
+                                <div className="divider" />
+                            )
+                        }
 
                         {/* Fixed Advanced Options */}
                         <ul className='advanced-options'>

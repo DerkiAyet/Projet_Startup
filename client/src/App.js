@@ -36,6 +36,16 @@ import CreateChild from './Pages/Parent/Pages/CreateChild';
 import ConfirmParent from './Pages/Student/Pages/ConfirmParent';
 import Classroom from './Pages/Teacher/Pages/Classroom';
 import ClassroomPage from './Pages/Teacher/Pages/ClassroomPage';
+import LoginAdmin from './Pages/Authentication/Components/LoginAdmin';
+import Dashboard from './Pages/Admin/Pages/Dashboard';
+import Users from './Pages/Admin/Pages/Users';
+import Reports from './Pages/Admin/Pages/Reports';
+import Settings from './Pages/Admin/Pages/Settings';
+import Content from './Pages/Admin/Pages/Content';
+import Subjects from './Pages/Admin/Components/Subjects';
+import Levels from './Pages/Admin/Components/Levels';
+import Specialities from './Pages/Admin/Components/Specialities';
+import NotFound from './Shared/Pages/NotFound';
 
 axios.defaults.withCredentials = true;
 
@@ -75,15 +85,13 @@ function App() {
   })
 
   const navigate = useNavigate()
-  const [isVerifying, setIsVerifying] = useState(true); // 👈 add this
+  const [isVerifying, setIsVerifying] = useState(true);
 
+  const PUBLIC_ROUTES = ['/welcome', '/login', '/register', '/login/admin', '/forget-password']; // we define the allowed paths in the case where is not authenticated
   useEffect(() => {
     const verifyUser = async () => {
       try {
         const res = await axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/users/verify`);
-
-        console.log("GATEWAY URL:", process.env.REACT_APP_API_URL_GATEWAY);
-
         setUserAuth({
           userId: res.data.userId,
           userName: res.data.userName,
@@ -93,23 +101,18 @@ function App() {
           role: res.data.role,
           firstAuth: false
         });
-
       } catch (err) {
-        // setUserAuth({
-        //   userName: "ayet_derki",
-        //   familyName: "Derki",
-        //   givenName: "Ayet",
-        //   userImg: null,
-        //   role: "teacher",
-        //   firstAuth: false
-        // });
-        navigate('/welcome')
+        const isPublicRoute = PUBLIC_ROUTES.some(route =>
+          window.location.pathname.startsWith(route)
+        );
+        if (!isPublicRoute) {
+          navigate('/welcome');
+        }
         console.log(err);
       } finally {
-        setIsVerifying(false); // 
+        setIsVerifying(false);
       }
     };
-
     verifyUser();
   }, []);
 
@@ -216,6 +219,7 @@ function App() {
             <Route path='/register' element={<SignUp />} />
             <Route path='/register/add-child' element={<AddChild />} />
             <Route path='/login' element={<Login />} />
+            <Route path='/login/admin' element={<LoginAdmin />} />
             <Route path='/forget-password' element={<h1>forget password</h1>} />
             <Route path='/reset-password/:token' element={<h1>reset password</h1>} />
             <Route path='/welcome' element={<LandingPage />} />
@@ -240,16 +244,22 @@ function App() {
               <Route path="activities/solve-assignment/:id" element={<AssignmentSolve />} />
               <Route path="/activities/review-assignment/:solutionId" element={<AssignmentReview />} />
               <Route path="progress" element={<section className='main-container'>Progress & Achievements</section>} />
-              <Route path="ocr" element={<section className='main-container'>OCR Scanner</section>} />
               <Route path="share" element={<section className='main-container'>Share Resources</section>} />
               <Route path='parent-hub' element={<PostsFeed />} />
-              <Route path="dashboard" element={<section className='main-container'>Dashboard</section>} />
-              <Route path="users" element={<section className='main-container'>Users</section>} />
-              <Route path="reports" element={<section className='main-container'>Reports</section>} />
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="users" element={<Users />} />
+              <Route path="reports" element={<Reports />} />
+              <Route path="settings" element={<Settings />} />
+              <Route path="settings/subjects" element={<Subjects />} />
+              <Route path="settings/subjects/:subjectId" element={<Specialities />} />
+              <Route path="settings/levels" element={<Levels />} />
+              <Route path="content" element={<Content />} />
               <Route path="profile" element={<section className='main-container'>Profile</section>} />
               <Route path="classrooms" element={<Classroom />} />
               <Route path='classrooms/:classroomId' element={<ClassroomPage />} />
             </Route>
+
+            <Route path='*' element={<NotFound />} />
           </Routes>
           <ToastContainer position="top-right" autoClose={10000} />
           {userAuth.firstAuth && (userAuth.role === "teacher" || userAuth.role === "student") && <IntrestsPopup onFinish={submitIntrests} />}

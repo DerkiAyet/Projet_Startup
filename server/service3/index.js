@@ -4,6 +4,8 @@ require('dotenv').config({ path: './config/config.env' });
 const mongoose = require('mongoose')
 const path = require('path')
 const { startConsumer } = require('./config/kafka/consumer');
+const { startProducer } = require('./config/kafka/producer')
+const redis = require('./config/redis.config')
 
 // Create Eureka client instance
 const eurekaClient = require('./config/eureka.client')
@@ -42,8 +44,8 @@ process.on("SIGINT", () => {
     });
 });
 
-const coursesRoute = require('./routes/Courses')
-app.use("/courses", coursesRoute)
+const { router: coursesRouter } = require('./routes/Courses')
+app.use("/courses", coursesRouter)
 
 const assignmentRoute = require('./routes/Assignments')
 app.use("/assignments", assignmentRoute)
@@ -60,10 +62,18 @@ app.use("/events", EventsRoute)
 const StatisticsRoute = require('./routes/Statistcs')
 app.use("/stats", StatisticsRoute)
 
+const resourcesRoute = require('./routes/Resources')
+app.use('resources', resourcesRoute)
+
+redis.on('connect', () => console.log("Redis Connected"))
+redis.on('error', (err) => console.error("Error while connecting with Redis: ", err))
+
 const startServer = async () => {
     try {
         await startConsumer();
         console.log('[Kafka] Consumer started');
+        await startProducer();
+        console.log('[Kafka] Producer started')
     } catch (err) {
         console.error('[Kafka] Consumer failed to start:', err.message);
         // don't crash the server if Kafka fails

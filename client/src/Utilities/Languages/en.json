@@ -21,7 +21,10 @@
     "parentHub": "Parent Hub",
     "users": "Users",
     "reports": "Reports",
-    "classrooms": "Classrooms"
+    "classrooms": "Classrooms",
+    "platform-settings": "System Settings",
+    "subjects": "Subjects",
+    "levels": "Levels"
   },
   "tools": {
     "tools": "Tools",
@@ -309,6 +312,8 @@
     "allSet": "All Set!",
     "welcomeBack": "Welcome Back!",
     "loginDescription": "Enter your credentials to access your account and continue where you left off.",
+    "welcomeBackAdmin": "Welcome back, Admin!",
+    "loginDescriptionAdmin": "Sign in with your administrator credentials to access the dashboard and manage the platform.",
     "usernameOrEmail": "User Name / Email",
     "usernameOrEmailPlaceholder": "Your username or email address",
     "password": "Password",

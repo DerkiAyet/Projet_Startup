@@ -3,6 +3,7 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 require('dotenv').config({ path: './config_service/config.env' });
 const { connectProducer } = require('./config_service/kafka/producer');
+const redis = require('./config_service/redis.config')
 
 const db = require('./models');
 const path = require('path');
@@ -38,12 +39,16 @@ process.on("SIGINT", () => {
     });
 });
 
+//Launch Redis
+redis.on('connect', () => console.log('Redis connected'));
+redis.on('error',   (err) => console.error('Redis error:', err));
+
 // Import routes
 const authRoutes = require('./routes/Auth');
 app.use('/', authRoutes);
 
-const userRoutes = require('./routes/Users')
-app.use('/infos', userRoutes)
+const userRoutes = require('./routes/Users');
+app.use('/infos', userRoutes);
 
 async function syncDatabase() {
     await db.Users.sync();      // parent first

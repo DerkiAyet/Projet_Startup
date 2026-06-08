@@ -18,6 +18,10 @@ import { ReactComponent as ChartIcon } from '../../Assets/icons/NavIcons/chart.s
 import { ReactComponent as ScannerIcon } from '../../Assets/icons/NavIcons/ocr-scan.svg';
 import { ReactComponent as AiIcon } from '../../Assets/icons/NavIcons/assistant-ai.svg';
 import { ReactComponent as ShareIcon } from '../../Assets/icons/NavIcons/upload-file-student.svg';
+import { ReactComponent as ClassroomIcon } from '../../Assets/icons/NavIcons/classroom.svg';
+import { ReactComponent as SettingsAdminIcon } from '../../Assets/icons/NavIcons/admin-settings.svg';
+import { ReactComponent as CategoriesIcon } from '../../Assets/icons/NavIcons/categories.svg';
+import { ReactComponent as LevelsIcon } from '../../Assets/icons/NavIcons/trophy.svg';
 
 
 // Student Navigation
@@ -27,7 +31,7 @@ export const teacherNavItems = [
     { title: 'mainNav.searchCourses', icon: SearchIcon, path: "/search" },
     { title: 'mainNav.calendar', icon: CalendarIcon, path: '/calendar' },
     { title: 'mainNav.students', icon: PeopleIcon, path: '/my-students' },
-    { title: 'mainNav.classrooms', icon: PeopleIcon, path: '/classrooms' },
+    { title: 'mainNav.classrooms', icon: ClassroomIcon, path: '/classrooms' },
     { title: 'mainNav.chats', icon: ChatIcon, path: '/chats' },
 ];
 
@@ -51,13 +55,12 @@ export const studentNavItems = [
     { title: 'mainNav.searchCourses', icon: SearchIcon, path: "/search" },
     { title: 'mainNav.myActivities', icon: CoursesIcon, path: "/activities" },
     { title: 'mainNav.myPerformance', icon: ChartIcon, path: "/progress" },
-    { title: 'mainNav.classrooms', icon: PeopleIcon, path: '/classrooms' },
+    { title: 'mainNav.classrooms', icon: ClassroomIcon, path: '/classrooms' },
     { title: 'mainNav.chats', icon: ChatIcon, path: '/chats' },
 ];
 
 export const studentTools = [
     { title: 'tools.ocrScanner', icon: ScannerIcon, path: "/ocr" },
-    { title: 'tools.aiAssistant', icon: AiIcon, path: "/ai-bot" },
     { title: 'tools.shareResources', icon: ShareIcon, path: "/share" },
 ];
 
@@ -92,10 +95,16 @@ export const parentMobileNav = [
 
 // Admin Navigation
 export const adminMainNav = [
-    { path: '/', icon: DashbordIcon, title: 'dashboard' },
-    { path: '/users', icon: PeopleIcon, title: 'users' },
-    { path: '/courses', icon: CoursesIcon, title: 'courses' },
-    { path: '/reports', icon: ReportsIcon, title: 'reports' },
+    { path: '/', icon: DashbordIcon, title: 'mainNav.dashboard' },
+    { icon: SettingsAdminIcon, title: 'mainNav.platform-settings', hasSubItems: true },
+    { path: '/users', icon: PeopleIcon, title: 'mainNav.users' },
+    { path: '/content', icon: CoursesIcon, title: 'mainNav.courses' },
+    { path: '/reports', icon: ReportsIcon, title: 'mainNav.reports' },
+];
+
+export const adminSubTools = [
+    { path: '/settings/subjects', icon: CategoriesIcon, title: 'mainNav.subjects' },
+    { path: '/settings/levels', icon: LevelsIcon, title: 'mainNav.levels',}
 ];
 
 

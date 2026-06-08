@@ -5,6 +5,7 @@ const mongoose = require('mongoose')
 const path = require('path')
 const { startConsumer } = require('./config/kafka/consumer');
 const { startProducer } = require('./config/kafka/producer')
+const redis = require('./config/redis.config')
 
 // Create Eureka client instance
 const eurekaClient = require('./config/eureka.client')
@@ -43,6 +44,9 @@ process.on("SIGINT", () => {
         process.exit();
     });
 });
+
+redis.on('connect', () => console.log("Connected to Redis"));
+redis.on('error', (err) => console.error('Redis error:', err));
 
 // ✅ IIFE — s'appelle immédiatement
 (async () => {

@@ -98,6 +98,10 @@
   border-top: 1.5px solid var(--light-border-pink);
 }
 
+#light-mode .sidenav .divider {
+  background-color: var(--light-border-pink);
+}
+
 #light-mode .sidenav .link.active,
 #light-mode .settings-link.active {
     background-color: var(--main-color);

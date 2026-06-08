@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const Event = require("../models/Events");
-const { discoverAuthService } = require('../config/discovery.service')
 const axios = require('axios');
+const redis = require('../config/redis.config')
 
 
 // CREATE event
@@ -14,7 +14,7 @@ router.post("/", async (req, res) => {
     }
 
     try {
-         const userRole = req.headers['x-user-role'];
+        const userRole = req.headers['x-user-role'];
         if (userRole !== 'teacher') return res.status(403).json({ error: "Unauthorized" });
 
         const newEvent = new Event({ ...req.body, teacherId });
@@ -37,7 +37,12 @@ router.get("/", async (req, res) => {
         const userRole = req.headers['x-user-role'];
         if (userRole !== 'teacher') return res.status(403).json({ error: "Unauthorized" });
 
+        const cachedKey = `events:${teacherId}`
+        const cached = await redis.get(cachedKey)
+        if (cached) return res.status(200).json(JSON.parse(cached))
+
         const events = await Event.find({ teacherId }).sort({ date: 1, startHour: 1 });
+        await redis.setex(cachedKey, 120, JSON.stringify(cached))
         res.json(events);
     } catch (err) {
         res.status(500).json({ error: "Cannot get events" });

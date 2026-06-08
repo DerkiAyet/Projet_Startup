@@ -65,7 +65,7 @@ spring:
           filters:
             - StripPrefix=1
 
-        # ── let the NOTIFICATIONS Socket public ────────────────────────────────────────
+        # ── let the NOTIFICATIONS Socket public (well this methode didn't work) ────────────────────────────────────────
         - id: notifications-socket-http
           uri: lb://SERVICE4-NOTIFICATION
           predicates:
@@ -77,6 +77,14 @@ spring:
           uri: lb:ws://SERVICE4-NOTIFICATION
           predicates:
             - Path=/notifications-ws/**
+          filters:
+            - StripPrefix=1
+          
+        # ── GAMIFICATION ────────────────────────────────────────
+        - id: game-service
+          uri: lb://SERVICE5-GAMIFICATION
+          predicates:
+            - Path=/game/**
           filters:
             - StripPrefix=1
 
@@ -95,6 +103,14 @@ spring:
             - Path=/classrooms/**
           filters:
             - StripPrefix=1
+        
+        # ── CHATBOT ──────────────────────────────────────────────
+        - id: chatbot-service
+          uri: http://chatbot-service:8000 #the python service won't use Eureka so gateway will solve it directly
+          predicates:
+            - Path=/chatbot/**
+          filters:
+            - StripPrefix=0
 
 eureka:
   client:

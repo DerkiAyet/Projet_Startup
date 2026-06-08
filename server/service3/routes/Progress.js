@@ -6,10 +6,11 @@ const SolvingModel = require('../models/Solving')
 const AssignmentModel = require('../models/Assignments')
 const QuizAttemptModel = require('../models/QuizAttempts')
 const QuizModel = require("../models/Quizes");
-const { discoverAuthService } = require('../config/discovery.service')
 const axios = require('axios')
-const { getUser, getSubject, getSubSubject } = require('../config/kafka/consumer');
 const multer = require('multer')
+const { updateGamification } = require('../config/kafka/producer')
+const { resolveCategory, resolveField, resolveUser, resolveUserInterests } = require('../helpers/utils')
+const redis = require('../config/redis.config')
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -21,12 +22,12 @@ const storage = multer.diskStorage({
     }
 })
 
-const upload = multer({storage: storage})
+const upload = multer({ storage: storage })
 
 const solutionUpload = upload.fields([{ name: 'solutionFiles', maxCount: 20 }]);
 
 router.post('/enrollements/:courseId', async (req, res) => {
-    const studentId = req.headers['x-user-id']
+    const studentId = Number(req.headers['x-user-id'])
     const courseId = req.params.courseId
 
     try {
@@ -41,6 +42,8 @@ router.post('/enrollements/:courseId', async (req, res) => {
             courseId
         })
 
+        await updateGamification("ENROLL_COURSE", studentId)
+        await redis.del(`enrollments:${studentId}`)
         res.status(200).json({ newEnrollement })
     } catch (error) {
 
@@ -74,6 +77,9 @@ router.get('/courses-enrolled', async (req, res) => {
     const userId = req.headers['x-user-id']
 
     try {
+        const cachedKey = `enrollments:${studentId}`
+        const cached = await redis.get(cachedKey)
+        if (cached) return res.status(200).json(JSON.parse(cached))
 
         const enrolls = await EnrollementModel.find({ studentId: userId })
         if (!enrolls.length) return res.status(404).json({ error: "No courses enrolled yet" })
@@ -81,37 +87,9 @@ router.get('/courses-enrolled', async (req, res) => {
         const enrichedEnrolls = await Promise.all(enrolls.map(async (enroll) => {
             const course = await CourseModel.findById(enroll.courseId)
 
-            const authServiceBaseUrl = await discoverAuthService()
-
-            let responseUser = getUser(course.teacherId)
-            if (!responseUser) {
-                const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${course.teacherId}`)
-                responseUser = data.user
-            }
-            let responseCategory = getSubject(course.category.id)
-            if (!responseCategory) {
-                const { data } = await axios.get(`${authServiceBaseUrl}/infos/subjects/${course.category.id}`)
-                responseCategory = data
-            }
-
-            // Subcategory - handle gracefully if it doesn't exist
-            let responseField = null;
-            if (course.category.subCategory) {
-                try {
-                    responseField = getSubSubject(course.category.subCategory)
-
-                    if (!responseField) {
-                        console.log(`Subcategory ${course.category.subCategory} not found in Kafka, trying API...`);
-                        const { data } = await axios.get(
-                            `${authServiceBaseUrl}/infos/sub-subjects/${course.category.subCategory}`
-                        );
-                        responseField = data;
-                    }
-                } catch (subError) {
-                    console.log(`Subcategory ${course.category.subCategory} not found`);
-                    responseField = null;
-                }
-            }
+            let responseUser = await resolveUser(course.teacherId);
+            let responseCategory = await resolveCategory(course.category.id);
+            let responseField = await resolveField(course.category.subCategory);
 
             const thumbnail = course.thumbnail
                 ? `${process.env.GATEWAY_URI}/content/uploads/${course.thumbnail}`
@@ -154,9 +132,8 @@ router.get('/courses-enrolled', async (req, res) => {
                 }
             }
         }))
-
+        await redis.setex(cachedKey, 120, JSON.stringify(enrichedEnrolls))
         res.status(200).json(enrichedEnrolls)
-
     } catch (error) {
         console.log("error while fetching the courses", error.message)
         res.status(500).json("Internal server error", error)
@@ -261,8 +238,9 @@ router.put('/solutions/:assignmentId/submit', solutionUpload, async (req, res) =
         studentSolution.calculateScore(assignment);
         await studentSolution.save();
 
+        await updateGamification("SEND_SOLUTION", studentId)
+        await redis.del(`solutions:${studentId}`)
         res.status(200).json(studentSolution);
-
     } catch (error) {
         console.log("error while submitting solution:", error.message);
         res.status(500).json({ error: "Internal server error" });
@@ -326,6 +304,9 @@ router.put('/solutions/:solutionId/teacher-grade', async (req, res) => {
         solution.calculateScore(assignment)
         await solution.save()
 
+        const studentId = solution.studentId
+        await updateGamification("GET_GRADE", studentId)
+        await redis.del(`solutions:${studentId}`)
         res.status(200).json(solution)
 
     } catch (error) {
@@ -342,21 +323,12 @@ router.get('/solutions/:solutionId', async (req, res) => {
         if (!solution) return res.status(404).json({ error: "solution doesn't exist" })
 
         const assignment = await AssignmentModel.findById(solution.assignment)
-
-        const authServiceBaseUrl = await discoverAuthService();
-        let student = getUser(solution.studentId);
-        if (!student) {
-            const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${solution.studentId}`);
-            student = data.user;
-        }
+        const student = await resolveUser(solution.studentId);
 
         res.status(200).json({ solution, assignment, student });
-
     } catch (error) {
-
         console.log("Error fetching solution:", error.message);
         res.status(500).json({ error: "Internal server error" });
-
     }
 })
 
@@ -375,7 +347,7 @@ router.get('/my-solutions/:assignmentId', async (req, res) => {
         if (!solution) return res.status(404).json({ error: "no solutions submitted yet" })
         if (solution.studentId.toString() !== studentId.toString()) return res.status(400).json({ error: "not your solution dear student" })
 
-        res.status(200).json({problemsSolved: solution.problemsSolved, status: solution.status})
+        res.status(200).json({ problemsSolved: solution.problemsSolved, status: solution.status })
 
     } catch (error) {
         console.log("Error fetching solution:", error.message);
@@ -390,43 +362,18 @@ router.get('/student-solutions', async (req, res) => {
         const userRole = req.headers['x-user-role'];
         if (userRole !== 'student') return res.status(403).json({ error: "Unauthorized" });
 
-        // fetch assignment to auto-grade MCQ
-        const solutions = await SolvingModel.find({ studentId: studentId });
+        const cachedKey = `solutions:${studentId}`
+        const cached = await redis.get(cachedKey)
+        if (cached) return res.status(200).json(JSON.parse(cached))
 
+        const solutions = await SolvingModel.find({ studentId: studentId });
         const enrichedSolutions = await Promise.all(
             solutions.map(async (s) => {
                 const assignment = await AssignmentModel.findById(s.assignment)
 
-                const authServiceBaseUrl = await discoverAuthService()
-
-                let responseUser = getUser(assignment.teacherId)
-                if (!responseUser) {
-                    const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${assignment.teacherId}`)
-                    responseUser = data.user
-                }
-                let responseCategory = getSubject(assignment.category.id)
-                if (!responseCategory) {
-                    const { data } = await axios.get(`${authServiceBaseUrl}/infos/subjects/${assignment.category.id}`)
-                    responseCategory = data
-                }
-
-                // Subcategory - handle gracefully if it doesn't exist
-                let responseField = null;
-                if (assignment.category.subCategory) {
-                    try {
-                        responseField = getSubSubject(assignment.category.subCategory)
-
-                        if (!responseField) {
-                            const { data } = await axios.get(
-                                `${authServiceBaseUrl}/infos/sub-subjects/${assignment.category.subCategory}`
-                            );
-                            responseField = data;
-                        }
-                    } catch (subError) {
-                        console.log(`Subcategory ${assignment.category.subCategory} not found`);
-                        responseField = null;
-                    }
-                }
+                const responseUser = await resolveUser(assignment.teacherId)
+                const responseCategory = await resolveCategory(assignment.category.id)
+                const responseField = await resolveField(assignment.category.subCategory);
 
                 const thumbnail = assignment.thumbnail
                     ? `${process.env.GATEWAY_URI}/content/uploads/${assignment.thumbnail}`
@@ -471,10 +418,8 @@ router.get('/student-solutions', async (req, res) => {
                 }
             })
         )
-
+        await redis.setex(`solutions:${studentId}`, 120, JSON.stringify(enrichedSolutions))
         res.status(200).json(enrichedSolutions)
-
-
     } catch (error) {
         console.log("error while fetching student solutions:", error.message);
         res.status(500).json({ error: "Internal server error" });
@@ -519,6 +464,9 @@ router.put("/quiz-attempts/:attemptId/save", async (req, res) => {
     const { answers } = req.body;
 
     try {
+        const userRole = req.headers['x-user-role'];
+        if (userRole !== 'student') return res.status(403).json({ error: "Unauthorized" });
+
         const attempt = await QuizAttemptModel.findById(attemptId);
         if (!attempt) return res.status(404).json({ error: "Attempt not found" });
 
@@ -542,11 +490,14 @@ router.put("/quiz-attempts/:attemptId/save", async (req, res) => {
 
 //Submit a quiz attempt (calculates score)
 router.put("/quiz-attempts/:attemptId/submit", async (req, res) => {
-    const studentId = req.headers["x-user-id"];
+    const studentId = Number(req.headers["x-user-id"]);
     const { attemptId } = req.params;
     const { answers } = req.body;
 
     try {
+        const userRole = req.headers['x-user-role'];
+        if (userRole !== 'student') return res.status(403).json({ error: "Unauthorized" });
+
         const attempt = await QuizAttemptModel.findById(attemptId);
         if (!attempt) return res.status(404).json({ error: "Attempt not found" });
 
@@ -571,6 +522,8 @@ router.put("/quiz-attempts/:attemptId/submit", async (req, res) => {
 
         await attempt.save();
 
+        await updateGamification("SOLVE_QUIZ", studentId)
+        await redis.del(`quizAttempts:${studentId}`)
         res.status(200).json(attempt);
 
     } catch (error) {
@@ -653,13 +606,70 @@ router.delete("/quiz-attempts/:attemptId", async (req, res) => {
             return res.status(400).json({ error: "Cannot delete a completed attempt" });
 
         await QuizAttemptModel.findByIdAndDelete(attemptId);
-
+        await redis.del(`quizAttempts:${studentId}`)
         res.status(200).json({ message: "Attempt deleted successfully" });
-
     } catch (error) {
         console.log("Error deleting attempt:", error.message);
         res.status(500).json({ error: "Internal server error" });
     }
 });
+
+router.get('/me/quizes', async (req, res) => {
+
+    const userId = req.headers['x-user-id']
+
+    try {
+        const cachedKey = `quizAttempts:${userId}`
+        const cached = await redis.get(cachedKey)
+        if (cached) return res.status(200).json(JSON.parse(cached))
+
+        const solvedQuizes = await QuizAttemptModel.find({ studentId: userId })
+        const enrichedQuizes = await Promise.all(
+            solvedQuizes.map(async (attempt) => {
+                const quiz = await QuizeModel.findById(attempt.quizId)
+
+                let responseUser = await resolveUser(quiz.teacherId);
+                let responseCategory = await resolveCategory(quiz.category.id);
+                let responseField = await resolveField(quiz.category.subCategory);
+                return {
+                    attempt,
+                    quiz: {
+                        _id: quiz._id,
+                        teacherId: quiz.teacherId,
+                        title: quiz.title,
+                        description: quiz.description,
+                        difficulty: quiz.difficulty,
+                        category: responseCategory ? {
+                            idSubject: responseCategory.idSubject,
+                            name: responseCategory.name,
+                            color: responseCategory.color
+                        } : null,
+                        subCategory: responseField
+                            ? {
+                                idSub: responseField.idSub,
+                                name: responseField.name
+                            }
+                            : null,
+                        questions: quiz.questions,
+                        score: quiz.score,
+                        teacher: {
+                            userId: responseUser.id,
+                            userName: responseUser.userName,
+                            familyName: responseUser.familyName,
+                            givenName: responseUser.givenName,
+                            userImg: responseUser.uerImg,
+                            role: "teacher"
+                        } || null
+                    }
+                }
+            })
+        )
+        await redis.setex(cachedKey, 120, JSON.stringify(enrichedQuizes))
+        res.status(200).json(enrichedQuizes)
+    } catch (error) {
+        console.log("Internal Server error", error.message)
+        res.status(500).json({ error: "Internal server error", message: error.message })
+    }
+})
 
 module.exports = router;

@@ -43,7 +43,7 @@ function Avatar({ initials, color }) {
 }
 
 export default function ListStudents() {
-    const [students, setStudents] = useState(mockStudents);
+    const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState("");
     const [sortKey, setSortKey] = useState("name");

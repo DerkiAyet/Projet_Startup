@@ -2,7 +2,7 @@ const { Kafka } = require('kafkajs');
 require('dotenv').config({ path: '../config.env' });
 
 const kafka = new Kafka({
-    clientId: 'posts-service',
+    clientId: 'classrooms-service',
     brokers: [process.env.KAFKA_BROKER || 'localhost:9093']
 });
 
@@ -39,4 +39,21 @@ const emitToRoom = async (room, event, data) => {
     });
 };
 
-module.exports = { startProducer, publishNotification, emitToRoom };
+const updateGamification = async (missionType, studentId) => {
+    try {
+        await producer.send({
+            topic: 'gamification.events',
+            messages: [
+                {
+                    key: missionType,
+                    value: JSON.stringify({ missionType, studentId })
+                }
+            ]
+        });
+        console.log(`[Kafka] Game Event published: ${missionType}`);
+    } catch (err) {
+        console.error(`[Kafka] Game Failed to publish event ${missionType}:`, err.message);
+    }
+};
+
+module.exports = { startProducer, publishNotification, emitToRoom, updateGamification };

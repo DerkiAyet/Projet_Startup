@@ -194,7 +194,7 @@
     box-shadow: 0 6px 18px rgba(242, 157, 182, 0.22);
     border-color: var(--light-pink-accent-color);
 }
-
+ 
 .interest-card--selected {
     background: linear-gradient(135deg, #fde8ef 0%, #fff0f5 100%);
     border-color: var(--light-pink-accent-color);

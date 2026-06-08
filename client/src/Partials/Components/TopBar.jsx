@@ -51,7 +51,7 @@ function TopBar({ minimizeNav, setMinimizeNav }) {
                             <span style={{ fontSize: "0.9rem", fontWeight: "550" }}>{givenName} {familyName}</span>
                             <span style={{ fontSize: "0.75rem", fontWeight: "430" }}>
                                 {
-                                    userType === "teacher" ? t('logo.roleTeacher') : userType === "student" ? t('logo.roleStudent') : t('logo.roleParent')
+                                    userType === "teacher" ? t('logo.roleTeacher') : userType === "student" ? t('logo.roleStudent') : userType === "parent" ? t('logo.roleParent') : t('logo.roleAdmin')
                                 }
                             </span>
                         </div>

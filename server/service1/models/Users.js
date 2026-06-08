@@ -49,7 +49,7 @@ module.exports = (sequelize, DataTypes) => {
         uerImg: {
             type: DataTypes.STRING,
             allowNull: true
-        },
+        }, 
         gender: {
             type: DataTypes.ENUM('male', 'female', 'prefer not to say'),
             allowNull: true

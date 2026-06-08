@@ -2,10 +2,11 @@ const express = require('express')
 const router = express.Router()
 const TipModel = require('../models/Tips')
 const CommentModel = require('../models/Comments')
-const { discoverAuthService } = require('../config/discovery.service')
 const axios = require('axios')
 const multer = require('multer')
-const { getUser, getSubject, getSubSubject } = require('../config/kafka/consumer')
+const { resolveCategory, resolveField, resolveUser, resolveUserInterests } = require('../helpers/utils')
+const { enrichContent } = require('./Courses')
+const redis = require('../config/redis.config')
 
 
 const storage = multer.diskStorage({
@@ -32,7 +33,7 @@ router.post('/', upload.single('thumbnail'), async (req, res) => {
     }
 
     try {
-         const userRole = req.headers['x-user-role'];
+        const userRole = req.headers['x-user-role'];
         if (userRole !== 'teacher') return res.status(403).json({ error: "Unauthorized" });
 
         const newTip = await TipModel.create({
@@ -44,8 +45,8 @@ router.post('/', upload.single('thumbnail'), async (req, res) => {
             category
         });
 
+        await redis.del(`teacherTips:${teacherId}`)
         res.status(201).json({ message: "Tip created successfully", tip: newTip });
-
     } catch (error) {
         console.error("Error creating tip:", error.message);
         res.status(500).json({ error: "Internal server error" });
@@ -77,7 +78,7 @@ router.put('/:id', upload.single('thumbnail'), async (req, res) => {
         if (category) tip.category = category;
 
         await tip.save();
-
+        await redis.del(`teacherTips:${teacherId}`)
         res.status(200).json({ message: "tip updated successfully", tip });
 
     } catch (error) {
@@ -98,12 +99,62 @@ router.get('/teacher/:id', async (req, res) => {
     }
 })
 
-router.get('/teacher-tips/', async (req, res) => {
+router.get('/teacher-tips', async (req, res) => {
     const teacherId = req.headers["x-user-id"]
 
     try {
+        const cachedKey = `teacherTips:${teacherId}`
+        const cached = await redis.get(cachedKey)
+        if (cached) return res.status(200).json(JSON.parse(cached))
+
         const tips = await TipModel.find({ teacherId: teacherId })
-        res.status(200).json(tips)
+        const enrichedTips = await Promise.all(
+            tips.map(async (tip) => {
+                try {
+                    let responseCategory = await resolveCategory(tip.category.id)
+                    let responseField = await resolveField(tip.category.subCategory);
+
+                    const comments = await CommentModel.find({
+                        contentId: tip._id,
+                        contentType: "tip"
+                    });
+
+                    const thumbnail = tip.thumbnail
+                        ? `${process.env.GATEWAY_URI}/content/uploads/${assign.thumbnail}`
+                        : `${process.env.GATEWAY_URI}/auth/uploads/${responseCategory.subImg}`;
+
+                    return {
+                        _id: tip._id,
+                        teacherId: tip.teacherId,
+                        title: tip.title,
+                        description: tip.description,
+                        thumbnail,
+                        content: tip.content,
+                        category: {
+                            idSubject: responseCategory.idSubject,
+                            name: responseCategory.name,
+                            color: responseCategory.color
+                        },
+                        subCategory: responseField
+                            ? {
+                                idSub: responseField.idSub,
+                                name: responseField.name
+                            }
+                            : null,
+                        ratings: tip.ratings,
+                        avgRating: tip.averageRating(),
+                        comments,
+                        commentsCount: comments.length,
+                        visibility: tip.visibility,
+                        createdAt: tip.createdAt,
+                    }
+                } catch (error) {
+                    console.error("Error while fetching for the tips", error.message)
+                }
+            })
+        )
+        await redis.setex(cachedKey, 120, JSON.stringify(enrichedTips))
+        res.status(200).json(enrichedTips)
     } catch (error) {
         console.error("Error while fetching the teacher tips:", error.message);
         res.status(500).json({ error: "Internal server error" });
@@ -119,10 +170,43 @@ router.delete("/:id", async (req, res) => {
             return res.status(403).json({ error: "Not allowed" });
 
         await tip.deleteOne();
-
+        await redis.del(`teacherTips:${req.headers["x-user-id"]}`)
         res.json({ message: "tip deleted" });
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+router.get('/recommended/me', async (req, res) => {
+    try {
+        const currentUserId = req.headers['x-user-id'];
+        const userRole = req.headers['x-user-role'];
+
+        const cachedKey = `recommendedTips:${currentUserId}`
+        const cached = await redis.get(cachedKey)
+        if (cached) return res.status(200).json(JSON.parse(cached))
+
+        const interestIds = await resolveUserInterests(currentUserId, null)
+
+        const tips = await TipModel.find({
+            visibility: true,
+            "category.id": { $in: interestIds }
+        });
+
+        if (!tips.length) return res.json([]);
+
+        const enriched = (await Promise.all(
+            tips.map(t => enrichContent(t, "tip", [], []))
+        )).filter(Boolean);
+
+        // sort by most recent
+        enriched.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        await redis.setex(cachedKey, 120, JSON.stringify(enriched))
+        res.json(enriched);
+
+    } catch (err) {
+        console.error("Error fetching recommended courses:", err.message);
+        res.status(500).json({ error: "Internal server error" });
     }
 });
 

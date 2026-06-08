@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect } from 'react'
 import { Outlet } from 'react-router-dom'
 import SideNav from '../../Partials/Components/SideNav'
 import TopBar from '../../Partials/Components/TopBar';
-import { adminMainNav } from '../config/navConfig';
+import { adminMainNav, adminSubTools } from '../config/navConfig';
 import { toast } from 'react-toastify';
 import { useSocket } from '../../Utilities/config/useSocket';
 import { AppContext } from '../../App';
@@ -36,7 +36,7 @@ function AdminLayout() {
 
     return (
         <div className={`main-layout ${minimizeNav ? "shrink-nav" : ""}`}>
-            <SideNav minimizeNav={minimizeNav} setMinimizeNav={setMinimizeNav} navItems={adminMainNav} tools={[]} />
+            <SideNav minimizeNav={minimizeNav} setMinimizeNav={setMinimizeNav} navItems={adminMainNav} tools={[]} itemTools={adminSubTools} />
             <TopBar minimizeNav={minimizeNav} setMinimizeNav={setMinimizeNav} />
             <section className="main-container">
                 <Outlet />

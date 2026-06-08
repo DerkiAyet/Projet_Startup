@@ -64,3 +64,8 @@ temp/
 
 # hiding the production file
 docker-compose.yml
+
+#for the chatbot service
+venv/
+__pycache__/
+*.pyc

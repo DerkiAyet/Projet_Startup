@@ -21,7 +21,10 @@
     "parentHub": "Espace parent",
     "users": "Utilisateurs",
     "reports": "Rapports",
-    "classrooms": "Salles de classe"
+    "classrooms": "Salles de classe",
+    "platform-settings": "Paramètres d’administration",
+    "subjects": "Matières",
+    "levels": "Niveaux"
   },
   "tools": {
     "tools": "Outils",
@@ -309,6 +312,8 @@
     "allSet": "Tout est prêt !",
     "welcomeBack": "Bon retour !",
     "loginDescription": "Entrez vos identifiants pour accéder à votre compte et reprendre là où vous vous êtes arrêté.",
+    "welcomeBackAdmin": "Bon retour, administrateur !",
+    "loginDescriptionAdmin": "Connectez-vous avec vos identifiants administrateur pour accéder au tableau de bord et gérer la plateforme.",
     "usernameOrEmail": "Nom d'utilisateur / Email",
     "usernameOrEmailPlaceholder": "Votre nom d'utilisateur ou adresse email",
     "password": "Mot de passe",

@@ -4,11 +4,12 @@ const CommentModel = require('../models/Comments')
 const AssignmentModel = require('../models/Assignments')
 const QuizeModel = require('../models/Quizes')
 const SolvingModel = require('../models/Solving')
-const { discoverAuthService, discoverNotifService } = require('../config/discovery.service')
-const axios = require('axios')
+const { discoverAuthService } = require('../config/discovery.service')
 const multer = require('multer')
 const QuizAttemptModel = require('../models/QuizAttempts')
-const { getUser, getSubject, getSubSubject, getTeacherExpertise, getStudentInterests } = require('../config/kafka/consumer')
+const { enrichContent } = require('./Courses')
+const { resolveCategory, resolveField, resolveUser, resolveUserInterests } = require('../helpers/utils')
+const redis = require('../config/redis.config')
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -30,107 +31,6 @@ const upload = multer({
         fieldSize: 50 * 1024 * 1024  // 50MB to handle base64 images in lesson HTML
     }
 })
- 
-async function enrichContent(item, typeContent, authServiceBaseUrl, categoryNames = [], subCategoryNames = []) {
-    try {
-        // Teacher + category info
-
-        let responseUser = getUser(item.teacherId)
-        if (!responseUser) {
-            const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${item.teacherId}`)
-            responseUser = data.user
-        }
-        let responseCategory = getSubject(item.category.id)
-        if (!responseCategory) {
-            const { data } = await axios.get(`${authServiceBaseUrl}/infos/subjects/${item.category.id}`)
-            responseCategory = data
-        }
-
-        // Subcategory - handle gracefully if it doesn't exist
-        let responseField = null;
-        if (item.category.subCategory) {
-            try {
-                responseField = getSubSubject(item.category.subCategory)
-
-                if (!responseField) {
-                    console.log(`Subcategory ${item.category.subCategory} not found in Kafka, trying API...`);
-                    const { data } = await axios.get(
-                        `${authServiceBaseUrl}/infos/sub-subjects/${item.category.subCategory}`
-                    );
-                    responseField = data;
-                }
-            } catch (subError) {
-                console.log(`Subcategory ${item.category.subCategory} not found`);
-                responseField = null;
-            }
-        }
-
-        // Comments + enrolls + quizzes only for COURSES
-        let comments = [];
-        let enrolls = [];
-        let solutions = [];
-        let quiz = null;
-
-        if (typeContent === "course") {
-            [comments, enrolls, quiz] = await Promise.all([
-                CommentModel.find({ contentId: item._id, contentType: "course" }),
-                EnrollementModel.find({ courseId: item._id }),
-                QuizeModel.findOne({ courseId: item._id })
-            ]);
-        }
-
-        if (typeContent === "assignment") {
-            solutions = await SolvingModel.find({ assignment: item._id })
-        }
-
-        // Thumbnail fallback
-        const thumbnail = item.thumbnail
-            ? `${process.env.GATEWAY_URI}/content/uploads/${item.thumbnail}`
-            : `${process.env.GATEWAY_URI}/auth/uploads/${responseCategory.subImg}`;
-
-        return {
-            typeContent,
-            _id: item._id,
-            teacherId: item.teacherId,
-            title: item.title,
-            description: item.description,
-            thumbnail,
-            level: item.level,
-            category: {
-                idSubject: responseCategory.idSubject,
-                name: responseCategory.name,
-                color: responseCategory.color
-            },
-            subCategory: responseField
-                ? { idSub: responseField.idSub, name: responseField.name }
-                : null,
-            lessons: item.lessons,
-            exercises: item.exercises,
-            tags: item.tags,
-            visibility: item.visibility,
-            createdAt: item.createdAt,
-            avgRating: item.averageRating ? item.averageRating() : 0,
-
-            comments,
-            commentsCount: comments.length,
-            enrollCount: enrolls.length,
-            solveCount: solutions.length,
-            quiz: quiz || null,
-
-            teacher: {
-                userId: responseUser.id,
-                userName: responseUser.userName,
-                familyName: responseUser.familyName,
-                givenName: responseUser.givenName,
-                userImg: responseUser.userImg || responseUser.uerImg,
-                role: "teacher"
-            }
-        };
-    } catch (err) {
-        console.log("Error enriching:", err.message);
-        return null;
-    }
-}
 
 router.post('/', upload.fields([
     { name: 'thumbnail', maxCount: 1 },
@@ -198,7 +98,7 @@ router.post('/', upload.fields([
 
         newAssignment.maxScore = newAssignment.calculateMaxScore();
         await newAssignment.save()
-
+        await redis.del(`teacherAssigns:${teacherId}`)
         res.status(201).json({ message: "assignment created successfully", assignment: newAssignment });
 
     } catch (error) {
@@ -244,7 +144,7 @@ router.put('/:assignId', upload.single('thumbnail'), async (req, res) => {
         if (tags) assignment.tags = tags;
 
         await assignment.save();
-
+        await redis.del(`teacherAssigns:${teacherId}`)
         res.status(200).json({ message: "assignment updated successfully", assignment });
 
     } catch (error) {
@@ -258,26 +158,12 @@ router.get('/recommended/me', async (req, res) => {
         const currentUserId = req.headers['x-user-id'];
         const userRole = req.headers['x-user-role'];
 
-        // ── Get interest/expertise IDs from Kafka cache ──
-        let interestIds = [];
-        if (userRole === 'student') {
-            interestIds = getStudentInterests(currentUserId) || [];
-        } else if (userRole === 'teacher') {
-            interestIds = getTeacherExpertise(currentUserId) || [];
-        }
+        const cachedKey = `recommendedAssigns:${currentUserId}`
+        const cached = await redis.get(cachedKey)
+        if (cached) return res.status(200).json(JSON.parse(cached))
 
-        if (!interestIds || interestIds.length === 0) {
-            const authServiceBaseUrl = await discoverAuthService();
-            const { data } = await axios.get(
-                `${authServiceBaseUrl}/infos/get-user-intrests`,
-                { headers: { "x-user-id": currentUserId }, timeout: 5000 }
-            );
-            interestIds = data;
-        }
+        let interestIds = await resolveUserInterests(currentUserId, null)
 
-        console.log("the intrest from kafka cache", interestIds)
-
-        // ── Fetch only courses whose category.id is in the user's interests ──
         const assignments = await AssignmentModel.find({
             visibility: true,
             "category.id": { $in: interestIds }
@@ -285,15 +171,14 @@ router.get('/recommended/me', async (req, res) => {
 
         if (!assignments.length) return res.json([]);
 
-        const authServiceBaseUrl = await discoverAuthService();
-
         const enriched = (await Promise.all(
-            assignments.map(a => enrichContent(a, "assignment", authServiceBaseUrl, [], []))
+            assignments.map(a => enrichContent(a, "assignment", [], []))
         )).filter(Boolean);
 
         // sort by most recent
         enriched.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
+        await redis.setex(cachedKey, 120, JSON.stringify(enriched))
         res.json(enriched);
 
     } catch (err) {
@@ -307,88 +192,10 @@ router.get('/', async (req, res) => {
 
         const assigns = await AssignmentModel.find()
 
-        const authServiceBaseUrl = await discoverAuthService()
-
         const enrichedAssigns = await Promise.all(
             assigns.map(async (assign) => {
                 try {
-                    let responseUser = getUser(assign.teacherId)
-                    if (!responseUser) {
-                        const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${assign.teacherId}`)
-                        responseUser = data.user
-                    }
-                    let responseCategory = getSubject(assign.category.id)
-                    if (!responseCategory) {
-                        const { data } = await axios.get(`${authServiceBaseUrl}/infos/subjects/${assign.category.id}`)
-                        responseCategory = data
-                    }
-
-                    // Subcategory - handle gracefully if it doesn't exist
-                    let responseField = null;
-                    if (assign.category.subCategory) {
-                        try {
-                            responseField = getSubSubject(assign.category.subCategory)
-
-                            if (!responseField) {
-                                console.log(`Subcategory ${assign.category.subCategory} not found in Kafka, trying API...`);
-                                const { data } = await axios.get(
-                                    `${authServiceBaseUrl}/infos/sub-subjects/${assign.category.subCategory}`
-                                );
-                                responseField = data;
-                            }
-                        } catch (subError) {
-                            console.log(`Subcategory ${assign.category.subCategory} not found`);
-                            responseField = null;
-                        }
-                    }
-
-                    const comments = await CommentModel.find({
-                        contentId: assign._id,
-                        contentType: "assignment"
-                    });
-
-                    const solutions = await SolvingModel.find({ assignment: assign._id })
-
-                    const thumbnail = assign.thumbnail
-                        ? `${process.env.GATEWAY_URI}/content/uploads/${course.thumbnail}`
-                        : `${process.env.GATEWAY_URI}/auth/uploads/${responseCategory.subImg}`;
-
-                    return {
-                        _id: assign._id,
-                        teacherId: assign.teacherId,
-                        title: assign.title,
-                        description: assign.description,
-                        thumbnail,
-                        level: assign.level,
-                        category: {
-                            idSubject: responseCategory.idSubject,
-                            name: responseCategory.name,
-                            color: responseCategory.color
-                        },
-                        subCategory: responseField
-                            ? {
-                                idSub: responseField.idSub,
-                                name: responseField.name
-                            }
-                            : null,
-                        exercises: assign.exercises,
-                        tags: assign.tags,
-                        ratings: assign.ratings,
-                        avgRating: assign.averageRating(),
-                        comments,
-                        commentsCount: comments.length,
-                        solveCount: solutions.length,
-                        visibility: assign.visibility,
-                        createdAt: assign.createdAt,
-                        teacher: {
-                            userId: responseUser.id,
-                            userName: responseUser.userName,
-                            familyName: responseUser.familyName,
-                            givenName: responseUser.givenName,
-                            userImg: responseUser.uerImg,
-                            role: "teacher"
-                        } || null
-                    }
+                    return enrichContent(assign, "assignment")
                 } catch (error) {
                     console.error("Error while fetching for the assigns", error.message)
                 }
@@ -409,36 +216,11 @@ router.get('/teacher/:teacherId', async (req, res) => {
     try {
 
         const assigns = await AssignmentModel.find({ teacherId: teacherId })
-
-        const authServiceBaseUrl = await discoverAuthService()
-
         const enrichedAssigns = await Promise.all(
             assigns.map(async (assign) => {
                 try {
-                    let responseCategory = getSubject(assign.category.id)
-                    if (!responseCategory) {
-                        const { data } = await axios.get(`${authServiceBaseUrl}/infos/subjects/${assign.category.id}`)
-                        responseCategory = data
-                    }
-
-                    // Subcategory - handle gracefully if it doesn't exist
-                    let responseField = null;
-                    if (assign.category.subCategory) {
-                        try {
-                            responseField = getSubSubject(assign.category.subCategory)
-
-                            if (!responseField) {
-                                console.log(`Subcategory ${assign.category.subCategory} not found in Kafka, trying API...`);
-                                const { data } = await axios.get(
-                                    `${authServiceBaseUrl}/infos/sub-subjects/${assign.category.subCategory}`
-                                );
-                                responseField = data;
-                            }
-                        } catch (subError) {
-                            console.log(`Subcategory ${assign.category.subCategory} not found`);
-                            responseField = null;
-                        }
-                    }
+                    let responseCategory = await resolveCategory(assign.category.id)
+                    let responseField = await resolveField(assign.category.subCategory);
 
                     const comments = await CommentModel.find({
                         contentId: assign._id,
@@ -496,37 +278,16 @@ router.get('/teacher-assigns', async (req, res) => {
     const userId = req.headers['x-user-id']
 
     try {
+        const cachedKey = `teacherAssigns:${userId}`
+        const cached = await redis.get(cachedKey)
+        if (cached) return res.status(200).json(JSON.parse(cached))
 
         const assigns = await AssignmentModel.find({ teacherId: userId })
-        const authServiceBaseUrl = await discoverAuthService()
-
         const enrichedAssigns = await Promise.all(
             assigns.map(async (assign) => {
                 try {
-                    let responseCategory = getSubject(assign.category.id)
-                    if (!responseCategory) {
-                        const { data } = await axios.get(`${authServiceBaseUrl}/infos/subjects/${assign.category.id}`)
-                        responseCategory = data
-                    }
-
-                    // Subcategory - handle gracefully if it doesn't exist
-                    let responseField = null;
-                    if (assign.category.subCategory) {
-                        try {
-                            responseField = getSubSubject(assign.category.subCategory)
-
-                            if (!responseField) {
-                                console.log(`Subcategory ${assign.category.subCategory} not found in Kafka, trying API...`);
-                                const { data } = await axios.get(
-                                    `${authServiceBaseUrl}/infos/sub-subjects/${assign.category.subCategory}`
-                                );
-                                responseField = data;
-                            }
-                        } catch (subError) {
-                            console.log(`Subcategory ${assign.category.subCategory} not found`);
-                            responseField = null;
-                        }
-                    }
+                    let responseCategory = await resolveCategory(assign.category.id)
+                    let responseField = await resolveField(assign.category.subCategory);
 
                     const comments = await CommentModel.find({
                         contentId: assign._id,
@@ -572,9 +333,8 @@ router.get('/teacher-assigns', async (req, res) => {
                 }
             })
         )
-
+        await redis.setex(cachedKey, 120, JSON.stringify(enrichedAssigns))
         res.status(200).json(enrichedAssigns)
-
     } catch (error) {
         res.status(500).json({ error: "Internal server error", message: error.message });
     }
@@ -586,36 +346,9 @@ router.get('/:id', async (req, res) => {
         const assignment = await AssignmentModel.findById(assignId);
         if (!assignment) return res.status(404).json({ error: "assignment not found" });
 
-        const authServiceBaseUrl = await discoverAuthService()
-        let responseUser = getUser(assignment.teacherId)
-        if (!responseUser) {
-            const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${assignment.teacherId}`)
-            responseUser = data.user
-        }
-        let responseCategory = getSubject(assignment.category.id)
-        if (!responseCategory) {
-            const { data } = await axios.get(`${authServiceBaseUrl}/infos/subjects/${assignment.category.id}`)
-            responseCategory = data
-        }
-
-        // Subcategory - handle gracefully if it doesn't exist
-        let responseField = null;
-        if (assignment.category.subCategory) {
-            try {
-                responseField = getSubSubject(assignment.category.subCategory)
-
-                if (!responseField) {
-                    console.log(`Subcategory ${assignment.category.subCategory} not found in Kafka, trying API...`);
-                    const { data } = await axios.get(
-                        `${authServiceBaseUrl}/infos/sub-subjects/${assignment.category.subCategory}`
-                    );
-                    responseField = data;
-                }
-            } catch (subError) {
-                console.log(`Subcategory ${assignment.category.subCategory} not found`);
-                responseField = null;
-            }
-        }
+        const responseUser = await resolveUser(assignment.teacherId);
+        let responseCategory = await resolveCategory(assignment.category.id);
+        let responseField = await resolveField(assignment.category.subCategory);
 
         const thumbnail = assignment.thumbnail
             ? `${process.env.GATEWAY_URI}/content/uploads/${assignment.thumbnail}`
@@ -623,29 +356,19 @@ router.get('/:id', async (req, res) => {
 
         const solutions = await SolvingModel.find({ assignment: assignment._id })
 
-
         const comments = await CommentModel.find({ contentId: assignId, contentType: "assignment" })
         let enrichedComments;
         if (comments) {
             enrichedComments = await Promise.all(
                 comments.map(async (c) => {
-                    let resolvedCommentUser = getUser(c.userId)
-                    if (!resolvedCommentUser) {
-                        const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${c.userId}`)
-                        resolvedCommentUser = data.user
-                    }
+                    let resolvedCommentUser = await resolveUser(c.userId)
 
                     const replies = c.replies
                     let enrichedReplies
-
                     if (replies) {
                         enrichedReplies = await Promise.all(
                             replies.map(async (r) => {
-                                let resolvedUser = getUser(r.userId)
-                                if (!resolvedUser) {
-                                    const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${r.userId}`)
-                                    resolvedUser = data.user
-                                }
+                                let resolvedUser = await resolveUser(r.userId)
 
                                 return {
                                     _id: r._id,
@@ -733,6 +456,7 @@ router.delete("/:id", async (req, res) => {
 
         await assignment.deleteOne();
 
+        await redis.del(`teacherAssigns:${req.headers['x-user-id']}`)
         res.json({ message: "assignment deleted" });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -952,36 +676,10 @@ router.get('/quizes/:quizId', async (req, res) => {
         const quiz = await QuizeModel.findById(quizId)
         if (!quiz) return res.status(404).json({ nonExist: "this quiz doesn't exist" })
 
-        const authServiceBaseUrl = await discoverAuthService()
-        let responseUser = getUser(quiz.teacherId)
-        if (!responseUser) {
-            const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${quiz.teacherId}`)
-            responseUser = data.user
-        }
-        let responseCategory = getSubject(quiz.category.id)
-        if (!responseCategory) {
-            const { data } = await axios.get(`${authServiceBaseUrl}/infos/subjects/${quiz.category.id}`)
-            responseCategory = data
-        }
+        const responseUser = await resolveUser(quiz.teacherId)
+        const responseCategory = await resolveCategory(quiz.category.id)
+        const responseField = await resolveField(quiz.category.subCategory);
 
-        // Subcategory - handle gracefully if it doesn't exist
-        let responseField = null;
-        if (quiz.category.subCategory) {
-            try {
-                responseField = getSubSubject(quiz.category.subCategory)
-
-                if (!responseField) {
-                    console.log(`Subcategory ${quiz.category.subCategory} not found in Kafka, trying API...`);
-                    const { data } = await axios.get(
-                        `${authServiceBaseUrl}/infos/sub-subjects/${quiz.category.subCategory}`
-                    );
-                    responseField = data;
-                }
-            } catch (subError) {
-                console.log(`Subcategory ${quiz.category.subCategory} not found`);
-                responseField = null;
-            }
-        }
         const finalQuiz = {
             _id: quiz._id,
             teacherId: quiz.teacherId,
@@ -1011,89 +709,6 @@ router.get('/quizes/:quizId', async (req, res) => {
             } || null
         }
         res.status(200).json(finalQuiz)
-
-    } catch (error) {
-        console.log("Internal Server error", error.message)
-        res.status(500).json({ error: "Internal server error", message: error.message })
-    }
-})
-
-router.get('/me/quizes', async (req, res) => {
-
-    const userId = req.headers['x-user-id']
-
-    try {
-        const solvedQuizes = await QuizAttemptModel.find({ studentId: userId })
-        const authServiceBaseUrl = await discoverAuthService()
-
-        const enrichedQuizes = await Promise.all(
-            solvedQuizes.map(async (attempt) => {
-                const quiz = await QuizeModel.findById(attempt.quizId)
-
-                let responseUser = getUser(quiz.teacherId)
-                if (!responseUser) {
-                    const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${quiz.teacherId}`)
-                    responseUser = data.user
-                }
-                let responseCategory = getSubject(quiz.category.id)
-                if (!responseCategory) {
-                    const { data } = await axios.get(`${authServiceBaseUrl}/infos/subjects/${quiz.category.id}`)
-                    responseCategory = data
-                }
-
-                // Subcategory - handle gracefully if it doesn't exist
-                let responseField = null;
-                if (quiz.category.subCategory) {
-                    try {
-                        responseField = getSubSubject(quiz.category.subCategory)
-
-                        if (!responseField) {
-                            console.log(`Subcategory ${quiz.category.subCategory} not found in Kafka, trying API...`);
-                            const { data } = await axios.get(
-                                `${authServiceBaseUrl}/infos/sub-subjects/${quiz.category.subCategory}`
-                            );
-                            responseField = data;
-                        }
-                    } catch (subError) {
-                        console.log(`Subcategory ${quiz.category.subCategory} not found`);
-                        responseField = null;
-                    }
-                }
-
-                return {
-                    attempt,
-                    quiz: {
-                        _id: quiz._id,
-                        teacherId: quiz.teacherId,
-                        title: quiz.title,
-                        description: quiz.description,
-                        difficulty: quiz.difficulty,
-                        category: responseCategory ? {
-                            idSubject: responseCategory.idSubject,
-                            name: responseCategory.name,
-                            color: responseCategory.color
-                        } : null,
-                        subCategory: responseField
-                            ? {
-                                idSub: responseField.idSub,
-                                name: responseField.name
-                            }
-                            : null,
-                        questions: quiz.questions,
-                        score: quiz.score,
-                        teacher: {
-                            userId: responseUser.id,
-                            userName: responseUser.userName,
-                            familyName: responseUser.familyName,
-                            givenName: responseUser.givenName,
-                            userImg: responseUser.uerImg,
-                            role: "teacher"
-                        } || null
-                    }
-                }
-            })
-        )
-        res.status(200).json(enrichedQuizes)
 
     } catch (error) {
         console.log("Internal Server error", error.message)

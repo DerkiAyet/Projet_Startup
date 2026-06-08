@@ -44,7 +44,7 @@ function ClassroomPage() {
 
     useEffect(() => {
         if (!socket) return         // important so the socket will moount preperly
-        if (!classroomId) return
+        if (!classroomId) return 
 
         socket.emit('join_classroom', { classroomId })
         console.log('Joined classroom room:', classroomId)

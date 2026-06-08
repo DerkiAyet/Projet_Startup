@@ -4,6 +4,7 @@ const mongoose = require('mongoose')
 const path = require('path')
 const { startProducer } = require('./config/kafka/producer')
 const { startConsumer } = require('./config/kafka/consumer');
+const redis = require('./config/redis.config')
 
 const eurekaClient = require('./config/eureka.client')
 
@@ -42,6 +43,9 @@ process.on("SIGINT", () => {
         process.exit();
     });
 });
+
+redis.on('connect', () => console.log("Connected to Redis"));
+redis.on('error', (err) => console.error("Error while connecting to Redis: ", err));
 
 (async () => {
     await startProducer();

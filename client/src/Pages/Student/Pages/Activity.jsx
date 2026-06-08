@@ -49,7 +49,7 @@ export default function StudentActivity() {
                 console.error("Error fetching course enrollments:", error);
             });
 
-        axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/assignments/me/quizes`)
+        axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/activity/me/quizes`)
             .then((res) => setQuizAttempts(res.data))
             .catch((err) => {
                 console.error("Error fetching solved quizes:", err);

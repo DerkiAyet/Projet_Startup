@@ -14,6 +14,7 @@ const axios = require('axios');
 const { error } = require('node:console');
 const multer = require('multer');
 const { Op } = require('sequelize');
+const redis = require('../config_service/redis.config')
 
 
 const storage = multer.diskStorage({
@@ -289,16 +290,15 @@ router.get('/get-children', async (req, res) => {
 //---------------Subjects and relations---------------//
 
 router.post('/add-subject', upload.single('subImg'), async (req, res) => {
-
-    const { name, color } = req.body
-    const subImg = req.file ? `subjects/${req.file.filename}` : null;
-
     try {
+        const userRole = req.headers['x-user-role']
+        if (userRole !== "admin") return res.status(403).json({ error: "Forbidden" })
+
+        const { name, color } = req.body
+        const subImg = req.file ? `subjects/${req.file.filename}` : null;
 
         const subject = await Subjects.findOne({ where: { name: name } })
-
         if (!subject) {
-
             const newSubject = await Subjects.create({ name: name, subImg: subImg, color: color })
 
             await publishSubject({
@@ -312,33 +312,27 @@ router.post('/add-subject', upload.single('subImg'), async (req, res) => {
                 msg: "subject added sucessfully",
                 newSubject
             })
-
         } else {
             return res.status(400).json({
                 error: "Subject already exists"
             })
         }
-
     } catch (error) {
-
         console.error("Intenal server error", error)
-
     }
-
 })
 
-router.post('/:id/add-sub-subject', async (req, res) => {
-
-    const { name } = req.body
-    const idSubject = req.params.id
-
+router.post('/subjects/:id/add-sub-subject', async (req, res) => {
     try {
+        const userRole = req.headers['x-user-role']
+        if (userRole !== "admin") return res.status(403).json({ error: "Forbidden" })
+
+        const { name } = req.body
+        const idSubject = req.params.id
 
         const subject = await Subjects.findByPk(idSubject)
-
         if (!subject) return res.status(400).json("subject doesn't exists")
-
-        const subOfSubject = await SubSubjects.findOne({ where: { name: name } })
+        const subOfSubject = await SubSubjects.findOne({ where: { name: name, idSubject: idSubject } })
         if (subOfSubject) return res.status(400).json('element already exists')
 
         const newSub = await SubSubjects.create({
@@ -356,41 +350,73 @@ router.post('/:id/add-sub-subject', async (req, res) => {
             msg: "subject added sucessfully",
             newSub
         })
-
     } catch (error) {
-
         console.error("Intenal server error", error)
-
     }
+})
 
+router.put('/subjects/:id/sub-subjects/:idSub', async (req, res) => {
+    try {
+        const userRole = req.headers['x-user-role']
+        if (userRole !== "admin") return res.status(403).json({ error: "Forbidden" })
+
+        const { name } = req.body
+        const idSubject = req.params.id
+
+        const subject = await Subjects.findByPk(idSubject)
+        if (!subject) return res.status(400).json("subject doesn't exists")
+        const subSubject = await SubSubjects.findByPk(req.params.idSub)
+        if (subSubject) return res.status(400).json('sub subect doesnt exist')
+
+        subSubject.name = name
+        await subSubject.save()
+
+        await publishSubSubject({
+            idSub: newSub.idSub,
+            name: newSub.name,
+            idSubject: newSub.idSubject
+        });
+
+        return res.status(200).json({ msg: "Sub-subject updated successfully", subSubject })
+    } catch (error) {
+        console.error("Intenal server error", error.message)
+    }
 })
 
 router.delete('/delete-subject/:id', async (req, res) => {
 
-    const id = req.params.id
-
     try {
+        const userRole = req.headers['x-user-role']
+        if (userRole !== "admin") return res.status(403).json({ error: "Forbidden" })
 
+        const id = req.params.id
         const subject = await Subjects.findByPk(id)
+        if (!subject) return res.status(404).json({ error: "subject doesn't exist" })
+        await subject.destroy()
 
-        if (subject) {
-
-            await Subjects.destroy({ where: { idSubject: id } })
-
-            return res.status(200).json({
-                msg: "subject deleted sucessfully",
-            })
-
-        } else {
-            return res.status(400).json({
-                error: "Subject doesn't exist"
-            })
-        }
-
+        return res.status(200).json({ msg: "subject deleted sucessfully" })
     } catch (error) {
-
         console.error("Intenal server error", error)
+    }
 
+})
+
+router.delete('/subjects/:id/sub-subjects/:idSub', async (req, res) => {
+    try {
+        const userRole = req.headers['x-user-role']
+        if (userRole !== "admin") return res.status(403).json({ error: "Forbidden" })
+
+        const id = req.params.id
+        const subject = await Subjects.findByPk(id)
+        if (!subject) return res.status(404).json({ error: "subject doesn't exist" })
+        const subSubject = await SubSubjects.findByPk(req.params.idSub)
+        if (!subSubject) return res.status(403).json({ error: "Not found" })
+
+        await subSubject.destroy();
+
+        return res.status(200).json({ msg: "subject deleted sucessfully" })
+    } catch (error) {
+        console.error("Intenal server error", error)
     }
 
 })
@@ -441,6 +467,20 @@ router.get('/get-subjects', async (req, res) => {
         res.status(500).json("Internal Server Error");
     }
 });
+
+router.get('/subjects/:id/specialities', async (req, res) => {
+    try {
+        const idSubject = req.params.id;
+        const subject = await Subjects.findByPk(idSubject);
+        if (!subject) return res.status(404).json("subject not found")
+
+        const specialities = await SubSubjects.findAll({ where: { idSubject: idSubject } })
+        res.status(200).json(specialities)
+    } catch (error) {
+        console.log(error.message);
+        res.status(500).json({ error: "Internal Server Error", message: error.message });
+    }
+})
 
 router.post("/student/interests", async (req, res) => {
     try {
@@ -696,5 +736,46 @@ router.get('/search', async (req, res) => {
         return res.status(500).json({ message: 'Internal server error' });
     }
 });
+
+//------------Admin Endpoints----------//
+
+router.get('/admin/get-teachers', async (req, res) => {
+    try {
+        const userRole = req.headers['x-user-role']
+        if (userRole !== "admin") return res.status(403).json({ error: "Forbidden" })
+
+        const teachers = await Users.findAll({ where: { role: "teacher" } })
+        return res.status(200).json(teachers)
+    } catch (error) {
+        console.log('error while fetching for teachers: ', error.message)
+        return res.status(500).json({error: error.message})
+    }
+})
+
+router.get('/admin/get-students', async (req, res) => {
+    try {
+        const userRole = req.headers['x-user-role']
+        if (userRole !== "admin") return res.status(403).json({ error: "Forbidden" })
+
+        const students = await Users.findAll({ where: { role: "student" } })
+        return res.status(200).json(students)
+    } catch (error) {
+        console.log('error while fetching for students: ', error.message)
+        return res.status(500).json({error: error.message})
+    }
+})
+
+router.get('/admin/get-parents', async (req, res) => {
+    try {
+        const userRole = req.headers['x-user-role']
+        if (userRole !== "admin") return res.status(403).json({ error: "Forbidden" })
+
+        const parents = await Users.findAll({ where: { role: "parent" } })
+        return res.status(200).json(parents)
+    } catch (error) {
+        console.log('error while fetching for parents: ', error.message)
+        return res.status(500).json({error: error.message})
+    }
+})
 
 module.exports = router 

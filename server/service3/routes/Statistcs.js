@@ -8,7 +8,8 @@ const QuizAttemptModel = require('../models/QuizAttempts')
 const QuizModel = require("../models/Quizes");
 const { discoverAuthService } = require('../config/discovery.service')
 const axios = require('axios')
-const { getUser, getSubject, getSubSubject } = require('../config/kafka/consumer');
+const {resolveField, resolveUser } = require('../helpers/utils')
+const redis = require('../config/redis.config')
 
 router.get('/my-students/stats', async (req, res) => {
     try {
@@ -84,8 +85,6 @@ router.get('/my-students/stats', async (req, res) => {
         const submissionCount = scoreStats[0]?.count || 0;
         const averagePercentage = Math.round(scoreStats[0]?.avgPercentage || 0); // ✅ no more division bug
 
-
-
         // information of enrollements per category
         const detailedEnrollements = await EnrollementModel.aggregate([
             {
@@ -124,24 +123,15 @@ router.get('/my-students/stats', async (req, res) => {
             }
         ]);
 
-        const authServiceBaseUrl = await discoverAuthService()
         const enrichedDetailedEnrollements = await Promise.all(
-
             detailedEnrollements.map(async (e) => {
-                let responseCategory = getSubject(e.subCategoryId)
-
-                if (!responseCategory) {
-                    const { data } = await axios.get(`${authServiceBaseUrl}/infos/sub-subjects/${e.subCategoryId}`)
-                    responseCategory = data
-                }
-
+                const responseCategory = await resolveField(e.subCategoryId)
                 return {
                     subCategoryId: e.subCategoryId,
                     subCategoryName: responseCategory.name,
                     enrollments: e.enrollments
                 }
             })
-
         )
 
         return res.json({
@@ -237,20 +227,13 @@ router.get('/assignments/avg-score-by-subcategory', async (req, res) => {
             subcategoryMap[key].assignmentCount += 1;
         }
 
-        // Enrich with subcategory names
-        const authServiceBaseUrl = await discoverAuthService();
-
         const result = await Promise.all(
             Object.values(subcategoryMap).map(async (entry) => {
                 const { subCategoryId, totalWeightedScore, totalMaxScore, totalSubmissions, assignmentCount } = entry;
 
                 let subCategoryName = 'Unknown';
                 try {
-                    let responseCategory = getSubSubject(subCategoryId);
-                    if (!responseCategory) {
-                        const { data } = await axios.get(`${authServiceBaseUrl}/infos/sub-subjects/${subCategoryId}`);
-                        responseCategory = data;
-                    }
+                    const responseCategory = await resolveField(subCategoryId);
                     subCategoryName = responseCategory.name;
                 } catch (_) { /* keep 'Unknown' if lookup fails */ }
 
@@ -312,8 +295,6 @@ router.get('/assignments/stats-by-student', async (req, res) => {
                 }
             }
         ]);
-
-        const authServiceBaseUrl = await discoverAuthService();
 
         const result = await Promise.all(
             studentStats.map(async (stat) => {
@@ -377,16 +358,7 @@ router.get('/assignments/stats-by-student', async (req, res) => {
                     ]).then(res => (res[0]?.count || 0)),
                 ]);
 
-                let userInfo = null;
-                try {
-                    let responseUser = getUser(stat._id);
-                    if (!responseUser) {
-                        const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${stat._id}`);
-                        responseUser = data.user;
-                    }
-                    userInfo = responseUser;
-                } catch (_) { }
-
+                const responseUser = await resolveUser(stat._id);
                 return {
                     studentId: stat._id,
                     studentFamilyName: userInfo?.familyName || 'Unknown',
@@ -487,15 +459,7 @@ router.get('/student/:studentId/solutions', async (req, res) => {
                 // Skip if no solution
                 if (!solution) return null;
 
-                const authServiceUrl = await discoverAuthService();
-                let responseField = getSubSubject(a.category.subCategory);
-
-                if (!responseField) {
-                    const { data } = await axios.get(
-                        `${authServiceUrl}/infos/sub-subjects/${a.category.subCategory}`
-                    );
-                    responseField = data;
-                }
+                const responseField = await resolveField(a.category.subCategory);
 
                 return {
                     title: a.title,
@@ -634,11 +598,7 @@ router.get('/my-children/stats', async (req, res) => {
         await Promise.all(
             [...allSubCatIds].map(async (subCatId) => {
                 try {
-                    let cat = getSubject(subCatId);
-                    if (!cat) {
-                        const { data } = await axios.get(`${authServiceUrl}/infos/sub-subjects/${subCatId}`);
-                        cat = data;
-                    }
+                    const cat = await resolveField(subCatId);
                     subCatNameMap[subCatId] = cat.name;
                 } catch (_) {
                     subCatNameMap[subCatId] = 'Unknown';

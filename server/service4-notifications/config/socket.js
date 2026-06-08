@@ -150,6 +150,16 @@ function setupWebSocket(server) {
       });
     });
 
+    // for the gamification service:
+     socket.on('join_game', ({ userId }) => {
+      socket.join(`gamification:${userId}`);
+      console.log(`Socket ${socket.id} joined in game system:${userId}`);
+    });
+
+    socket.on('leave_game', ({ userId }) => {
+      socket.leave(`gamification:${userId}`);
+    });
+
     socket.on("disconnect", () => {
       console.log("Client disconnected:", socket.id);
       for (const [userId, info] of Object.entries(connectedUsers)) {

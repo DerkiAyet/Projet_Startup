@@ -1,5 +1,4 @@
 const express = require('express')
-const cors = require('cors')
 require('dotenv').config({ path: './config/config.env' });
 const mongoose = require('mongoose')
 const { setupWebSocket, getIO } = require('./config/socket')

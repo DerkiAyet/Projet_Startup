@@ -146,6 +146,20 @@
     padding: 0 var(--spacing-lg);
 }
 
+.sidenav nav .sub-items {
+    margin-bottom: var(--spacing-sm);
+}
+
+.sidenav .divider{
+    width: 100%;
+    height: 1.5px;
+    min-height: 1.5px;        /* prevent flex from collapsing it */
+    flex-shrink: 0;           /* ← this is likely the fix */
+    background-color: var(--border-light);
+    margin: 0.5rem 0;
+    display: block; 
+}
+
 .sidenav nav ul.optional-items {
     border-bottom: 1.5px solid var(--border-light);
     border-top: 1.5px solid var(--border-light);

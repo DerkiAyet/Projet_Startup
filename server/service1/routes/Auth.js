@@ -12,6 +12,7 @@ const { publishUsers } = require('../config_service/kafka/producer');
 
 const { Users, Parents, Students, Teachers, Admins, ResetPassword, Adresses } = require('../models');
 const { Model, where } = require('sequelize');
+const redis = require('../config_service/redis.config')
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -32,34 +33,34 @@ router.post('/register', async (req, res) => {
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        const existingUser = await Users.findOne({ where: { email: email } });
+        if (role === "admin") return res.status(403).json({ error: "Forbidden" })
+
+        const existingUser = await Users.findOne({
+            where: {
+                [Op.or]: [
+                    { email: email },
+                    { userName: userName }
+                ]
+            }
+        });
 
         if (existingUser) {
-            return res.status(400).json({ errorEmail: 'Email already in use' });
-        }
-
-        let finalUserName = userName;
-
-        if (!finalUserName) {
-            if (role === "admin") {
-                finalUserName = `admin_${familyName}_${Date.now()}`;
+            if (existingUser.email === email) {
+                return res.status(400).json({ errorEmail: 'Email already in use' });
             }
-        } else {
-            const existingUserName = await Users.findOne({ where: { userName: userName } })
-
-            if (existingUserName) {
-                return res.status(400).json({ errorUsername: 'UserName already in use' });
+            if (existingUser.userName === userName) {
+                return res.status(400).json({ errorUsername: 'Username already in use' });
             }
         }
 
         const newUser = await Users.create({
-            userName: finalUserName,
-            familyName: familyName,
-            givenName: givenName,
-            email: email,
+            userName,
+            familyName,
+            givenName,
+            email,
             pwd: hashedPassword,
-            dateOfBirth: DateOfBirth,
-            role: role
+            dateOfBirth,
+            role
         });
 
         await publishUsers(newUser);
@@ -107,19 +108,12 @@ router.post('/register', async (req, res) => {
                 familyName: newUser.familyName,
                 givenName: newUser.givenName,
             })
-        } else if (role === 'teacher') {
+        } else {
             await Teachers.create({
                 idTeacher: newUser.id,
                 userName: newUser.userName,
                 familyName: newUser.familyName,
                 givenName: newUser.givenName,
-            })
-        } else {
-            await Admins.create({
-                familyName: newUser.familyName,
-                givenName: newUser.givenName,
-                email: newUser.email,
-                pwd: hashedPassword,
             })
         }
 
@@ -140,35 +134,34 @@ router.post('/mobile/register', async (req, res) => {
 
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
+        if (role === "admin") return res.status(403).json({ error: "Forbidden" })
 
-        const existingUser = await Users.findOne({ where: { email: email } });
+        const existingUser = await Users.findOne({
+            where: {
+                [Op.or]: [
+                    { email: email },
+                    { userName: userName }
+                ]
+            }
+        });
 
         if (existingUser) {
-            return res.status(400).json({ errorEmail: 'Email already in use' });
-        }
-
-        let finalUserName = userName;
-
-        if (!finalUserName) {
-            if (role === "admin") {
-                finalUserName = `admin_${familyName}_${Date.now()}`;
+            if (existingUser.email === email) {
+                return res.status(400).json({ errorEmail: 'Email already in use' });
             }
-        } else {
-            const existingUserName = await Users.findOne({ where: { userName: userName } })
-
-            if (existingUserName) {
-                return res.status(400).json({ errorUsername: 'UserName already in use' });
+            if (existingUser.userName === userName) {
+                return res.status(400).json({ errorUsername: 'Username already in use' });
             }
         }
 
         const newUser = await Users.create({
-            userName: finalUserName,
-            familyName: familyName,
-            givenName: givenName,
-            email: email,
+            userName,
+            familyName,
+            givenName,
+            email,
             pwd: hashedPassword,
-            dateOfBirth: DateOfBirth,
-            role: role
+            dateOfBirth,
+            role
         });
 
         await publishUsers(newUser);
@@ -203,19 +196,12 @@ router.post('/mobile/register', async (req, res) => {
                 familyName: newUser.familyName,
                 givenName: newUser.givenName,
             })
-        } else if (role === 'teacher') {
+        } else {
             await Teachers.create({
                 idTeacher: newUser.id,
                 userName: newUser.userName,
                 familyName: newUser.familyName,
                 givenName: newUser.givenName,
-            })
-        } else {
-            await Admins.create({
-                familyName: newUser.familyName,
-                givenName: newUser.givenName,
-                email: newUser.email,
-                pwd: hashedPassword,
             })
         }
 
@@ -234,15 +220,20 @@ router.post('/mobile/register', async (req, res) => {
 
 router.post('/login', async (req, res) => {
     const { identifier, password } = req.body;
-
     try {
 
         if (!identifier) {
             return res.status(400).json({ error: "Please enter your email or username" });
         }
-
         // Detect if identifier is an email
         const isEmail = identifier.includes('@');
+
+        const attemptKey = `login_attempts:${identifier}`;
+        const attempts = await redis.get(attemptKey);
+        if (attempts && parseInt(attempts) >= 5) {
+            return res.status(429).json({ error: "Too many failed login attempts. Try again in 15 minutes." });
+        }
+
 
         const user = await Users.findOne({
             where: isEmail
@@ -256,60 +247,70 @@ router.post('/login', async (req, res) => {
             });
         }
 
-        bcrypt.compare(password, user.pwd).then((match) => {
-            if (!match) {
+        if (user.role === "admin") return res.status(403).json({ error: "Forbidden, this is an admin's credentials" })
 
-                return res.status(400).json({
-                    errorPassword: "wrong password"
-                })
+        const match = await bcrypt.compare(password, user.pwd);
+        if (!match) {
+            //Increment failed attempts
+            await redis.incr(attemptKey);
+            await redis.expire(attemptKey, 900); // 15 min window
+            return res.status(400).json({ errorPassword: "Wrong password" });
+        }
+        // Login success — clear failed attempts
+        await redis.del(attemptKey);
 
-            } else {
+        const accessToken = sign({
+            userId: user.id,
+            userName: user.userName,
+            userRole: user.role
+        }, process.env.JWT_ACCESS_SECRET, {
+            expiresIn: '15m'
+        });
 
-                const accessToken = sign({
-                    userId: user.id,
-                    userName: user.userName,
-                    userRole: user.role
-                }, process.env.JWT_ACCESS_SECRET, {
-                    expiresIn: '15m'
-                });
+        const refreshToken = sign({
+            userId: user.id,
+            userName: user.userName,
+            userRole: user.role
+        }, process.env.JWT_REFRESH_SECRET, {
+            expiresIn: '14d'
+        });
 
-                const refreshToken = sign({
-                    userId: user.id,
-                    userName: user.userName,
-                    userRole: user.role
-                }, process.env.JWT_REFRESH_SECRET, {
-                    expiresIn: '14d'
-                });
+        res.cookie('accessToken', accessToken, {
+            maxAge: 900000,
+            httpOnly: true,
+            sameSite: 'lax',   // lax instead of strict
+            secure: false       // false because HTTP not HTTPS
+        });
+        res.cookie('refreshToken', refreshToken, {
+            maxAge: 14 * 24 * 60 * 60 * 1000,
+            httpOnly: true,
+            sameSite: 'lax',   // lax instead of strict
+            secure: false       // false because HTTP not HTTPS
+        });
 
-                res.cookie('accessToken', accessToken, {
-                    maxAge: 900000,
-                    httpOnly: true,
-                    sameSite: 'lax',   // lax instead of strict
-                    secure: false       // false because HTTP not HTTPS
-                });
-                res.cookie('refreshToken', refreshToken, {
-                    maxAge: 14 * 24 * 60 * 60 * 1000,
-                    httpOnly: true,
-                    sameSite: 'lax',   // lax instead of strict
-                    secure: false       // false because HTTP not HTTPS
-                });
+        await redis.setex(`user:${user.id}`, 300, JSON.stringify({
+            userId: user.id,
+            userName: user.userName,
+            familyName: user.familyName,
+            givenName: user.givenName,
+            userImg: user.uerImg,
+            role: user.role
+        }));
 
-                res.status(200).json({
-                    userId: user.id,
-                    userName: user.userName,
-                    familyName: user.familyName,
-                    givenName: user.givenName,
-                    userImg: user.uerImg,
-                    role: user.role
-                })
-
-            }
+        res.status(200).json({
+            userId: user.id,
+            userName: user.userName,
+            familyName: user.familyName,
+            givenName: user.givenName,
+            userImg: user.uerImg,
+            role: user.role
         })
 
     } catch (error) {
 
         res.status(500).json({
-            error: "Internal server error while searching for the user"
+            msg: "Internal server error while searching for the user",
+            error: error.message
         })
 
     }
@@ -325,6 +326,13 @@ router.post('/mobile/login', async (req, res) => {
             return res.status(400).json({ error: "Please enter your email or username" });
         }
 
+        //Rate Limiting
+        const attemptKey = `login_attempts:${identifier}`;
+        const attempts = await redis.get(attemptKey);
+        if (attempts && parseInt(attempts) >= 5) {
+            return res.status(429).json({ error: "Too many failed login attempts. Try again in 15 minutes." });
+        }
+
         // Detect if identifier is an email
         const isEmail = identifier.includes('@');
 
@@ -340,43 +348,54 @@ router.post('/mobile/login', async (req, res) => {
             });
         }
 
-        bcrypt.compare(password, user.pwd).then((match) => {
-            if (!match) {
+        if (user.role === "admin") return res.status(403).json({ error: "Forbidden, this is an admin's credentials" })
 
-                return res.status(400).json({
-                    errorPassword: "wrong password"
-                })
+        const match = await bcrypt.compare(password, user.pwd);
+        if (!match) {
+            // Increment failed attempts
+            await redis.incr(attemptKey);
+            await redis.expire(attemptKey, 900); // 15 min window
+            return res.status(400).json({ errorPassword: "Wrong password" });
+        }
 
-            } else {
+        //Login success — clear failed attempts
+        await redis.del(attemptKey);
 
-                const accessToken = sign({
-                    userId: user.id,
-                    userName: user.userName,
-                    userRole: user.role
-                }, process.env.JWT_ACCESS_SECRET, {
-                    expiresIn: '15m'
-                });
+        const accessToken = sign({
+            userId: user.id,
+            userName: user.userName,
+            userRole: user.role
+        }, process.env.JWT_ACCESS_SECRET, {
+            expiresIn: '15m'
+        });
 
-                const refreshToken = sign({
-                    userId: user.id,
-                    userName: user.userName,
-                    userRole: user.role
-                }, process.env.JWT_REFRESH_SECRET, {
-                    expiresIn: '90d'
-                });
+        const refreshToken = sign({
+            userId: user.id,
+            userName: user.userName,
+            userRole: user.role
+        }, process.env.JWT_REFRESH_SECRET, {
+            expiresIn: '90d'
+        });
 
-                res.status(200).json({
-                    userId: user.id,
-                    userName: user.userName,
-                    familyName: user.familyName,
-                    givenName: user.givenName,
-                    userImg: user.uerImg,
-                    role: user.role,
-                    accessToken,
-                    refreshToken  // mobile stores this in SecureStore
-                })
+        //cache user data in redis
+        await redis.setex(`user:${user.id}`, 300, JSON.stringify({
+            userId: user.id,
+            userName: user.userName,
+            familyName: user.familyName,
+            givenName: user.givenName,
+            userImg: user.uerImg,
+            role: user.role
+        }));
 
-            }
+        res.status(200).json({
+            userId: user.id,
+            userName: user.userName,
+            familyName: user.familyName,
+            givenName: user.givenName,
+            userImg: user.uerImg,
+            role: user.role,
+            accessToken,
+            refreshToken  // mobile stores this in SecureStore
         })
 
     } catch (error) {
@@ -389,12 +408,146 @@ router.post('/mobile/login', async (req, res) => {
 
 })
 
+router.post('/create/admin', async (req, res) => {
+    const { familyName, givenName, email, password } = req.body;
+
+    try {
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const existingAdmin = await Admins.findOne({ where: { email: email } });
+        if (existingAdmin) return res.status(400).json({ errorEmail: 'Email already in use' });
+
+        const newAdmin = await Users.create({
+            userName: `admin_${Date.now()}`,
+            familyName,
+            givenName,
+            email,
+            pwd: hashedPassword,
+            role: 'admin'
+        });
+        await publishUsers(newAdmin);
+
+        await Admins.create({
+            familyName: newAdmin.familyName,
+            givenName: newAdmin.givenName,
+            email: newAdmin.email,
+            pwd: hashedPassword,
+        });
+
+        return res.status(201).json({
+            message: 'User registered successfully',
+            userId: newAdmin.id
+        });
+
+    } catch (error) {
+        console.error('Error during registration:', error);
+        return res.status(500).json({ error: 'An error occurred during registration' });
+    }
+})
+
+router.post('/login/admin', async (req, res) => { // a protected route with /users in gateway
+    const { identifier, password } = req.body;
+    try {
+        if (!identifier) {
+            return res.status(400).json({ error: "Please enter your email or username" });
+        }
+
+        const attemptKey = `login_attempts:${identifier}`;
+        const attempts = await redis.get(attemptKey);
+        if (attempts && parseInt(attempts) >= 5) {
+            return res.status(429).json({ error: "Too many failed login attempts. Try again in 15 minutes." });
+        }
+
+        const isEmail = identifier.includes('@');
+
+        const admin = await Users.findOne({ where: { email: identifier, role: 'admin' } });
+
+        if (!admin) {
+            return res.status(400).json({
+                errorAdmin: "Admin doesn't exist"
+            });
+        }
+
+        // replace in all routes
+        const match = await bcrypt.compare(password, admin.pwd);
+        if (!match) {
+            //Increment failed attempts
+            await redis.incr(attemptKey);
+            await redis.expire(attemptKey, 900); // 15 min window
+            return res.status(400).json({ errorPassword: "Wrong password" });
+        }
+
+        //Login success — clear failed attempts
+        await redis.del(attemptKey);
+
+        const accessToken = sign({
+            userId: admin.id,
+            userName: admin.userName,
+            userRole: admin.role
+        }, process.env.JWT_ACCESS_SECRET, {
+            expiresIn: '15m'
+        });
+
+        const refreshToken = sign({
+            userId: admin.id,
+            userName: admin.userName,
+            userRole: admin.role
+        }, process.env.JWT_REFRESH_SECRET, {
+            expiresIn: '14d'
+        });
+
+        res.cookie('accessToken', accessToken, {
+            maxAge: 900000,
+            httpOnly: true,
+            sameSite: 'lax',
+            secure: false
+        });
+        res.cookie('refreshToken', refreshToken, {
+            maxAge: 14 * 24 * 60 * 60 * 1000,
+            httpOnly: true,
+            sameSite: 'lax',
+            secure: false
+        });
+
+        //cache user data in redis
+        await redis.setex(`user:${admin.id}`, 300, JSON.stringify({
+            userId: admin.id,
+            userName: admin.userName,
+            familyName: admin.familyName,
+            givenName: admin.givenName,
+            userImg: admin.uerImg,
+            role: admin.role
+        }));
+
+        res.status(200).json({
+            userId: admin.id,
+            userName: admin.userName,
+            familyName: admin.familyName,
+            givenName: admin.givenName,
+            userImg: admin.uerImg,
+            role: admin.role
+        })
+
+    } catch (error) {
+        res.status(500).json({
+            error: "Internal server error while searching for the admin",
+            message: error.message
+        })
+
+    }
+})
+
 router.get('/verify', async (req, res) => {
 
     const userId = req.headers['x-user-id'];
     const userName = req.headers['x-user-name'];
 
     try {
+        const cached = await redis.get(`user:${userId}`) //verify in redis and send the chached data, else fetch from db
+        if (cached) {
+            return res.status(200).json(JSON.parse(cached));
+        }
+
         const user = await Users.findByPk(userId, {
             attributes: ['familyName', 'givenName', 'uerImg', 'role']
         });
@@ -404,6 +557,17 @@ router.get('/verify', async (req, res) => {
                 error: "User not found"
             });
         }
+
+        const userData = {
+            userId: parseInt(userId),
+            userName,
+            familyName: user.familyName,
+            givenName: user.givenName,
+            userImg: user.uerImg,
+            role: user.role
+        };
+        // Save to cache for next time (5 min)
+        await redis.setex(`user:${userId}`, 300, JSON.stringify(userData));
 
         res.status(200).json({
             userId: parseInt(userId),
@@ -422,17 +586,31 @@ router.get('/verify', async (req, res) => {
     }
 });
 
-router.post('/logout', (req, res) => {
+router.post('/logout', async (req, res) => {
+    const token = req.cookies?.accessToken;
 
-    res.clearCookie('accessToken');
+    try {
+        if (token) {
+            //Blacklist token until it naturally expires (15 min) --- an additional security layer
+            //by caching the token after the user logout it's going to be marked as crucial error (means someone who uses this token after being cached here is identified as HACKER!!)
+            //Hacker sends request with old token
+            // → Middleware checks Redis blacklist
+            // → Finds it → Rejects immediately 
+            await redis.setex(`blacklist:${token}`, 900, 'true');
+        }
 
-    res.clearCookie('refreshToken', {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'strict'
-    });
+        // Clear user cache
+        const userId = req.headers['x-user-id'];
+        if (userId) await redis.del(`user:${userId}`);
 
-    res.sendStatus(204);//204: It means without content
+        res.clearCookie('accessToken');
+        res.clearCookie('refreshToken', { httpOnly: true, secure: false, sameSite: 'lax' });
+        res.sendStatus(204);
+
+    } catch (error) {
+        console.error('Logout error:', error);
+        res.sendStatus(204); // still logout even if Redis fails
+    }
 });
 
 router.put('/edit-profile', upload.single('userImg'), async (req, res) => {
@@ -556,13 +734,20 @@ router.post('/forgot-password', async (req, res) => {
         });
 
         if (user) {
+            // rate limit for 3 attempts
+            const limitKey = `reset_limit:${email}`;
+            const resetCount = await redis.get(limitKey);
+            if (resetCount && parseInt(resetCount) >= 3) {
+                return res.status(429).json({ error: "Too many reset requests. Try again in an hour." });
+            }
+
             const token = crypto.randomBytes(20).toString('hex');
 
-            await ResetPassword.create({
-                userId: user.id,
-                token: token,
-                expiresAt: new Date(Date.now() + 60 * 60 * 1000) // 1 hour from now
-            });
+            await redis.setex(`reset_token:${token}`, 3600, String(user.id));// using redis is more optimal compared to the ResetPassword table, so this table will be deleted
+
+            // Increment reset request count
+            await redis.incr(limitKey);
+            await redis.expire(limitKey, 3600);
 
             const transporter = nodemailer.createTransport({
                 service: 'gmail',
@@ -613,116 +798,90 @@ router.post('/reset-password/:token', async (req, res) => {
     const { password } = req.body;
 
     try {
-        const resetEntry = await ResetPassword.findOne({
-            where: {
-                token: token,
-                expiresAt: { [Op.gt]: Date.now() }
-            }
+        const userId = await redis.get(`reset_token:${token}`)
+
+        if (!userId) return res.status(400).json({ tokenExpired: 'Invalid or expired token' });
+
+        const user = await Users.findByPk(userId);
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        user.pwd = await bcrypt.hash(password, 10);
+        await user.save();
+
+        //Delete token from Redis after use
+        await redis.del(`reset_token:${token}`);
+
+        // Clear any cached user data so fresh data loads
+        await redis.del(`user:${userId}`);
+
+        const accessToken = sign({
+            userId: user.id,
+            userName: user.userName
+        }, process.env.ACCESS_KEY, {
+            expiresIn: '15m'
         });
 
-        if (resetEntry) {
-            const user = await Users.findByPk(resetEntry.userId);
-            if (!user) {
-                return res.status(404).json({ error: 'User not found' });
-            }
+        const refreshToken = sign({
+            userId: user.id,
+            userName: user.userName
+        }, process.env.REFRESH_KEY, {
+            expiresIn: '14d'
+        });
 
-            user.pwd = await bcrypt.hash(password, 10);
-            await user.save();
+        res.cookie('accessToken', accessToken, { maxAge: 900000 });
+        res.cookie('refreshToken', refreshToken, {
+            maxAge: 14 * 24 * 60 * 60 * 1000,
+            httpOnly: true,
+            secure: true,
+            sameSite: 'strict'
+        });
 
-            const accessToken = sign({
-                userId: user.id,
-                userName: user.userName
-            }, process.env.ACCESS_KEY, {
-                expiresIn: '15m'
-            });
-
-            const refreshToken = sign({
-                userId: user.id,
-                userName: user.userName
-            }, process.env.REFRESH_KEY, {
-                expiresIn: '7d'
-            });
-
-            res.cookie('accessToken', accessToken, { maxAge: 900000 });
-            res.cookie('refreshToken', refreshToken, {
-                maxAge: 14 * 24 * 60 * 60 * 1000,
-                httpOnly: true,
-                secure: true,
-                sameSite: 'strict'
-            });
-
-            await resetEntry.destroy();
-            res.status(201).json({
-                message: 'Password changed successfully',
-                userName: user.userName,
-                familyName: user.familyName,
-                givenName: user.givenName,
-                userImg: user.uerImg,
-                role: user.role
-            });
-
-        } else {
-            res.status(400).json({
-                tokenExpired: 'Invalid or expired token'
-            });
-        }
-
+        res.status(201).json({
+            message: 'Password changed successfully',
+            userName: user.userName,
+            familyName: user.familyName,
+            givenName: user.givenName,
+            userImg: user.uerImg,
+            role: user.role
+        });
     } catch (error) {
-        console.error('Error resetting password:', error);
-        res.status(500).json({
-            serverError: 'Internal server error'
-        });
+        console.error('Error resetting password:', error.message);
+        res.status(500).json({error: 'Internal server error'});
     }
 });
 
 // GET USER BY USERNAME
 
 router.get('/users/:userName', async (req, res) => {
-
     const userName = req.params.userName
-
     try {
-
         const user = await Users.findOne({ where: { userName: userName } })
-
-        if (!user) {
-            return res.status(400).json({ error: "user does not exist" })
-        }
+        if (!user)return res.status(400).json({ error: "user does not exist" })
 
         res.status(200).json({ sucess: "user found", user })
-
     } catch (error) {
-
-        console.error('Error resetting password:', error);
-        res.status(500).json({
-            serverError: 'Internal server error'
-        });
-
+        console.error('Error resetting password:', error.message);
+        res.status(500).json({error: 'Internal server error'});
     }
-
 })
 
 router.get('/get_user_byId/:userId', async (req, res) => {
-
     const userId = req.params.userId
-
     try {
-
-        const user = await Users.findByPk(userId)
-
-        if (!user) {
-            return res.status(400).json({ error: "user does not exist" })
+        const cached = await redis.get(`user:${userId}`)
+        if (cached) {
+            console.log(`Fetched from Redis for user with id: ${userId}`)
+            res.status(200).json({ success: "user found", user: JSON.parse(cached) });
         }
 
+        const user = await Users.findByPk(userId)
+        if (!user) return res.status(400).json({ error: "user does not exist" })
+        await redis.setex(`user:${userId}`, 300, JSON.stringify(user));
+
         res.status(200).json({ sucess: "user found", user })
-
     } catch (error) {
-
-        console.error('Error resetting password:', error);
-        res.status(500).json({
-            serverError: 'Internal server error'
-        });
-
+        console.error('Error resetting password:', error.message);
+        res.status(500).json({error: 'Internal server error'});
     }
 
 })

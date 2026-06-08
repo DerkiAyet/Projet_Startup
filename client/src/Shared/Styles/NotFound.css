@@ -1,0 +1,73 @@
+:root {
+    --light-grey-font-color: #8A8A8A;
+    --dark-font-color: #1E293B;
+    --main-color: #EC4899; 
+    --text-primary: #E0E0E0;
+}
+
+.not-found-container {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+.not-found-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+    text-align: center;
+}
+
+.not-found-code {
+    font-size: 6rem;
+    font-weight: 700;
+    color: var(--main-color);
+    line-height: 1;
+    letter-spacing: -4px;
+}
+
+.not-found-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--dark-font-color);
+    margin: 0;
+}
+
+.not-found-desc {
+    font-size: 0.9rem;
+    color: var(--light-grey-font-color);
+    margin: 0 0 0.5rem;
+    line-height: 1.6;
+    max-width: 280px;
+}
+
+.not-found-btn {
+    padding: 0.6rem 1.5rem;
+    border-radius: 20px;
+    border: 1.5px solid var(--main-color);
+    background: transparent;
+    color: var(--main-color);
+    font-size: 0.95rem;
+    font-weight: 600;
+    font-family: "Plus Jakarta Sans", sans-serif;
+    cursor: pointer;
+    transition: 0.2s;
+    margin-top: 0.5rem;
+}
+
+.not-found-btn:hover {
+    background: var(--main-color);
+    color: #fff;
+}
+
+#light-mode .not-found-title {
+    color: var(--dark-font-color);
+}
+
+#dark-mode .not-found-title {
+    color: var(--text-primary);
+}

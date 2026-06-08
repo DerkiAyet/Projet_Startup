@@ -30,4 +30,21 @@ const publishNotification = async (type, payload) => {
     }
 };
 
-module.exports = { startProducer, publishNotification };
+const updateGamification = async (missionType, studentId) => {
+    try {
+        await producer.send({
+            topic: 'gamification.events',
+            messages: [
+                {
+                    key: missionType,
+                    value: JSON.stringify({ missionType, studentId })
+                }
+            ]
+        });
+        console.log(`[Kafka] Game Event published: ${missionType}`);
+    } catch (err) {
+        console.error(`[Kafka] Game Failed to publish event ${missionType}:`, err.message);
+    }
+};
+
+module.exports = { startProducer, publishNotification, updateGamification };

@@ -1,5 +1,3 @@
-//sessions.js
-
 const express = require('express')
 const router = express.Router()
 const { discoverAuthService } = require('../config/discovery.service')
@@ -10,20 +8,8 @@ const SessionModel = require('../models/Session')
 const IndividualSheetModel = require('../models/IndividualSheet')
 const ConsensusAnswerModel = require('../models/ConsensusAnswer')
 const SessionChatModel = require('../models/SessionChat')
-const { emitToRoom, publishNotification } = require('../config/kafka/producer')
-
-async function resolveUser(userId) {
-    let user = getUser(String(userId));
-    if (!user) {
-        const authServiceBaseUrl = await discoverAuthService();
-        const { data } = await axios.get(
-            `${authServiceBaseUrl}/get_user_byId/${userId}`,
-            { timeout: 5000 }
-        );
-        user = data.user;
-    }
-    return user;
-}
+const { emitToRoom, publishNotification, updateGamification } = require('../config/kafka/producer')
+const { resolveUser } = require('../helpers/utils')
 
 router.post('/of-classroom/:classroomId', async (req, res) => {
     try {
@@ -40,7 +26,7 @@ router.post('/of-classroom/:classroomId', async (req, res) => {
         const session = await SessionModel.create({
             classroomId: classroom._id,
             assignmentId,
-            refTitle, 
+            refTitle,
             refThumbnail,
             refCategory,
             deadline: deadline || null,
@@ -70,6 +56,7 @@ router.post('/of-classroom/:classroomId', async (req, res) => {
             )
         );
 
+        await redis.del(`sessions:classroom:${req.params.classroomId}`)
         return res.status(201).json(session)
     } catch (error) {
         console.log("error while creating the session", error.message)
@@ -90,7 +77,12 @@ router.get('/of-classroom/:classroomId', async (req, res) => {
         const isTeacher = classroom.teacherId === userId
         if (!isMember && !isTeacher) return res.status(403).json("user not a member in this class")
 
+        const cacheKey = `sessions:classroom:${req.params.classroomId}`
+        const cached = await redis.get(cacheKey)
+        if (cached) return res.status(200).json(JSON.parse(cached))
+
         const sessions = await SessionModel.find({ classroomId: classroom._id })
+        await redis.setex(cacheKey, 60, JSON.stringify(sessions))
 
         return res.status(200).json(sessions)
     } catch (error) {
@@ -106,7 +98,7 @@ router.get('/:sessionId', async (req, res) => {
 
         const currentPhase = session.phase
         let finalSession;
-        if (phase > 1) {
+        if (currentPhase > 1) {
             const sheets = await IndividualSheetModel.find({ sessionId: session._id })
             const consensus = await ConsensusAnswerModel.find({ sessionId: session._id })
 
@@ -211,6 +203,7 @@ router.put('/:sessionId/complete', async (req, res) => {
             { sessionId: session._id }
         );
 
+        await redis.del(`sessions:classroom:${session.classroomId}`)
         return res.status(200).json(session);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -277,6 +270,8 @@ router.put('/:sessionId/sheets/:exerciseId/submit', async (req, res) => {
                 exerciseId: req.params.exerciseId
             }
         );
+
+        await updateGamification("PARTICPATE_SESSION", studentId)
 
         return res.status(200).json(sheet);
     } catch (err) {
@@ -363,27 +358,43 @@ router.post('/:sessionId/consensus/:exerciseId/lock', async (req, res) => {
         const userRole = req.headers['x-user-role']
         if (userRole !== "student" && userRole !== "teacher") return res.status(403).json("Forbidden")
 
-        const consensus = await ConsensusAnswerModel.findOne({
-            sessionId: req.params.sessionId,
-            exerciseId: Number(req.params.exerciseId)
-        });
+        const lockKey = `session:lock:${req.params.sessionId}:${req.params.exerciseId}`;
+        // NX = only set if not exists, which means if the key already exists in cache then inserting it again is not allowed
+        // it makes perfect sense since the lock cannot be hold by two students at the same time
+        const acquired = await redis.set(lockKey, String(userId), 'NX', 'EX', 300); // auto-releases after 5 min with EX
+
+        // const consensus = await ConsensusAnswerModel.findOne({
+        //     sessionId: req.params.sessionId,
+        //     exerciseId: Number(req.params.exerciseId)
+        // });
 
         // if already locked by someone else
-        if (consensus?.lockedBy && consensus.lockedBy !== userId)
-            return res.status(409).json({
-                error: 'Consensus area is currently locked by another student',
-                lockedBy: consensus.lockedBy
-            });
+        // if (consensus?.lockedBy && consensus.lockedBy !== userId)
+        //     return res.status(409).json({
+        //         error: 'Consensus area is currently locked by another student',
+        //         lockedBy: consensus.lockedBy
+        //     });
 
-        await ConsensusAnswerModel.findOneAndUpdate(
-            {
-                sessionId: req.params.sessionId,
-                exerciseId: Number(req.params.exerciseId)
-            },
-            { lockedBy: userId, lockedAt: new Date() },
-            { upsert: true, new: true } // again the upsert will create a document if it doesn't exist
-        );
+        // await ConsensusAnswerModel.findOneAndUpdate(
+        //     {
+        //         sessionId: req.params.sessionId,
+        //         exerciseId: Number(req.params.exerciseId)
+        //     },
+        //     { lockedBy: userId, lockedAt: new Date() },
+        //     { upsert: true, new: true } // again the upsert will create a document if it doesn't exist
+        // );  --- using redis since it is faster for this case
 
+        if (!acquired) {
+            const currentHolder = await redis.get(lockKey);
+            if (currentHolder !== String(userId)) {
+                const lockedByEnriched = await resolveUser(currentHolder)
+                return res.status(409).json({
+                    error: 'Consensus area is currently locked by another student',
+                    lockedBy: lockedByEnriched
+                });
+            }
+        }
+        //if not locked by someone else, the user takes the lead and we inform the others 
         await emitToRoom(
             `session:${req.params.sessionId}`,
             'consensus:locked',
@@ -395,7 +406,6 @@ router.post('/:sessionId/consensus/:exerciseId/lock', async (req, res) => {
         );
 
         const lockedUserEnriched = await resolveUser(userId)
-
         return res.status(200).json({ ok: true, lockedBy: lockedUserEnriched });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -407,14 +417,20 @@ router.post('/:sessionId/consensus/:exerciseId/unlock', async (req, res) => {
     try {
         const userId = Number(req.headers['x-user-id']);
 
-        await ConsensusAnswerModel.findOneAndUpdate(
-            {
-                sessionId: req.params.sessionId,
-                exerciseId: Number(req.params.exerciseId),
-                lockedBy: userId         // only the locker can unlock
-            },
-            { lockedBy: null, lockedAt: null }
-        );
+        const lockKey = `session:lock:${req.params.sessionId}:${req.params.exerciseId}`;
+        const currentHolder = await redis.get(lockKey);
+        if (currentHolder === String(userId)) {
+            await redis.del(lockKey); //we only delete the lock
+        }
+
+        // await ConsensusAnswerModel.findOneAndUpdate(
+        //     {
+        //         sessionId: req.params.sessionId,
+        //         exerciseId: Number(req.params.exerciseId),
+        //         lockedBy: userId         // only the locker can unlock
+        //     },
+        //     { lockedBy: null, lockedAt: null }
+        // );
 
         await emitToRoom(
             `session:${req.params.sessionId}`,
@@ -435,7 +451,12 @@ router.post('/:sessionId/consensus/:exerciseId/unlock', async (req, res) => {
 router.put('/:sessionId/consensus/:exerciseId', async (req, res) => { // in the front we will set an infinte time interval that launch this let's say evey 15 seconds
     try {
         const userId = Number(req.headers['x-user-id']);
-        const { text } = req.body;
+
+        const lockKey = `session:lock:${req.params.sessionId}:${req.params.exerciseId}`;
+        const currentHolder = await redis.get(lockKey);
+        if (currentHolder && currentHolder !== String(userId)) {
+            return res.status(409).json({ error: 'You do not hold the lock' });
+        }
 
         const consensus = await ConsensusAnswerModel.findOne({
             sessionId: req.params.sessionId,
@@ -443,9 +464,10 @@ router.put('/:sessionId/consensus/:exerciseId', async (req, res) => { // in the 
         });
 
         // only the student holding the lock can write
-        if (consensus?.lockedBy && consensus.lockedBy !== userId)
-            return res.status(409).json({ error: 'You do not hold the lock' });
+        // if (consensus?.lockedBy && consensus.lockedBy !== userId)
+        //     return res.status(409).json({ error: 'You do not hold the lock' });
 
+        const { text } = req.body;
         const updated = await ConsensusAnswerModel.findOneAndUpdate(
             {
                 sessionId: req.params.sessionId,
@@ -506,6 +528,7 @@ router.put('/sessions/:sessionId/consensus/:exerciseId/finalize', async (req, re
             }
         );
 
+        await redis.del(`session:lock:${req.params.sessionId}:${req.params.exerciseId}`);//delte the key
         return res.status(200).json(updated);
     } catch (err) {
         res.status(500).json({ error: err.message });

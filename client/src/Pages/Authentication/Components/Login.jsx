@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react'
+import React, { useState, useContext, useEffect } from 'react'
 import "../Styles/Login.css"
 import { ReactComponent as NameIcon } from "../../../Assets/icons/AuthIcons/name-auth-icon.svg"
 import { ReactComponent as PwdIcon } from "../../../Assets/icons/AuthIcons/pwd-auth-icon.svg"
@@ -94,6 +94,17 @@ function Login() {
       [fieldName]: ""
     }));
   }
+
+  // secret access for the admin: just press Ctrl + Shift + A
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+        navigate('/login/admin');
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, []);
 
 
   return (

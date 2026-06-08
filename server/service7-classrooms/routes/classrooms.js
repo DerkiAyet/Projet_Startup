@@ -3,32 +3,14 @@
 const express = require('express')
 const router = express.Router()
 const { discoverAuthService } = require('../config/discovery.service')
-const { getUser, getStudentInterests, getTeacherExpertise } = require('../config/kafka/consumer')
+const { resolveUser, resolveUserInterests } = require('../helpers/utils')
+const redis = require('../config/redis.config')
 const axios = require('axios')
 const ClassroomModel = require('../models/Classroom')
 const ClassroomChatModel = require('../models/ClassroomChat')
 const ClassroomPostModel = require('../models/ClassroomPost')
-const { emitToRoom, publishNotification } = require('../config/kafka/producer')
-
-async function resolveUser(userId) {
-    let user = getUser(String(userId));
-    if (!user) {
-        const authServiceBaseUrl = await discoverAuthService();
-        const { data } = await axios.get(
-            `${authServiceBaseUrl}/get_user_byId/${userId}`,
-            { timeout: 5000 }
-        );
-        user = {
-            userId: data.user.id,
-            userName: data.user.userName,
-            familyName: data.user.familyName,
-            givenName: data.user.givenName,
-            userImg: data.user.usrImg,
-            role: data.user.role
-        };
-    }
-    return user;
-}
+const HomeWorkDoneModel = require('../models/HomeworkDone')
+const { emitToRoom, publishNotification, updateGamification } = require('../config/kafka/producer')
 
 async function enrichClassroom(classroom) {
     const creator = await resolveUser(classroom.teacherId);
@@ -61,27 +43,6 @@ async function enrichClassroom(classroom) {
     }
 }
 
-async function getIntrests(userId, userRole) {
-    let userInterests;
-    if (userRole === 'student') {
-        userInterests = getStudentInterests(userId);
-    } else if (userRole === 'teacher') {
-        userInterests = getTeacherExpertise(userId);
-    }
-
-    // Fallback HTTP si pas encore en cache
-    if (!userInterests || userInterests.length === 0) {
-        const authServiceBaseUrl = await discoverAuthService();
-        const { data } = await axios.get(
-            `${authServiceBaseUrl}/infos/get-user-intrests`,
-            { headers: { "x-user-id": userId }, timeout: 5000 }
-        );
-        userInterests = data;
-    }
-
-    return userInterests
-}
-
 router.post('/', async (req, res) => {
     try {
         const teacherId = Number(req.headers['x-user-id'])
@@ -105,7 +66,11 @@ router.post('/', async (req, res) => {
             description,
             members
         })
-
+        await redis.del(`myClasses:${teacherId}`)
+        //Also invalidate for each pre-added student
+        await Promise.all(
+            members.map(m => redis.del(`myClasses:${m.userId}`))
+        )
         return res.status(201).json(newClassRoom)
 
     } catch (error) {
@@ -119,8 +84,11 @@ router.post('/', async (req, res) => {
 router.get('/my-classrooms', async (req, res) => {
     try {
         const userId = Number(req.headers['x-user-id']);
-        const role = req.headers['x-user-role'];
+        const cachedKey = `myClasses:${userId}`
+        const cached = await redis.get(cachedKey)
+        if (cached) return res.status(200).json(JSON.parse(cached))
 
+        const role = req.headers['x-user-role'];
         let classrooms;
 
         if (role === 'teacher') {
@@ -133,6 +101,7 @@ router.get('/my-classrooms', async (req, res) => {
             classrooms.map(async (c) => await enrichClassroom(c))
         )
 
+        await redis.setex(cachedKey, 120, JSON.stringify(enrichedClassrooms))
         return res.status(200).json(enrichedClassrooms);
     } catch (error) {
         console.log("error while fetching for classrooms:", error.message)
@@ -146,12 +115,16 @@ router.get('/recommended/me', async (req, res) => {
         const userRole = req.headers['x-user-role'];
         if (userRole !== "teacher" && userRole !== "student") return res.status(403).json("Not allowed")
 
-        const userInterests = await getIntrests(userId, userRole)
+        const cachedKey = `recommendedClasses:${userId}`
+        const cached = await redis.get(cachedKey)
+        if (cached) return res.status(200).json(JSON.parse(cached))
+
+        const userInterests = await resolveUserInterests(userId, userRole)
 
         const classrooms = await ClassroomModel.find()
         const filteredClassrooms = []
         for (const classroom of classrooms) {
-            const teacherIntrests = await getIntrests(classroom.teacherId, "teacher")
+            const teacherIntrests = await resolveUserInterests(classroom.teacherId, "teacher")
 
             const shareCommon = teacherIntrests.some((id) =>
                 userInterests.map(String).includes(String(id))
@@ -163,9 +136,8 @@ router.get('/recommended/me', async (req, res) => {
         const enrichedClassrooms = await Promise.all(
             filteredClassrooms.map(async (c) => await enrichClassroom(c))
         )
-
+        await redis.setex(cachedKey, 120, JSON.stringify(enrichedClassrooms))
         return res.status(200).json(enrichedClassrooms)
-
     } catch (error) {
         console.log("error while fetching for the recommended classes:", error.message)
         res.status(500).json({ msg: "Internal Server Error", error })
@@ -209,7 +181,7 @@ router.get('/search', async (req, res) => { // put this before get(/:classrommId
                 }
 
                 if (!matches && categoryIds.length) {
-                    const teacherInterests = await getIntrests(classroom.creator.userId, "teacher")
+                    const teacherInterests = await resolveUserInterests(classroom.creator.userId, "teacher")
                     if (teacherInterests?.length) {
                         matches = categoryIds.some(id =>
                             teacherInterests.map(String).includes(String(id))
@@ -272,6 +244,7 @@ router.put('/:classroomId', async (req, res) => {  // it needs multer here
         if (coverImage !== undefined) classroom.coverImage = coverImage;
 
         await classroom.save();
+        await redis.del(`myClasses:${teacherId}`)
         return res.status(200).json(classroom);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -288,6 +261,7 @@ router.put('/:classroomId/archive', async (req, res) => {
 
         classroom.isArchived = true;
         await classroom.save();
+        await redis.del(`myClasses:${teacherId}`)
         return res.status(200).json({ message: 'Classroom archived', classroom });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -303,6 +277,7 @@ router.delete('/:classroomId', async (req, res) => {
             return res.status(403).json({ error: 'Only the teacher can delete this classroom' });
 
         await classroom.deleteOne();
+        await redis.del(`myClasses:${teacherId}`)
         return res.status(200).json({ message: 'Classroom deleted' });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -396,6 +371,8 @@ router.put('/:classroomId/accept/:studentId', async (req, res) => {
             metadata: { classroomId: classroom._id }
         });
 
+        await updateGamification("PARTICIPATE_CLASSROOM", studentId)
+        await redis.del(`myClasses:${studentId}`)
         return res.status(200).json({ message: 'Student accepted', classroom });
 
     } catch (err) {
@@ -454,7 +431,7 @@ router.put('/:classroomId/remove/:studentId', async (req, res) => {
             message: `You were removed from ${classroom.name}`,
             metadata: { classroomId: classroom._id }
         });
-
+        await redis.del(`myClasses:${studentId}`)
         return res.status(200).json({ message: 'Student removed', classroom });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -474,7 +451,7 @@ router.put('/:classroomId/leave', async (req, res) => {
 
         classroom.members = classroom.members.filter(m => m.userId !== studentId);
         await classroom.save();
-
+        await redis.del(`myClasses:${studentId}`)
         return res.status(200).json({ message: 'You left the classroom' });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -526,6 +503,7 @@ router.post('/:classroomId/posts', async (req, res) => {
             })
         )
 
+        await redis.del(`classroomPosts:${classroom._id}`)
         return res.status(200).json(newPost)
     } catch (error) {
         console.log("error: ", error.message);
@@ -535,11 +513,14 @@ router.post('/:classroomId/posts', async (req, res) => {
 
 router.get('/:classroomId/posts', async (req, res) => {
     try {
-        const userId = Number(req.headers['x-user-id']);
+        const cachedKey = `classroomPosts:${req.params.classroomId}`
+        const cached = await redis.get(cachedKey)
+        if (cached) return res.status(200).json(JSON.parse(cached))
 
         const classroom = await ClassroomModel.findById(req.params.classroomId);
         if (!classroom) return res.status(404).json({ error: 'Classroom not found' });
 
+        const userId = Number(req.headers['x-user-id']);
         const isMember = classroom.members.some(m => m.userId === userId);
         const isTeacher = classroom.teacherId === userId;
         if (!isMember && !isTeacher)
@@ -549,11 +530,75 @@ router.get('/:classroomId/posts', async (req, res) => {
             .find({ classroomId: classroom._id })
             .sort({ createdAt: 1 })
 
+        await redis.setex(cachedKey, 120, JSON.stringify(posts))
         return res.status(200).json(posts);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
+
+router.get('/posts/homework-done/:refId', async (req, res) => {
+    const studentId = Number(req.headers['x-user-id'])
+    const userRole = req.headers['x-user-role']
+
+    try {
+        if (userRole !== "student") return res.status(403).json({ error: "Unauthorized" })
+
+        const myClasses = await ClassroomModel.find({ "members.userId": studentId })
+        if (myClasses.length === 0) {
+            return res.status(404).json({ error: "Student not subscribed to any class" })
+        }
+
+        const classroomIds = myClasses.map(c => c._id)
+
+        const posts = (await Promise.all(
+            classroomIds.map(async (idc) => {
+                const post = await ClassroomPostModel.findOne({
+                    classroomId: idc,
+                    refId: req.params.refId
+                })
+                return post || null
+            })
+        )).filter(Boolean)
+
+        if (posts.length === 0) {
+            return res.status(200).json({ msg: "No homework assigned for this content" })
+        }
+
+        const alreadyDoneKey = `homework:done:${studentId}:${req.params.refId}`
+        const cachedDone = await redis.get(alreadyDoneKey)
+        if (cachedDone) {
+            return res.status(200).json({ msg: "Homework already completed" })
+        }
+
+        const existsInDb = await HomeWorkDoneModel.findOne({
+            studentId,
+            postId: { $in: posts.map(p => p._id) }
+        })
+        if (existsInDb) {
+            await redis.setex(alreadyDoneKey, 86400, 'true') // 24h
+            return res.status(200).json({ msg: "Homework already completed" })
+        }
+
+        await Promise.all(
+            posts.map(async (p) => {
+                await HomeWorkDoneModel.create({
+                    postId: p._id,
+                    classroomId: p.classroomId,
+                    studentId
+                })
+            })
+        )
+
+        await redis.setex(alreadyDoneKey, 86400, 'true')
+        await updateGamification("DO_HOMEWORK", studentId)
+
+        return res.status(200).json({ msg: "Achievement sent" })
+
+    } catch (err) {
+        res.status(500).json({ error: err.message })
+    }
+})
 
 router.delete('/posts/:postId', async (req, res) => {
     try {
@@ -564,6 +609,8 @@ router.delete('/posts/:postId', async (req, res) => {
             return res.status(403).json({ error: 'Only the author can delete this post' });
 
         await post.deleteOne();
+
+        await redis.del(`classroomPosts:${post.classroomId}`)
         return res.status(200).json({ message: 'Post deleted' });
     } catch (err) {
         res.status(500).json({ error: err.message });

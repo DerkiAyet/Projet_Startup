@@ -7,8 +7,9 @@ const multer = require('multer');
 const path = require('path');
 const { discoverAuthService } = require('../config/discovery.service')
 const axios = require('axios')
-const { getUser, getStudentInterests, getTeacherExpertise } = require('../config/kafka/consumer');
-const { publishNotification } = require('../config/kafka/producer')
+const { publishNotification, updateGamification } = require('../config/kafka/producer')
+const redis = require('../config/redis.config')
+const { resolveUser, resolveUserInterests, incrementLike, decrementLike, getLikesCount } = require('../helpers/utils.js')
 
 // Configure storage
 const storage = multer.diskStorage({
@@ -53,34 +54,18 @@ const upload = multer({
 router.get("/", async (req, res) => {
     try {
         const currentUserId = req.headers["x-user-id"];
-        if (!currentUserId)
-            return res.status(400).json({ error: "Missing user ID" });
-
         const userRole = req.headers['x-user-role'];
 
-        const fromCache = getTeacherExpertise(currentUserId);
-        console.log("fromCache result:", fromCache);
-
-
-        let userInterests;
-        if (userRole === 'student') {
-            userInterests = getStudentInterests(currentUserId);
-        } else if (userRole === 'teacher') {
-            userInterests = getTeacherExpertise(currentUserId);
-        }
-
-        // Fallback HTTP si pas encore en cache
-        if (!userInterests || userInterests.length === 0) {
-            const authServiceBaseUrl = await discoverAuthService();
-            const { data } = await axios.get(
-                `${authServiceBaseUrl}/infos/get-user-intrests`,
-                { headers: { "x-user-id": currentUserId }, timeout: 5000 }
-            );
-            userInterests = data;
-        }
+        const userInterests = await resolveUserInterests(currentUserId, userRole)
 
         if (!Array.isArray(userInterests) || userInterests.length === 0) {
             return res.json([]);
+        }
+
+        const feedCacheKey = `feed:${currentUserId}`; //get the feed of the user if cached in redis (for 2min)
+        const cachedFeed = await redis.get(feedCacheKey);
+        if (cachedFeed) {
+            return res.json(JSON.parse(cachedFeed));
         }
 
         const posts = await Post.find().sort({ createdAt: -1 });
@@ -88,26 +73,7 @@ router.get("/", async (req, res) => {
         const filteredPosts = [];
 
         for (const post of posts) {
-            let authorInterests = getStudentInterests(String(post.userId));
-            if (!authorInterests || authorInterests.length === 0) {
-                authorInterests = getTeacherExpertise(String(post.userId));
-            }
-
-            // ✅ Fallback HTTP si pas en cache
-            if (!authorInterests || authorInterests.length === 0) {
-                try {
-                    const authServiceBaseUrl = await discoverAuthService();
-                    const { data } = await axios.get(
-                        `${authServiceBaseUrl}/infos/get-user-intrests`,
-                        { headers: { "x-user-id": post.userId }, timeout: 5000 }
-                    );
-                    authorInterests = data;
-                } catch (err) {
-                    console.log(`Fallback failed for author ${post.userId}:`, err.message);
-                    continue; // skip ce post si on ne peut pas récupérer ses interests
-                }
-            }
-
+            let authorInterests = await resolveUserInterests(String(post.userId), null);
             if (!authorInterests || authorInterests.length === 0) continue;
 
             const shareCommon = authorInterests.some((id) =>
@@ -121,46 +87,17 @@ router.get("/", async (req, res) => {
         const enrichedPosts = await Promise.all(
             filteredPosts.map(async (post) => {
                 try {
-                    let resolvedUser = getUser(String(post.userId));
-                    if (!resolvedUser) {
-                        const authServiceBaseUrl = await discoverAuthService();
-                        const { data } = await axios.get(
-                            `${authServiceBaseUrl}/get_user_byId/${post.userId}`,
-                            { timeout: 5000 }
-                        );
-                        resolvedUser = data.user;
-                    }
+                    let resolvedUser = await resolveUser(post.userId)
 
                     const commentsCount = post.comments.reduce((acc, c) => {
                         return acc + 1 + (c.replies ? c.replies.length : 0);
                     }, 0);
-
                     const enrichedComments = await Promise.all(
                         (post.comments || []).map(async (c) => {
-
-                            let resolvedCommentUser = getUser(String(c.userId));
-                            if (!resolvedCommentUser) {
-                                const authServiceBaseUrl = await discoverAuthService();
-                                const { data } = await axios.get(
-                                    `${authServiceBaseUrl}/get_user_byId/${c.userId}`,
-                                    { timeout: 5000 }
-                                );
-                                resolvedCommentUser = data.user;
-                            }
-
+                            let resolvedCommentUser = await resolveUser(c.userId)
                             const enrichedReplies = await Promise.all(
                                 (c.replies || []).map(async (r) => {
-
-                                    let resolvedReplyUser = getUser(String(r.userId));
-                                    if (!resolvedReplyUser) {
-                                        const authServiceBaseUrl = await discoverAuthService();
-                                        const { data } = await axios.get(
-                                            `${authServiceBaseUrl}/get_user_byId/${r.userId}`,
-                                            { timeout: 5000 }
-                                        );
-                                        resolvedReplyUser = data.user;
-                                    }
-
+                                    let resolvedReplyUser = await resolveUser(r.userId)
                                     return {
                                         _id: r._id,
                                         text: r.text,
@@ -222,9 +159,10 @@ router.get("/", async (req, res) => {
                 }
             })
         );
+        //Cache the final feed for 2 minutes
+        await redis.setex(feedCacheKey, 120, JSON.stringify(enrichedPosts));
 
         res.json(enrichedPosts);
-
     } catch (err) {
         console.error("Error fetching posts:", err);
         res.status(500).json({ error: err.message });
@@ -233,53 +171,29 @@ router.get("/", async (req, res) => {
 
 router.get('/parent-hub', async (req, res) => {
     try {
+        const parentId = req.headers['x-user-if']
         const userRole = req.headers['x-user-role'];
         if (userRole !== "parent") return res.status(403).json({ error: "Action unauthorized" })
+
+        const cachedKey = `feed:${parentId}`
+        const cached = await redis.get(cachedKey)
+        if (cached) return res.status(200).json(cached)
 
         const posts = await Post.find({ isParentHub: true }).sort({ createdAt: -1 })
         const enrichedPosts = await Promise.all(
             posts.map(async (post) => {
                 try {
-                    let resolvedUser = getUser(String(post.userId));
-                    if (!resolvedUser) {
-                        const authServiceBaseUrl = await discoverAuthService();
-                        const { data } = await axios.get(
-                            `${authServiceBaseUrl}/get_user_byId/${post.userId}`,
-                            { timeout: 5000 }
-                        );
-                        resolvedUser = data.user;
-                    }
+                    let resolvedUser = await resolveUser(post.userId)
 
                     const commentsCount = post.comments.reduce((acc, c) => {
                         return acc + 1 + (c.replies ? c.replies.length : 0);
                     }, 0);
-
                     const enrichedComments = await Promise.all(
                         (post.comments || []).map(async (c) => {
-
-                            let resolvedCommentUser = getUser(String(c.userId));
-                            if (!resolvedCommentUser) {
-                                const authServiceBaseUrl = await discoverAuthService();
-                                const { data } = await axios.get(
-                                    `${authServiceBaseUrl}/get_user_byId/${c.userId}`,
-                                    { timeout: 5000 }
-                                );
-                                resolvedCommentUser = data.user;
-                            }
-
+                            let resolvedCommentUser = await resolveUser(c.userId)
                             const enrichedReplies = await Promise.all(
                                 (c.replies || []).map(async (r) => {
-
-                                    let resolvedReplyUser = getUser(String(r.userId));
-                                    if (!resolvedReplyUser) {
-                                        const authServiceBaseUrl = await discoverAuthService();
-                                        const { data } = await axios.get(
-                                            `${authServiceBaseUrl}/get_user_byId/${r.userId}`,
-                                            { timeout: 5000 }
-                                        );
-                                        resolvedReplyUser = data.user;
-                                    }
-
+                                    let resolvedReplyUser = await resolveUser(r.userId)
                                     return {
                                         _id: r._id,
                                         text: r.text,
@@ -339,7 +253,7 @@ router.get('/parent-hub', async (req, res) => {
                 }
             })
         );
-
+        await redis.setex(cachedKey, 120, JSON.stringify(enrichedPosts));
         res.json(enrichedPosts);
 
     } catch (err) {
@@ -353,6 +267,7 @@ router.post("/", upload.single('media'), async (req, res) => {
 
     const userId = req.headers["x-user-id"]
     const userName = req.headers["x-user-name"]
+    const userRole = req.headers["x-user-role"]
 
     try {
         let mediaInfo = null;
@@ -390,16 +305,19 @@ router.post("/", upload.single('media'), async (req, res) => {
         const myFollowers = await Follow.find({ followeeId: userId }).select("followerId");
 
         await Promise.all(
-            myFollowers.map(follower =>
-                publishNotification('NEW_POST', {
+            myFollowers.map(async (follower) => {
+                await publishNotification('NEW_POST', {
                     idSender: userId,
                     idReceiver: follower.followerId,
                     title: `new post from: ${userName}`,
                     message: `${userName} has recently published a new post`,
                     metadata: newPost,
                 })
-            )
+                await redis.del(`feed:${follower.followerId}`)
+            })
         );
+
+        if (userRole === "student") await updateGamification("PUBLISH_POST", Number(userId))
 
         res.status(201).json(newPost);
     } catch (err) {
@@ -416,18 +334,8 @@ router.get("/post-info/:id", async (req, res) => {
         const post = await Post.findById(req.params.id);
         if (!post) return res.status(404).json({ error: "Post not found" });
 
-        const authServiceBaseUrl = await discoverAuthService();
-
-        let user = null;
         try {
-            const userData = await getUser(post.userId);
-            let resolvedUser = userData
-
-            if (!resolvedUser) {
-                const authServiceBaseUrl = await discoverAuthService();
-                const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${post.userId}`, { timeout: 5000 });
-                resolvedUser = data.user
-            }
+            const resolvedUser = await resolveUser(post.userId)
 
             user = {
                 userId: resolvedUser.id,
@@ -488,10 +396,13 @@ router.delete("/:id", async (req, res) => {
         const post = await Post.findById(req.params.id);
         if (!post) return res.status(404).json({ error: "Post not found" });
 
-        if (post.userId != req.headers["x-user-id"])
-            return res.status(403).json({ error: "Not allowed" });
+        if (post.userId != req.headers["x-user-id"]) return res.status(403).json({ error: "Not allowed" });
 
         await post.deleteOne();
+        const myFollowers = await Follow.find({ followeeId: req.headers["x-user-id"] }).select("followerId");
+        await Promise.all(
+            myFollowers.map(f => redis.del(`feed:${f.followerId}`))
+        );
 
         res.json({ message: "Post deleted" });
     } catch (err) {
@@ -511,9 +422,10 @@ router.post("/:id/like", async (req, res) => {
 
         if (alreadyLiked) {
             post.likes = post.likes.filter(like => like.userId != userId);
+            await decrementLike(String(post._id));
         } else {
             post.likes.push({ userId });
-
+            await incrementLike(String(post._id))
             await publishNotification('NEW_LIKE', {
                 idSender: userId,
                 idReceiver: post.userId,
@@ -522,8 +434,10 @@ router.post("/:id/like", async (req, res) => {
                 metadata: post,
             });
         }
-
         await post.save();
+
+        // Invalidate the post author's feed cache so likes update
+        await redis.del(`feed:${post.userId}`);
         res.json(post);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -686,6 +600,7 @@ router.post('/follow', async (req, res) => {
     try {
         const followerId = req.headers["x-user-id"];
         const followeeId = req.body.followeeId;
+        const userRole = req.headers["x-user-role"]
 
         if (!followeeId) {
             return res.status(400).json({ error: "followeeId is required" });
@@ -712,6 +627,14 @@ router.post('/follow', async (req, res) => {
                 },
             });
 
+            const followeeInfo = await resolveUser(followeeId);
+
+            //new achievement for the followee if they're a student
+            if (followeeInfo.role === "student") await updateGamification("NEW_FOLLOWER", Number(followeeId))
+
+            // new achievement for user
+            if (userRole === "student") await updateGamification("NEW_FOLLOWEE", Number(followerId))
+
             return res.status(201).json({ followAdded: "Following successfully" });
         }
 
@@ -733,21 +656,14 @@ router.get('/get-followers', async (req, res) => {
             followers.map(async (follower) => {
                 try {
 
-                    const userData = await getUser(follower.followerId);
-                    let resolvedUser = userData
-
-                    if (!resolvedUser) {
-                        const authServiceBaseUrl = await discoverAuthService();
-                        const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${follower.followerId}`, { timeout: 5000 });
-                        resolvedUser = data.user
-                    }
+                    const resolvedUser = await resolveUser(follower.followerId);
 
                     return {
                         id: follower.followerId,
                         userName: resolvedUser.userName,
                         familyName: resolvedUser.familyName,
                         givenName: resolvedUser.givenName,
-                        userImg: resolvedUser.uerImg,
+                        userImg: resolvedUser.userImg,
                         role: resolvedUser.role
                     }
 
@@ -779,25 +695,15 @@ router.get('/get-followees', async (req, res) => {
         const enrichedFollowees = await Promise.all(
             followers.map(async (followee) => {
                 try {
-
-                    const userData = await getUser(followee.followeeId);
-                    let resolvedUser = userData
-
-                    if (!resolvedUser) {
-                        const authServiceBaseUrl = await discoverAuthService();
-                        const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${followee.followeeId}`, { timeout: 5000 });
-                        resolvedUser = data.user
-                    }
-
+                    const resolvedUser = await resolveUser(followee.followeeId);
                     return {
                         id: followee.followeeId,
                         userName: resolvedUser.userName,
                         familyName: resolvedUser.familyName,
                         givenName: resolvedUser.givenName,
-                        userImg: resolvedUser.uerImg,
+                        userImg: resolvedUser.userImg,
                         role: resolvedUser.role
                     }
-
                 } catch (error) {
                     console.error("Failed to fetch user:", err.message);
                 }
@@ -854,21 +760,13 @@ router.get("/suggestions", async (req, res) => {
         const enrichedSuggestions = await Promise.all(
             candidates.map(async candidateId => {
                 try {
-
-                    const userData = await getUser(candidateId);
-                    let resolvedUser = userData
-
-                    if (!resolvedUser) {
-                        const authServiceBaseUrl = await discoverAuthService();
-                        const { data } = await axios.get(`${authServiceBaseUrl}/get_user_byId/${candidateId}`, { timeout: 5000 });
-                        resolvedUser = data.user
-                    }
+                    const resolvedUser = await resolveUser(candidateId);
                     return {
                         id: resolvedUser.id,
                         userName: resolvedUser.userName,
                         familyName: resolvedUser.familyName,
                         givenName: resolvedUser.givenName,
-                        userImg: resolvedUser.uerImg,
+                        userImg: resolvedUser.userImg,
                         role: resolvedUser.role
                     };
                 } catch (error) {

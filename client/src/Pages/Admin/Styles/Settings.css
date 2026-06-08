@@ -1,0 +1,17 @@
+:root {
+    --light-bg-primary: #FFFFFF;
+    --light-bg-secondary: #F9FAFB;
+}
+
+.settings-container {
+    width: 100%;
+    height: calc(100vh - 55px);
+    position: relative;
+}
+
+.settings-wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
