@@ -221,7 +221,9 @@ function Specialities() {
                                             <button
                                                 onClick={() => {
                                                     setNewSpeciality({ name: "" })
-                                                    setSpecialityToModify({ ...specialityToModify, idSub: spec.idSub, name: spec.name });                                                }
+                                                    setSpecialityToModify({ ...specialityToModify, idSub: spec.idSub, name: spec.name });
+                                                    setModifieClicked(true)
+                                                }
                                                 }
                                             >
                                                 <EditIcon />
@@ -245,7 +247,7 @@ function Specialities() {
                 </div>
             </div>
             {
-                modifieClicked && <ModifierAlert handlemodifie={handlemodifie} annulerModifier={annulerModifier} phrase={"Are you certain you wanna update this subfield?"} />
+                confirmModifie && <ModifierAlert handlemodifie={handlemodifie} annulerModifier={annulerModifier} phrase={"Are you certain you wanna update this subfield?"} />
             }
             {
                 idSpecToDelete && <DeleteConfirmPopup onClose={() => setIdSpecToDelete(null)} title={"Delete Subfield"} onDelete={handleDelete} />
@@ -256,33 +258,23 @@ function Specialities() {
 
 const ModifierAlert = ({ annulerModifier, handlemodifie, phrase }) => {
     return (
-        <div className="add-departement-success">
-            <div className="img-container" style={{ height: "90px", width: "150px" }}>
-                <img src={doneImg} alt="done" style={{ height: "100%", width: "100%", objectFit: "cover", transform: "scale(1.2)" }} />
-            </div>
-            <span style={{ width: "95%", fontFamily: "Kumbh Sans, sans-serif", textAlign: "center", fontSize: "1.1rem", fontWeight: "500" }}>
-                {`${phrase}`}
-            </span>
-            <div
-                className="btns-line"
-            >
-                <button
-                    style={{
-                        color: "#000",
-                        background: "#E2E4E5"
-                    }}
-                    onClick={(e) => { annulerModifier(e) }}
-                >
-                    Annuler
-                </button>
-                <button
-                    style={{
-
-                    }}
-                    onClick={(e) => { handlemodifie(e); }}
-                >
-                    Modifier
-                </button>
+        <div className="modifier-alert-overlay">
+            <div className="modifier-alert">
+                <div className="modifier-alert-icon">
+                    <EditIcon />
+                </div>
+                <div className="modifier-alert-text">
+                    <p className="modifier-alert-title">Update Subfield</p>
+                    <p className="modifier-alert-phrase">{phrase}</p>
+                </div>
+                <div className="modifier-alert-btns">
+                    <button className="modifier-btn-cancel" onClick={(e) => annulerModifier(e)}>
+                        Cancel
+                    </button>
+                    <button className="modifier-btn-confirm" onClick={(e) => handlemodifie(e)}>
+                        Update
+                    </button>
+                </div>
             </div>
         </div>
     )

@@ -9,8 +9,6 @@ import { ReactComponent as CommentIcon } from '../../../Assets/icons/TimelineIco
 import { ReactComponent as ShareIcon } from '../../../Assets/icons/TimelineIcons/share-post.svg'
 import { ReactComponent as SaveIcon } from '../../../Assets/icons/TimelineIcons/bookmark.svg'
 import { ReactComponent as FullHeartIcon } from '../../../Assets/icons/TimelineIcons/full-heart.svg'
-
-import { TimeLineContext } from '../Pages/PostsFeed';
 import axios from 'axios'
 import { useTranslation } from 'react-i18next';
 
@@ -41,7 +39,7 @@ const timeAgo = (dateString, t) => {
 };
 
 
-export const CommentLine = ({ postId, commentId, commentTxt, commentUserName, commentUserImg, replies = [], commentUserFamily, commentUserGiven, onAddReply, commentBody = { likes: [], replies: [], _id: 0, userId: 0, text: "" }, userId, toggleLike }) => {
+export const CommentLine = ({ setPosts, postId, commentId, commentTxt, commentUserName, commentUserImg, replies = [], commentUserFamily, commentUserGiven, onAddReply, commentBody = { likes: [], replies: [], _id: 0, userId: 0, text: "" }, userId, toggleLike }) => {
 
     const { t } = useTranslation()
 
@@ -57,8 +55,6 @@ export const CommentLine = ({ postId, commentId, commentTxt, commentUserName, co
         return commentBody.likes.some((l) => l.userId === userId);
     });
     const maxLength = 150;
-
-    const { setPosts } = useContext(TimeLineContext)
 
     const toggleReadMore = () => setIsExpanded(!isExpanded);
 
@@ -229,6 +225,7 @@ export const CommentLine = ({ postId, commentId, commentTxt, commentUserName, co
                                 userId={userId}
                                 commentBody={reply}
                                 toggleLike={(replyId, setLiked) => toggleLikeReply(replyId, setLiked)}
+                                setPosts={setPosts}
                             />
                         ))}
                     </div>
@@ -262,39 +259,15 @@ export const CommentLine = ({ postId, commentId, commentTxt, commentUserName, co
 
 // ─── PostPage ─────────────────────────────────────────────────────────────────
 
-function PostPage() {
+function PostPage({selectedPost, visible, onClose, changePostComments, changeCommentReplies, setPosts, followees, setFollowees}) {
 
     const { t } = useTranslation()
-
-    const { selectedPost, setSelectedPost } = useContext(TimeLineContext)
-
-    const emptiedThePost = () => setSelectedPost({
-        selected: false,
-        postId: null,
-        content: '',
-        mediaUrl: '',
-        mediaType: '',
-        tags: [],
-        mentions: [],
-        urls: [],
-        comments: [],
-        likes: [],
-        user: {
-            userId: 0,
-            userName: "",
-            familyName: "",
-            givenName: "",
-            userImg: "",
-            role: ""
-        }
-    })
 
     const [post, setPost] = useState(selectedPost);
     const [comments, setComments] = useState(selectedPost.comments);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [commentBody, setCommentBody] = useState({ postId: post.postId, commentText: '' });
     const { darkMode, userAuth } = useContext(AppContext);
-    const { setPosts, followees, setFollowees } = useContext(TimeLineContext)
 
     const showEmojiPickerRef = useRef(null);
     const postPageRef = useRef(null);
@@ -359,7 +332,7 @@ function PostPage() {
                 )
             );
 
-            setSelectedPost({ ...selectedPost, comments: comments })
+            changePostComments?.(comments)
             setPost(selectedPost)
             setCommentBody({ ...commentBody, commentText: '' })
 
@@ -401,16 +374,7 @@ function PostPage() {
     };
 
     const onAddReply = (reply, commentId) => {
-        setSelectedPost((prev) => ({
-            ...prev,
-            comments: prev.comments.map((c) =>
-                c._id === commentId
-                    ? { ...c, replies: [...(c.replies || []), reply] }
-                    : c
-            ),
-            commentsCount: prev.commentsCount + 1
-        }));
-        setPost(selectedPost)
+        changeCommentReplies?.(reply, commentId)
     };
 
     // ── Emoji ───────────────────────────────────────────────────────────────
@@ -476,6 +440,8 @@ function PostPage() {
             })
             .catch((err) => console.error(err));
     };
+
+    if(!visible) return null
  
     return (
         <div className='post-page-overlay'>
@@ -548,7 +514,7 @@ function PostPage() {
                                 </span>
                             )}
                         </div>
-                        <CloseIcon onClick={emptiedThePost} style={{ cursor: 'pointer' }} />
+                        <CloseIcon onClick={onClose} style={{ cursor: 'pointer' }} />
 
                     </div>
                     {/* Comments list */}
@@ -576,6 +542,7 @@ function PostPage() {
                                 commentBody={comment}
                                 userId={userAuth.userId}
                                 toggleLike={toggleLikeComment}
+                                setPosts={setPosts}
                             />
                         ))}
                     </div>

@@ -6,11 +6,13 @@ import { ReactComponent as AssignmentIcon } from '../../../Assets/icons/CourseIc
 import { ReactComponent as QuizIcon } from '../../../Assets/icons/NavIcons/create-exercice.svg';
 import { ReactComponent as SearchIcon } from '../../../Assets/icons/CourseIcons/search-course.svg'
 import { ReactComponent as ArrowDown } from '../../../Assets/icons/CourseIcons/arrow-down.svg'
+import { ReactComponent as OnlineCourseIcon } from '../../../Assets/icons/NavIcons/online-course.svg'
 import { CourseActivityCard } from "../Components/CourseActivityCard";
 import axios from "axios";
 import QuizActivityCard from "../Components/QuizActivityCard";
 import QuizSolve from "../Components/QuizSolve";
 import { AssignmentActivityCard } from "../Components/AssignmentActivityCard";
+import { OnlineCourseCard } from "../Components/OnlineCourseCard";
 
 
 const StatsCard = ({ icon: Icon, title, value, subtitle, color }) => (
@@ -30,7 +32,7 @@ export default function StudentActivity() {
     const { userAuth } = useContext(AppContext);
     const [loading, setLoading] = useState(false);
 
-    const categories = ["Courses", "Quizes", "Assignments"]
+    const categories = ["Courses", "Quizes", "Assignments", "Online Courses"]
     const [currentCategory, setCurrentCategory] = useState("Courses")
     const [categoryIndex, setCategoryIndex] = React.useState(0)
     const [searchQuery, setSearchQuery] = useState("");
@@ -38,6 +40,7 @@ export default function StudentActivity() {
     const [courseEnrolls, setCourseEnrolls] = useState([]);
     const [quizAttempts, setQuizAttempts] = useState([])
     const [assignsSolved, setAssignsSolved] = useState([])
+    const [onlineCourses, setOnlineCourses] = useState([])
 
     useEffect(() => {
 
@@ -56,7 +59,13 @@ export default function StudentActivity() {
             })
 
         axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/activity/student-solutions`)
-            .then((res) => {setAssignsSolved(res.data); console.log(res.data)})
+            .then((res) => { setAssignsSolved(res.data)})
+            .catch((err) => {
+                console.error("Error fetching solved quizes:", err);
+            })
+
+        axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/online-courses/my-courses`)
+            .then((res) => { setOnlineCourses(res.data)})
             .catch((err) => {
                 console.error("Error fetching solved quizes:", err);
             })
@@ -136,6 +145,13 @@ export default function StudentActivity() {
                     subtitle="Total attempts"
                     color="#10B981"
                 />
+                <StatsCard
+                    icon={OnlineCourseIcon}
+                    title="Courses Joined"
+                    value={onlineCourses.length}
+                    subtitle="Total participations"
+                    color="#2D8CFF"
+                />
             </div>
 
             <div className="activity-bottom-container">
@@ -171,6 +187,7 @@ export default function StudentActivity() {
                 {currentCategory === "Courses" && <EnrollementsView enrolls={courseEnrolls} />}
                 {currentCategory === "Quizes" && <QuizesView quizAttempts={quizAttempts} handleOpenQuiz={handleOpenQuiz} />}
                 {currentCategory === "Assignments" && <SolutionsView solutions={assignsSolved} />}
+                {currentCategory === "Online Courses" && <OnlineCoursesView onlineCourses={onlineCourses} />}
             </div>
 
             {
@@ -222,7 +239,20 @@ const QuizesView = ({ quizAttempts, handleOpenQuiz }) => {
     )
 }
 
-const SolutionsView = ({solutions}) => {
+const OnlineCoursesView = ({ onlineCourses }) => {
+    return (
+        <div className="courses-grid-container">
+            {onlineCourses.map((course, index) => (
+                <OnlineCourseCard
+                    course={course}
+                />
+            ))}
+        </div>
+    )
+}
+
+
+const SolutionsView = ({ solutions }) => {
     return (
         <div className="courses-row-container">
             {

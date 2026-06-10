@@ -90,6 +90,7 @@ function ClassroomPage() {
 
                 const classroomRes = await axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/classrooms/${classroomId}`)
                 setClassroom(classroomRes.data)
+                console.log(classroomRes.data)
 
                 const postsRes = await axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/classrooms/${classroomId}/posts`)
                 setPosts(postsRes.data)
@@ -125,12 +126,12 @@ function ClassroomPage() {
     }
 
     const handleAccept = async (studentId) => {
-        try {
+        try { 
             await axios.put(`${process.env.REACT_APP_API_URL_GATEWAY}/classrooms/${classroomId}/accept/${studentId}`)
             setClassroom(prev => ({
                 ...prev,
-                pendingRequests: prev.pendingRequests.filter(r => String(r.student.userId) !== String(studentId)),
-                members: [...prev.members, prev.pendingRequests.find(r => String(r.student.userId) === String(studentId))?.student]
+                pendingRequests: prev.pendingRequests.filter(r => String(r.student.id) !== String(studentId)),
+                members: [...prev.members, prev.pendingRequests.find(r => String(r.student.id) === String(studentId))?.student]
             }))
         } catch (err) {
             console.error(err.message)
@@ -142,7 +143,7 @@ function ClassroomPage() {
             await axios.put(`${process.env.REACT_APP_API_URL_GATEWAY}/classrooms/${classroomId}/reject/${studentId}`)
             setClassroom(prev => ({
                 ...prev,
-                pendingRequests: prev.pendingRequests.filter(r => String(r.student.userId) !== String(studentId))
+                pendingRequests: prev.pendingRequests.filter(r => String(r.student.id) !== String(studentId))
             }))
         } catch (err) {
             console.error(err.message)
@@ -197,14 +198,14 @@ function ClassroomPage() {
                         (<MessagesPanel
                             messages={messages}
                             idClassroom={classroomId}
-                            author={classroom?.creator?.userId}
+                            author={classroom?.creator?.id}
                         />
                         )}
                     {currentFentre === "Homework" &&
                         (<PostsPanel
                             posts={posts}
                             idClassroom={classroomId}
-                            author={classroom?.creator?.userId}
+                            author={classroom?.creator?.id}
                             addPost={() => setAddPostClicked(true)}
                         />
                         )}
@@ -212,7 +213,7 @@ function ClassroomPage() {
                         <SessionsPanel
                             sessions={sessions}
                             idClassroom={classroomId}
-                            author={classroom?.creator?.userId}
+                            author={classroom?.creator?.id}
                             addSession={() => setAddSessionClicked(true)}
                         />
                     )}
@@ -249,7 +250,7 @@ function ClassroomPage() {
                                         <div className="member-info">
                                             <span className="member-name">
                                                 {classroom?.creator?.givenName} {classroom?.creator?.familyName}
-                                                {String(classroom?.creator?.userId) === String(userAuth.userId) && (
+                                                {String(classroom?.creator?.id) === String(userAuth.userId) && (
                                                     <span className="member-you-tag">you</span>
                                                 )}
                                             </span>
@@ -258,12 +259,12 @@ function ClassroomPage() {
                                         </div>
                                     </div>
                                     {classroom.members?.map((member) => (
-                                        <div key={member.userId} className="member-row">
+                                        <div key={member.id} className="member-row">
                                             <Avatar name={`${member.givenName} ${member.familyName}`} pic={member.userImg} />
                                             <div className="member-info">
                                                 <span className="member-name">
                                                     {member.givenName} {member.familyName}
-                                                    {String(member.userId) === String(userAuth.userId) && (
+                                                    {String(member.id) === String(userAuth.userId) && (
                                                         <span className="member-you-tag">you</span>
                                                     )}
                                                 </span>
@@ -295,10 +296,10 @@ function ClassroomPage() {
                                             </div>
                                             {userAuth.role === "teacher" && (
                                                 <div className="request-actions">
-                                                    <button className="accept-btn" onClick={() => handleAccept(request.student?.userId)}>
+                                                    <button className="accept-btn" onClick={() => handleAccept(request.student?.id)}>
                                                         Accept
                                                     </button>
-                                                    <button className="reject-btn" onClick={() => handleReject(request.student?.userId)}>
+                                                    <button className="reject-btn" onClick={() => handleReject(request.student?.id)}>
                                                         Reject
                                                     </button>
                                                 </div>
@@ -326,7 +327,7 @@ function ClassroomPage() {
 
 const MessagesPanel = ({ messages, idClassroom, author }) => {
 
-    const { userAuth } = useContext(AppContext)
+    const { userAuth } = useContext(AppContext) 
     const messagesEndRef = useRef(null)
     const [inputVal, setInputVal] = useState('')
 
@@ -550,6 +551,8 @@ const SessionsPanel = ({ sessions, idClassroom, author, addSession }) => {
     const formatDeadline = (d) => d
         ? new Date(d).toLocaleDateString([], { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
         : null
+    
+    const navigate = useNavigate()
 
     return (
         <div className="sessions-panel">
@@ -563,7 +566,7 @@ const SessionsPanel = ({ sessions, idClassroom, author, addSession }) => {
             ) : (
                 <div className="sessions-list">
                     {sessions.map(session => (
-                        <div key={session._id} className={`session-card ${session.isCompleted ? "session-card-done" : ""}`}>
+                        <div key={session._id} className={`session-card ${session.isCompleted ? "session-card-done" : ""}`} onClick={() => navigate(`/classrooms/${idClassroom}/sessions/${session._id}`)}>
 
                             {/* left accent bar colored by phase */}
                             <div

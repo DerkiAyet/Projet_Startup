@@ -36,15 +36,13 @@ const timeAgo = (dateString, t) => {
     return t('posts.justNow');
 };
 
-export const PostCard = ({ postText = "", postMedia = "", postUserName = "", mediaType = "", post, postUserId }) => {
+export const PostCard = ({ postText = "", postMedia = "", postUserName = "", mediaType = "", post, postUserId, openPostPage, setPosts, followees, setFollowees }) => {
 
     const { t } = useTranslation()
 
-    const { setSelectedPost, setPosts, followees, setFollowees } = useContext(TimeLineContext)
-
-    const openPostPage = () => {
-        setSelectedPost({ selected: true, ...post })
-    }
+    // const openPostPage = () => {
+    //     setSelectedPost({ selected: true, ...post })
+    // }
 
     const [isExpanded, setIsExpanded] = useState(false);
     const maxLength = 150;

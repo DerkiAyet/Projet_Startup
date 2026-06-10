@@ -8,7 +8,7 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const { Op } = require('sequelize');
 const { generateResetPasswordEmail } = require('./utilities/utilities');
-const { publishUsers } = require('../config_service/kafka/producer');
+const { publishUsers, startGame } = require('../config_service/kafka/producer');
 
 const { Users, Parents, Students, Teachers, Admins, ResetPassword, Adresses } = require('../models');
 const { Model, where } = require('sequelize');
@@ -28,7 +28,7 @@ const upload = multer({ storage: storage })
 
 router.post('/register', async (req, res) => {
 
-    const { role, familyName, givenName, DateOfBirth, userName, email, password } = req.body;
+    const { role, familyName, givenName, dateOfBirth, userName, email, password } = req.body;
 
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -63,7 +63,14 @@ router.post('/register', async (req, res) => {
             role
         });
 
-        await publishUsers(newUser);
+        await publishUsers({
+            id: newUser.id,
+            userName: newUser.userName,
+            familyName: newUser.familyName,
+            givenName: newUser.givenName,
+            userImg: newUser.uerImg,  // normalize here
+            role: newUser.role
+        })
 
         const accessToken = sign({
             userId: newUser.id,
@@ -108,6 +115,7 @@ router.post('/register', async (req, res) => {
                 familyName: newUser.familyName,
                 givenName: newUser.givenName,
             })
+            await startGame(newUser.id)
         } else {
             await Teachers.create({
                 idTeacher: newUser.id,
@@ -116,6 +124,15 @@ router.post('/register', async (req, res) => {
                 givenName: newUser.givenName,
             })
         }
+
+        await redis.setex(`user:${newUser.id}`, 300, JSON.stringify({
+            id: newUser.id,
+            userName: newUser.userName,
+            familyName: newUser.familyName,
+            givenName: newUser.givenName,
+            userImg: newUser.uerImg || null,
+            role: newUser.role
+        }));
 
         return res.status(201).json({
             message: 'User registered successfully',
@@ -130,7 +147,7 @@ router.post('/register', async (req, res) => {
 
 router.post('/mobile/register', async (req, res) => {
 
-    const { role, familyName, givenName, DateOfBirth, userName, email, password } = req.body;
+    const { role, familyName, givenName, dateOfBirth, userName, email, password } = req.body;
 
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -164,7 +181,14 @@ router.post('/mobile/register', async (req, res) => {
             role
         });
 
-        await publishUsers(newUser);
+        await publishUsers({
+            id: newUser.id,
+            userName: newUser.userName,
+            familyName: newUser.familyName,
+            givenName: newUser.givenName,
+            userImg: newUser.uerImg,  // normalize here
+            role: newUser.role
+        })
 
         const accessToken = sign({
             userId: newUser.id,
@@ -204,6 +228,15 @@ router.post('/mobile/register', async (req, res) => {
                 givenName: newUser.givenName,
             })
         }
+
+        await redis.setex(`user:${newUser.id}`, 300, JSON.stringify({
+            id: newUser.id,
+            userName: newUser.userName,
+            familyName: newUser.familyName,
+            givenName: newUser.givenName,
+            userImg: newUser.uerImg || null,
+            role: newUser.role
+        }));
 
         return res.status(201).json({
             message: 'User registered successfully',
@@ -289,7 +322,7 @@ router.post('/login', async (req, res) => {
         });
 
         await redis.setex(`user:${user.id}`, 300, JSON.stringify({
-            userId: user.id,
+            id: user.id,
             userName: user.userName,
             familyName: user.familyName,
             givenName: user.givenName,
@@ -379,7 +412,7 @@ router.post('/mobile/login', async (req, res) => {
 
         //cache user data in redis
         await redis.setex(`user:${user.id}`, 300, JSON.stringify({
-            userId: user.id,
+            id: user.id,
             userName: user.userName,
             familyName: user.familyName,
             givenName: user.givenName,
@@ -425,7 +458,14 @@ router.post('/create/admin', async (req, res) => {
             pwd: hashedPassword,
             role: 'admin'
         });
-        await publishUsers(newAdmin);
+        await publishUsers({
+            id: newAdmin.id,
+            userName: newAdmin.userName,
+            familyName: newAdmin.familyName,
+            givenName: newAdmin.givenName,
+            userImg: newAdmin.uerImg,
+            role: newAdmin.role
+        })
 
         await Admins.create({
             familyName: newAdmin.familyName,
@@ -511,7 +551,7 @@ router.post('/login/admin', async (req, res) => { // a protected route with /use
 
         //cache user data in redis
         await redis.setex(`user:${admin.id}`, 300, JSON.stringify({
-            userId: admin.id,
+            id: admin.id,
             userName: admin.userName,
             familyName: admin.familyName,
             givenName: admin.givenName,
@@ -559,7 +599,7 @@ router.get('/verify', async (req, res) => {
         }
 
         const userData = {
-            userId: parseInt(userId),
+            id: parseInt(userId),
             userName,
             familyName: user.familyName,
             givenName: user.givenName,
@@ -570,7 +610,7 @@ router.get('/verify', async (req, res) => {
         await redis.setex(`user:${userId}`, 300, JSON.stringify(userData));
 
         res.status(200).json({
-            userId: parseInt(userId),
+            id: parseInt(userId),
             userName: userName,
             familyName: user.familyName,
             givenName: user.givenName,
@@ -846,7 +886,7 @@ router.post('/reset-password/:token', async (req, res) => {
         });
     } catch (error) {
         console.error('Error resetting password:', error.message);
-        res.status(500).json({error: 'Internal server error'});
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 
@@ -856,12 +896,12 @@ router.get('/users/:userName', async (req, res) => {
     const userName = req.params.userName
     try {
         const user = await Users.findOne({ where: { userName: userName } })
-        if (!user)return res.status(400).json({ error: "user does not exist" })
+        if (!user) return res.status(400).json({ error: "user does not exist" })
 
         res.status(200).json({ sucess: "user found", user })
     } catch (error) {
         console.error('Error resetting password:', error.message);
-        res.status(500).json({error: 'Internal server error'});
+        res.status(500).json({ error: 'Internal server error' });
     }
 })
 
@@ -870,20 +910,27 @@ router.get('/get_user_byId/:userId', async (req, res) => {
     try {
         const cached = await redis.get(`user:${userId}`)
         if (cached) {
-            console.log(`Fetched from Redis for user with id: ${userId}`)
-            res.status(200).json({ success: "user found", user: JSON.parse(cached) });
+            return res.status(200).json({ success: "user found", user: JSON.parse(cached) });
         }
 
         const user = await Users.findByPk(userId)
-        if (!user) return res.status(400).json({ error: "user does not exist" })
-        await redis.setex(`user:${userId}`, 300, JSON.stringify(user));
+        if (!user) return res.status(400).json({ error: "user does not exist" }) // ← check before accessing
 
-        res.status(200).json({ sucess: "user found", user })
+        const normalized = {
+            id: user.id,
+            userName: user.userName,
+            familyName: user.familyName,
+            givenName: user.givenName,
+            userImg: user.uerImg,
+            role: user.role
+        }
+
+        await redis.setex(`user:${userId}`, 300, JSON.stringify(normalized));
+        return res.status(200).json({ success: "user found", user: normalized }) // ← return normalized
     } catch (error) {
-        console.error('Error resetting password:', error.message);
-        res.status(500).json({error: 'Internal server error'});
+        console.error('Error fetching user:', error.message);
+        res.status(500).json({ error: 'Internal server error' });
     }
-
 })
 
 

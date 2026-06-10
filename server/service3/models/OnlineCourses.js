@@ -1,5 +1,10 @@
 const mongoose = require('mongoose')
 
+const participantSchema = new mongoose.Schema({
+    userId: {type: Number, required: true},
+    participatedAt: {type: Date, default: new Date()}
+})
+
 const onlineCourseSchema = new mongoose.Schema({
     teacherId: { type: Number, required: true },
     title: { type: String, required: true },
@@ -24,9 +29,10 @@ const onlineCourseSchema = new mongoose.Schema({
         id: { type: Number, required: true },
         subCategory: { type: Number, required: true }
     },
+    participants: [participantSchema],
     visibility: { type: Boolean, default: true }
 }, { timestamps: true })
-
+ 
 onlineCourseSchema.methods.isOutdated = function () {
     if (!this.schedule?.endDate) return false;
     return new Date(this.schedule.endDate) < new Date();

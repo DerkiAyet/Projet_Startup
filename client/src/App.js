@@ -46,6 +46,11 @@ import Subjects from './Pages/Admin/Components/Subjects';
 import Levels from './Pages/Admin/Components/Levels';
 import Specialities from './Pages/Admin/Components/Specialities';
 import NotFound from './Shared/Pages/NotFound';
+import Missions from './Pages/Admin/Components/Missions';
+import CollaborativeSession from './Pages/Student/Pages/CollaborativeSession';
+import OnlineCourses from './Pages/Teacher/Pages/OnlineCourses';
+import CreateOnlineCourse from './Pages/Teacher/Pages/CreateOnlineCourse';
+import CreateRessource from './Pages/Student/Pages/CreateRessource';
 
 axios.defaults.withCredentials = true;
 
@@ -93,7 +98,7 @@ function App() {
       try {
         const res = await axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/users/verify`);
         setUserAuth({
-          userId: res.data.userId,
+          userId: res.data.id,
           userName: res.data.userName,
           familyName: res.data.familyName,
           givenName: res.data.givenName,
@@ -238,13 +243,14 @@ function App() {
               <Route path="create-course" element={<CreateCourse />} />
               <Route path="create-assignment" element={<CreateAssignment />} />
               <Route path="create-tip" element={<CreateTip />} />
+              <Route path="create-online-course" element={<CreateOnlineCourse />} />
+              <Route path="share" element={<CreateRessource />} />
               <Route path="ai-bot" element={<section className='main-container'>AI Assistant</section>} />
               <Route path="search" element={<SearchPage />} />
               <Route path="activities" element={<StudentActivity />} />
               <Route path="activities/solve-assignment/:id" element={<AssignmentSolve />} />
               <Route path="/activities/review-assignment/:solutionId" element={<AssignmentReview />} />
               <Route path="progress" element={<section className='main-container'>Progress & Achievements</section>} />
-              <Route path="share" element={<section className='main-container'>Share Resources</section>} />
               <Route path='parent-hub' element={<PostsFeed />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="users" element={<Users />} />
@@ -252,11 +258,14 @@ function App() {
               <Route path="settings" element={<Settings />} />
               <Route path="settings/subjects" element={<Subjects />} />
               <Route path="settings/subjects/:subjectId" element={<Specialities />} />
+              <Route path="settings/levels/:levelId" element={<Missions />} />
               <Route path="settings/levels" element={<Levels />} />
               <Route path="content" element={<Content />} />
               <Route path="profile" element={<section className='main-container'>Profile</section>} />
               <Route path="classrooms" element={<Classroom />} />
               <Route path='classrooms/:classroomId' element={<ClassroomPage />} />
+              <Route path='classrooms/:classroomId/sessions/:sessionId' element={<CollaborativeSession />} />
+              <Route path="online-courses" element={<OnlineCourses />} />
             </Route>
 
             <Route path='*' element={<NotFound />} />

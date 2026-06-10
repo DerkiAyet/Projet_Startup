@@ -30,7 +30,7 @@ export const SocketProvider = ({ children }) => {
     setSocket(newSocket);
 
     return () => newSocket.disconnect();
-  }, []);
+  }, []); 
 
   // Register user whenever userAuth becomes available
   useEffect(() => {

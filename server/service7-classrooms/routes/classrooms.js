@@ -5,7 +5,7 @@ const router = express.Router()
 const { discoverAuthService } = require('../config/discovery.service')
 const { resolveUser, resolveUserInterests } = require('../helpers/utils')
 const redis = require('../config/redis.config')
-const axios = require('axios')
+const axios = require('axios') 
 const ClassroomModel = require('../models/Classroom')
 const ClassroomChatModel = require('../models/ClassroomChat')
 const ClassroomPostModel = require('../models/ClassroomPost')
@@ -181,7 +181,7 @@ router.get('/search', async (req, res) => { // put this before get(/:classrommId
                 }
 
                 if (!matches && categoryIds.length) {
-                    const teacherInterests = await resolveUserInterests(classroom.creator.userId, "teacher")
+                    const teacherInterests = await resolveUserInterests(classroom.creator.id, "teacher")
                     if (teacherInterests?.length) {
                         matches = categoryIds.some(id =>
                             teacherInterests.map(String).includes(String(id))
@@ -376,6 +376,7 @@ router.put('/:classroomId/accept/:studentId', async (req, res) => {
         return res.status(200).json({ message: 'Student accepted', classroom });
 
     } catch (err) {
+        console.log("err:", err.message)
         res.status(500).json({ error: err.message });
     }
 })

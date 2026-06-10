@@ -9,6 +9,7 @@ import { ReactComponent as EditIcon } from '../../../Assets/icons/CourseIcons/ed
 import { sub } from 'date-fns'
 import { DeleteConfirmPopup } from '../../../Shared/Components/DeletePopup'
 import { useNavigate } from 'react-router-dom'
+import emptyPage from '../../../Assets/images/find-course.png'
 
 function Subjects() {
 
@@ -60,21 +61,31 @@ function Subjects() {
                 <div className="subjects-body">
                     <div className="subjects-grid">
                         {
-                            filteredCategories.map((cat) => (
-                                <div className="subject-card" onClick={() => navigate(`/settings/subjects/${cat.idSubject}`)}>
-                                    <span className="subject-name">{cat.name}</span>
-                                    <img src="" alt="" />
-                                    <img src={`${process.env.REACT_APP_API_URL_GATEWAY}/auth/uploads/${cat.subImg}`} alt="course" />
-                                    <div className="option-btns">
-                                        <button className='option-btn'>
-                                            <EditIcon />
-                                        </button>
-                                        <button className='option-btn' onClick={() => setSubjectIdToDelete(cat.idSubject)}>
-                                            <DeleteIcon />
-                                        </button>
+                            categories.length === 0 ? (
+                                <div className="empty-state">
+                                    <div className="empty-wrap">
+                                        <img src={emptyPage} alt="no chats" style={{ width: "200px" }} />
+                                        <h3>No Subjects created yet.</h3>
                                     </div>
                                 </div>
-                            ))
+                            ) :
+                                (
+                                    filteredCategories.map((cat) => (
+                                        <div className="subject-card" onClick={() => navigate(`/settings/subjects/${cat.idSubject}`)}>
+                                            <span className="subject-name">{cat.name}</span>
+                                            <img src="" alt="" />
+                                            <img src={`${process.env.REACT_APP_API_URL_GATEWAY}/auth/uploads/${cat.subImg}`} alt="course" />
+                                            <div className="option-btns">
+                                                <button className='option-btn' onClick={(e) => { e.stopPropagation() }}>
+                                                    <EditIcon />
+                                                </button>
+                                                <button className='option-btn' onClick={(e) => { e.stopPropagation(); setSubjectIdToDelete(cat.idSubject) }}>
+                                                    <DeleteIcon />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))
+                                )
                         }
 
                     </div>

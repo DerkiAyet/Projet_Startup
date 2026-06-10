@@ -25,10 +25,9 @@ const publishUsers = async (user) => {
           userName: user.userName,
           familyName: user.familyName,
           givenName: user.givenName,
-          email: user.email,
+          userImg: user.uerImg ?? user.userImg ?? null,
           role: user.role,
-          dateOfBirth: user.dateOfBirth,
-        },  // exclude sensitive fields like password
+        },
         timestamp: Date.now()
       })
     }]
@@ -107,7 +106,7 @@ const startGame = async (studentId) => {
           key: String(studentId),
           value: JSON.stringify({ studentId })
         }
-      ] 
+      ]
     });
     console.log(`Game Started for ${studentId}`);
   } catch (err) {

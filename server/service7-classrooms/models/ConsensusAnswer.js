@@ -10,7 +10,7 @@ const consensusAnswerSchema = new mongoose.Schema({
         required: true
     },
     exerciseId: {
-        type: Number,
+        type: String,
         required: true
     },
     text: {

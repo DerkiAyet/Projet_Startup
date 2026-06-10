@@ -11,9 +11,8 @@ import EmojiPicker from 'emoji-picker-react';
 
 import { AppContext } from '../../../App'
 import axios from 'axios'
-import { TimeLineContext } from '../Pages/PostsFeed'
 
-function CreatePost({ isOpen, onClose }) {
+function CreatePost({ isOpen, onClose, setPosts, setPostAdded, setLoadingCreate }) {
 
     const { userAuth, darkMode } = useContext(AppContext);
 
@@ -179,8 +178,6 @@ function CreatePost({ isOpen, onClose }) {
     // -----------------------------
     // Submit Post
     // -----------------------------
-
-    const { setPosts, setPostAdded, setLoadingCreate } = useContext(TimeLineContext)
 
     const onSubmit = async (e) => {
         e.preventDefault()

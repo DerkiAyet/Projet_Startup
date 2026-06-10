@@ -10,6 +10,7 @@ const ConsensusAnswerModel = require('../models/ConsensusAnswer')
 const SessionChatModel = require('../models/SessionChat')
 const { emitToRoom, publishNotification, updateGamification } = require('../config/kafka/producer')
 const { resolveUser } = require('../helpers/utils')
+const redis = require('../config/redis.config')
 
 router.post('/of-classroom/:classroomId', async (req, res) => {
     try {
@@ -86,6 +87,7 @@ router.get('/of-classroom/:classroomId', async (req, res) => {
 
         return res.status(200).json(sessions)
     } catch (error) {
+        console.log(error.message)
         res.status(500).json("error: ", error.message)
     }
 })
@@ -124,6 +126,7 @@ router.get('/:sessionId', async (req, res) => {
         }
         return res.status(200).json(finalSession);
     } catch (err) {
+        console.log("error: ", err.message)
         res.status(500).json({ error: err.message });
     }
 });
@@ -175,6 +178,7 @@ router.put('/:sessionId/phase', async (req, res) => {
 
         return res.status(200).json(session);
     } catch (err) {
+        console.log("error: ", err.message)
         res.status(500).json({ error: err.message });
     }
 });
@@ -206,6 +210,7 @@ router.put('/:sessionId/complete', async (req, res) => {
         await redis.del(`sessions:classroom:${session.classroomId}`)
         return res.status(200).json(session);
     } catch (err) {
+        console.log("error: ", err.message)
         res.status(500).json({ error: err.message });
     }
 });
@@ -227,19 +232,20 @@ router.put('/:sessionId/sheets/:exerciseId', async (req, res) => {
             {
                 sessionId: session._id,
                 studentId,
-                exerciseId: Number(req.params.exerciseId)
+                exerciseId: req.params.exerciseId
             },
             {
                 answer,
                 lastEditedAt: new Date(),
                 $inc: { editCount: 1 } // intresting metric to track how many times students edit their answers before submitting
             },
-            { upsert: true, new: true } // the upsert option creates a new document if no document matches the query, and the new option returns the modified document rather than the original
+            { upsert: true, returnDocument: 'after' } // the upsert option creates a new document if no document matches the query, and the new option returns the modified document rather than the original
         );
 
         // phase 1 answers are private!!
         return res.status(200).json(sheet);
     } catch (err) {
+        console.log("error: ", err.message)
         res.status(500).json({ error: err.message });
     }
 });
@@ -247,34 +253,54 @@ router.put('/:sessionId/sheets/:exerciseId', async (req, res) => {
 router.put('/:sessionId/sheets/:exerciseId/submit', async (req, res) => {
     try {
         const studentId = Number(req.headers['x-user-id']);
+        const { answer } = req.body;
+
+        // Check if sheet already existed before upserting
+        const existingSheet = await IndividualSheetModel.findOne({
+            sessionId: req.params.sessionId,
+            studentId,
+            exerciseId: req.params.exerciseId
+        })
+        const isFirstSubmission = !existingSheet?.submittedAt
 
         const sheet = await IndividualSheetModel.findOneAndUpdate(
             {
                 sessionId: req.params.sessionId,
                 studentId,
-                exerciseId: Number(req.params.exerciseId)
+                exerciseId: req.params.exerciseId
             },
-            { submittedAt: new Date() },
-            { new: true }
+            {
+                answer,
+                submittedAt: new Date(),
+                $inc: { editCount: 1 }
+            },
+            { upsert: true, returnDocument: 'after' }
         );
 
         if (!sheet) return res.status(404).json({ error: 'Sheet not found' });
 
-        // let others know this student submitted
+        const studentInfos = await resolveUser(studentId)
+        const enrichedSheet = { ...sheet.toObject(), student: studentInfos }
+
         await emitToRoom(
             `session:${req.params.sessionId}`,
             'session:student_submitted',
             {
                 sessionId: req.params.sessionId,
-                studentId,
-                exerciseId: req.params.exerciseId
+                student: studentInfos,
+                exerciseId: req.params.exerciseId,
+                sheet: enrichedSheet
             }
         );
 
-        await updateGamification("PARTICPATE_SESSION", studentId)
+        // Only reward on first submission, not re-submissions
+        if (isFirstSubmission) {
+            await updateGamification("PARTICIPATE_SESSION", studentId)
+        }
 
         return res.status(200).json(sheet);
     } catch (err) {
+        console.log("error: ", err.message)
         res.status(500).json({ error: err.message });
     }
 });
@@ -309,6 +335,7 @@ router.get('/:sessionId/sheets', async (req, res) => {
 
         return res.status(200).json(enrichedSheets);
     } catch (err) {
+        console.log("error: ", err.message)
         res.status(500).json({ error: err.message });
     }
 });
@@ -321,11 +348,11 @@ router.put('/:sessionId/sheets/:sheetId/grade', async (req, res) => {
         const userRole = req.headers['x-user-role']
         if (userRole !== "teacher") return res.status(403).json("Forbidden")
 
-        const sheet = await IndividualSheetModel.findById(req.params.sessionId)
+        const sheet = await IndividualSheetModel.findById(req.params.sheetId)
         if (!sheet) return res.status(404).json({ error: "sheet not found" })
 
         const session = await SessionModel.findById(sheet.sessionId)
-        if (req.params.sessionId !== session._id) return res.status(400).json({ error: "something is off, apparently the teacher isn't in the right session" })
+        if (req.params.sessionId !== String(session._id)) return res.status(400).json({ error: "something is off, apparently the teacher isn't in the right session" })
 
         const classroom = await ClassroomModel.findById(session.classroomId)
         if (classroom.teacherId !== teacherId) return res.status(403).json("Forbidden")
@@ -340,6 +367,7 @@ router.put('/:sessionId/sheets/:sheetId/grade', async (req, res) => {
         return res.status(200).json(sheet)
 
     } catch (err) {
+        console.log("error: ", err.message)
         res.status(500).json({ error: err.message });
     }
 })
@@ -352,7 +380,7 @@ sheet, if some other student in the session requested to write, well here the st
 it first, needs to unlock it first and so the student two can lock and become the editor*/
 
 // ── Lock consensus area ──────────────────────────────────────
-router.post('/:sessionId/consensus/:exerciseId/lock', async (req, res) => {
+router.put('/:sessionId/consensus/:exerciseId/lock', async (req, res) => {
     try {
         const userId = Number(req.headers['x-user-id']);
         const userRole = req.headers['x-user-role']
@@ -361,7 +389,7 @@ router.post('/:sessionId/consensus/:exerciseId/lock', async (req, res) => {
         const lockKey = `session:lock:${req.params.sessionId}:${req.params.exerciseId}`;
         // NX = only set if not exists, which means if the key already exists in cache then inserting it again is not allowed
         // it makes perfect sense since the lock cannot be hold by two students at the same time
-        const acquired = await redis.set(lockKey, String(userId), 'NX', 'EX', 300); // auto-releases after 5 min with EX
+        const acquired = await redis.set(lockKey, String(userId), 'NX', 'EX', 600); // auto-releases after 10 min with EX
 
         // const consensus = await ConsensusAnswerModel.findOne({
         //     sessionId: req.params.sessionId,
@@ -381,7 +409,7 @@ router.post('/:sessionId/consensus/:exerciseId/lock', async (req, res) => {
         //         exerciseId: Number(req.params.exerciseId)
         //     },
         //     { lockedBy: userId, lockedAt: new Date() },
-        //     { upsert: true, new: true } // again the upsert will create a document if it doesn't exist
+        //     { upsert: true, returnDocument: 'after' } // again the upsert will create a document if it doesn't exist
         // );  --- using redis since it is faster for this case
 
         if (!acquired) {
@@ -395,19 +423,19 @@ router.post('/:sessionId/consensus/:exerciseId/lock', async (req, res) => {
             }
         }
         //if not locked by someone else, the user takes the lead and we inform the others 
+        const lockedUserEnriched = await resolveUser(userId)
         await emitToRoom(
             `session:${req.params.sessionId}`,
             'consensus:locked',
             {
                 sessionId: req.params.sessionId,
                 exerciseId: req.params.exerciseId,
-                lockedBy: userId
+                lockedBy: lockedUserEnriched
             }
         );
-
-        const lockedUserEnriched = await resolveUser(userId)
         return res.status(200).json({ ok: true, lockedBy: lockedUserEnriched });
     } catch (err) {
+        console.log("error: ", err.message)
         res.status(500).json({ error: err.message });
     }
 });
@@ -432,6 +460,21 @@ router.post('/:sessionId/consensus/:exerciseId/unlock', async (req, res) => {
         //     { lockedBy: null, lockedAt: null }
         // );
 
+        const { text } = req.body || ""
+
+        const updated = await ConsensusAnswerModel.findOneAndUpdate(
+            {
+                sessionId: req.params.sessionId,
+                exerciseId: req.params.exerciseId
+            },
+            {
+                text,
+                lastUpdatedBy: userId,
+                updatedAt: new Date()
+            },
+            { upsert: true, returnDocument: 'after' }
+        );
+
         await emitToRoom(
             `session:${req.params.sessionId}`,
             'consensus:unlocked',
@@ -441,8 +484,20 @@ router.post('/:sessionId/consensus/:exerciseId/unlock', async (req, res) => {
             }
         );
 
+        // we update as well
+        await emitToRoom(
+            `session:${req.params.sessionId}`,
+            'consensus:updated',
+            {
+                sessionId: req.params.sessionId,
+                exerciseId: req.params.exerciseId,
+                text
+            }
+        );
+
         return res.status(200).json({ ok: true });
     } catch (err) {
+        console.log("error: ", err.message)
         res.status(500).json({ error: err.message });
     }
 });
@@ -460,7 +515,7 @@ router.put('/:sessionId/consensus/:exerciseId', async (req, res) => { // in the 
 
         const consensus = await ConsensusAnswerModel.findOne({
             sessionId: req.params.sessionId,
-            exerciseId: Number(req.params.exerciseId)
+            exerciseId: req.params.exerciseId
         });
 
         // only the student holding the lock can write
@@ -471,17 +526,18 @@ router.put('/:sessionId/consensus/:exerciseId', async (req, res) => { // in the 
         const updated = await ConsensusAnswerModel.findOneAndUpdate(
             {
                 sessionId: req.params.sessionId,
-                exerciseId: Number(req.params.exerciseId)
+                exerciseId: req.params.exerciseId
             },
             {
                 text,
                 lastUpdatedBy: userId,
                 updatedAt: new Date()
             },
-            { upsert: true, new: true }
+            { upsert: true, returnDocument: 'after' }
         );
 
         // broadcast to others so they see the text live
+        const lockedUserEnriched = await resolveUser(userId)
         await emitToRoom(
             `session:${req.params.sessionId}`,
             'consensus:updated',
@@ -489,32 +545,33 @@ router.put('/:sessionId/consensus/:exerciseId', async (req, res) => { // in the 
                 sessionId: req.params.sessionId,
                 exerciseId: req.params.exerciseId,
                 text,
-                updatedBy: userId
+                updatedBy: lockedUserEnriched
             }
         );
 
         return res.status(200).json(updated);
     } catch (err) {
+        console.log("error: ", err.message)
         res.status(500).json({ error: err.message });
     }
 });
 
 // ── Finalize consensus answer ────────────────────────────────
-router.put('/sessions/:sessionId/consensus/:exerciseId/finalize', async (req, res) => {
+router.put('/:sessionId/consensus/:exerciseId/finalize', async (req, res) => {
     try {
         const userId = Number(req.headers['x-user-id']);
 
         const updated = await ConsensusAnswerModel.findOneAndUpdate(
             {
                 sessionId: req.params.sessionId,
-                exerciseId: Number(req.params.exerciseId)
+                exerciseId: req.params.exerciseId
             },
             {
                 isFinal: true,
                 finalizedAt: new Date(),
                 lockedBy: null  // release lock on finalize
             },
-            { new: true }
+            { returnDocument: 'after' }
         );
 
         if (!updated) return res.status(404).json({ error: 'Consensus not found' });
@@ -524,13 +581,15 @@ router.put('/sessions/:sessionId/consensus/:exerciseId/finalize', async (req, re
             'consensus:finalized',
             {
                 sessionId: req.params.sessionId,
-                exerciseId: req.params.exerciseId
+                exerciseId: req.params.exerciseId,
+                finalAnswer: updated.text
             }
         );
 
         await redis.del(`session:lock:${req.params.sessionId}:${req.params.exerciseId}`);//delte the key
         return res.status(200).json(updated);
     } catch (err) {
+        console.log("error: ", err.message)
         res.status(500).json({ error: err.message });
     }
 });
@@ -541,11 +600,11 @@ router.put('/:sessionId/consensus/:consensusId/grade', async (req, res) => {
         const userRole = req.headers['x-user-role']
         if (userRole !== "teacher") return res.status(403).json("Forbidden")
 
-        const consensus = await ConsensusAnswerModel.findById(req.params.sessionId)
+        const consensus = await ConsensusAnswerModel.findById(req.params.consensusId)
         if (!consensus) return res.status(404).json({ error: "consensus not found" })
 
         const session = await SessionModel.findById(consensus.sessionId)
-        if (req.params.sessionId !== session._id) return res.status(400).json({ error: "something is off, apparently the teacher isn't in the right session" })
+        if (req.params.sessionId !== String(session._id)) return res.status(400).json({ error: "something is off, apparently the teacher isn't in the right session" })
 
         const classroom = await ClassroomModel.findById(session.classroomId)
         if (classroom.teacherId !== teacherId) return res.status(403).json("Forbidden")
@@ -560,18 +619,33 @@ router.put('/:sessionId/consensus/:consensusId/grade', async (req, res) => {
         return res.status(200).json(consensus)
 
     } catch (err) {
+        console.log("error: ", err.message)
         res.status(500).json({ error: err.message });
     }
 })
 
 // ── Get all consensus answers for a session ──────────────────
-router.get('/sessions/:sessionId/consensus', async (req, res) => {
+router.get('/:sessionId/consensus', async (req, res) => {
     try {
         const answers = await ConsensusAnswerModel.find({
             sessionId: req.params.sessionId
         });
-        return res.status(200).json(answers);
+
+        const enrichedConsensus = await Promise.all(
+            answers.map(async (a) => {
+                const lockKey = `session:lock:${req.params.sessionId}:${a.exerciseId}`;
+                const currentHolder = await redis.get(lockKey);
+                let lockedBy = null;
+                if (currentHolder) lockedBy = await resolveUser(currentHolder)
+                return {
+                    ...a.toObject(),
+                    lockedBy,
+                }
+            })
+        )
+        return res.status(200).json(enrichedConsensus);
     } catch (err) {
+        console.log("error: ", err.message)
         res.status(500).json({ error: err.message });
     }
 });
@@ -581,7 +655,7 @@ router.get('/sessions/:sessionId/consensus', async (req, res) => {
 // ─────────────────────────────────────────────────────────────
 
 // ── Send message in session chat ────────────────────────────
-router.post('/sessions/:sessionId/messages', async (req, res) => {
+router.post('/:sessionId/messages', async (req, res) => {
     try {
         const senderId = Number(req.headers['x-user-id']);
         const { message, quotedSheetId } = req.body;
@@ -593,38 +667,52 @@ router.post('/sessions/:sessionId/messages', async (req, res) => {
         if (session.phase < 2)
             return res.status(403).json({ error: 'Chat is not available in phase 1' });
 
-        const chat = await SessionMessageModel.create({
+        const chat = await SessionChatModel.create({
             sessionId: session._id,
             senderId,
             message,
             readBy: [{ userId: senderId }]
         });
 
+        const senderInfos = await resolveUser(senderId)
+        const enrichedChat = {
+            _id: chat._id,
+            senderId: chat.senderId,
+            message: chat.message,
+            senderInfos,
+            readBy: chat.readBy,
+            sentAt: chat.createdAt
+        }
+
         await emitToRoom(
             `session:${session._id}`,
             'session:new_message',
-            { sessionId: session._id, message: chat }
+            { sessionId: session._id, message: enrichedChat }
         );
 
-        return res.status(201).json(chat);
+        return res.status(201).json(enrichedChat);
     } catch (err) {
+        console.log("error: ", err.message)
         res.status(500).json({ error: err.message });
     }
 });
 
 // ── Get session chat messages ────────────────────────────────
-router.get('/sessions/:sessionId/messages', async (req, res) => {
+router.get('/:sessionId/messages', async (req, res) => {
     try {
-        const { page = 1, limit = 50 } = req.query;
-
-        const messages = await SessionMessageModel
+        const messages = await SessionChatModel
             .find({ sessionId: req.params.sessionId })
             .sort({ createdAt: 1 })
+            .lean()
+
+        console.log('found messages:', messages.length, 'for sessionId:', req.params.sessionId)
 
         const enrichedMessages = await Promise.all(
             messages.map(async (m) => {
                 const senderInfos = await resolveUser(m.senderId)
                 return {
+                    _id: m._id,
+                    senderId: m.senderId,
                     message: m.message,
                     senderInfos,
                     readBy: m.readBy,
@@ -633,9 +721,10 @@ router.get('/sessions/:sessionId/messages', async (req, res) => {
             })
         )
 
-        return res.status(200).json(enrichedMessages);
+        return res.status(200).json(enrichedMessages)
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.log("error: ", err.message)
+        res.status(500).json({ error: err.message })
     }
 });
 
@@ -644,7 +733,7 @@ router.get('/sessions/:sessionId/messages', async (req, res) => {
 // ─────────────────────────────────────────────────────────────
 
 // ── Teacher gets full session results ───────────────────────
-router.get('/sessions/:sessionId/results', async (req, res) => {
+router.get('/:sessionId/results', async (req, res) => {
     try {
         const teacherId = Number(req.headers['x-user-id']);
 
@@ -681,6 +770,7 @@ router.get('/sessions/:sessionId/results', async (req, res) => {
             }
         });
     } catch (err) {
+        console.log("error: ", err.message)
         res.status(500).json({ error: err.message });
     }
 });

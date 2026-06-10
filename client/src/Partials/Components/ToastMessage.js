@@ -6,7 +6,7 @@ function ToastMessage({ message, subMessage, visible, onClose }) {
     if (!visible) return;
     const timer = setTimeout(onClose, 4000);
     return () => clearTimeout(timer);
-  }, [visible]);
+  }, [visible]); 
 
   if (!visible) return null;
 

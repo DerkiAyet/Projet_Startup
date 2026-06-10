@@ -56,8 +56,6 @@ async function progressMission(studentId, missionType) {
         a => a.missionId.toString() === mission._id.toString()
     )
 
-    if (achievement?.completed) return { alreadyCompleted: true }
-
     const currentProgress = achievement ? achievement.progress : 0
     const newProgress = currentProgress + 1
     const justCompleted = newProgress >= mission.toDo
@@ -109,8 +107,13 @@ async function progressMission(studentId, missionType) {
     const newLevel = justCompleted ? await checkLevelUp(updatedRecord) : null
 
     if (newLevel) {
-        await emitToGameRoom(`gamification:${studentId}`, "new_level", { xpGain, pointsGain, nextLevel: newLevel })
-    } else if (justCompleted) {
+        const nextLevelXp = await LevelModel.findOne({
+            key: newLevel.key + 1
+        }).select("xpRequired")
+        if (!nextLevelXp) return null
+
+        await emitToGameRoom(`gamification:${studentId}`, "new_level", { xpGain, pointsGain, nextLevel: newLevel, nextLevelXp: nextLevelXp.xpRequired })
+    } else if (justCompleted && !achievement?.completed) {
         await emitToGameRoom(`gamification:${studentId}`, "new_achievement", { mission, xpGain, pointsGain })
     }
 
@@ -131,7 +134,12 @@ async function IntiateProgress(studentId) {
             currentLevelId: firstLevel._id
         })
 
-        await emitToGameRoom(`gamification:${studentId}`, "game_started", { firstLevel })
+        const nextLevelXp = await LevelModel.findOne({
+            key: firstLevel.key + 1
+        }).select("xpRequired")
+        if (!nextLevelXp) return null
+
+        await emitToGameRoom(`gamification:${studentId}`, "game_started", { firstLevel, nextLevelXp: nextLevelXp.xpRequire })
 
         return newRecord
     } catch (error) {

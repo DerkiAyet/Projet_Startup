@@ -24,13 +24,15 @@
     "classrooms": "الأقسام",
     "platform-settings": "إعدادات النظام",
     "subjects": "المواد",
-    "levels": "مستويات التعلّم"
+    "levels": "مستويات التعلّم",
+    "onlineclasses": "الدورات الرقمية"
   },
   "tools": {
     "tools": "الأدوات",
     "createCourse": "إنشاء دورة",
     "createExercise": "إنشاء تكليف",
     "createTip": "إنشاء نصيحة",
+    "createOnlineCourse": "دورة رقمية",
     "aiAssistant": "المساعد الذكي",
     "ocrScanner": "ماسح OCR",
     "shareResources": "مشاركة الموارد"

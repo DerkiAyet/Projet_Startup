@@ -38,9 +38,49 @@ router.post('/', upload.single("coverImg"), async (req, res) => {
             xpRequired
         })
 
+        await redis.del('gameLevels')
         return res.status(201).json({ newLevel })
     } catch (error) {
         console.log("error while creating a new level", error.message)
+        return res.status(500).json({ error: "Internal Server Error", message: error.message })
+    }
+})
+
+router.get('/', async (req, res) => {
+    try {
+        const userRole = req.headers['x-user-role']
+        if (userRole !== "admin") return res.status(403).json({ error: "Forbidden" })
+
+        const cachedKey = 'gameLevels'
+        const cached = await redis.get(cachedKey)
+        if (cached) return res.status(200).json(JSON.parse(cached))
+
+        const levels = await LevelModel.find()
+
+        await redis.setex(cachedKey, 600, JSON.stringify(levels))
+        res.status(200).json(levels)
+    } catch (error) {
+        console.log("error while fetching the levels", error.message)
+        return res.status(500).json({ error: "Internal Server Error", message: error.message })
+    }
+})
+
+router.get('/:levelId', async (req, res) => {
+    try {
+        const userRole = req.headers['x-user-role']
+        if (userRole !== "admin") return res.status(403).json({ error: "Forbidden" })
+
+        const cachedKey = `game:level:${req.params.levelId}`
+        const cached = await redis.get(cachedKey)
+        if (cached) return res.status(200).json(JSON.parse(cached))
+
+        const level = await LevelModel.findById(req.params.levelId)
+        if (!level) return res.status(404).json({ error: "level doesn't exist" })
+
+        await redis.setex(cachedKey, 600, JSON.stringify(level))
+        res.status(200).json(level)
+    } catch (error) {
+        console.log("error while fetching the levels", error.message)
         return res.status(500).json({ error: "Internal Server Error", message: error.message })
     }
 })
@@ -104,7 +144,10 @@ router.put('/:levelId/missions', async (req, res) => {
         })
         await level.save()
 
-        return res.status(201).json(level)
+        await redis.del(`game:level:${req.params.levelId}`)
+
+        const newMission = level.missions[level.missions.length - 1]
+        return res.status(201).json(newMission)
     } catch (error) {
         console.log("error while adding a mission to the level", error.message)
         return res.status(500).json({ error: "Internal Server Error", message: error.message })
@@ -141,7 +184,10 @@ router.put('/:levelId/missions/:missionId', async (req, res) => {
             { new: true }
         )
 
-        return res.status(200).json(updatedLevel)
+        const updatedMission = level.missions.find(m => m._id.toString() === req.params.missionId)
+
+        await redis.del(`game:level:${req.params.levelId}`)
+        return res.status(200).json(updatedMission)
     } catch (error) {
         console.log("error while updating mission", error.message)
         return res.status(500).json({ error: "Internal Server Error", message: error.message })
@@ -164,6 +210,7 @@ router.delete('/:levelId/missions/:missionId', async (req, res) => {
         level.missions = level.missions.filter((m) => m._id.toString() !== mission._id)
         await level.save()
 
+        await redis.del(`game:level:${req.params.levelId}`)
         return res.status(200).json(level)
     } catch (error) {
         console.log("error while updating mission", error.message)

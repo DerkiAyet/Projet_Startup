@@ -6,6 +6,7 @@ const CommentModel = require('../models/Comments')
 const multer = require('multer')
 const { resolveUser, resolveCategory, resolveField, resolveUserInterests } = require('../helpers/utils')
 const redis = require('../config/redis.config')
+const path = require('path')
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -43,7 +44,7 @@ function getFileType(filename) {
     return map[ext] || 'other';
 }
 
-router.post('/', fields([
+router.post('/', upload.fields([
     { name: 'thumbnail', maxCount: 1 },
     { name: 'attachmentFiles', maxCount: 10 }
 ]), async (req, res) => {
@@ -244,7 +245,7 @@ router.get("/:resourceId", async (req, res) => {
             visibility: resource.visibility,
             createdAt: resource.createdAt,
             student: responseUser
-        }
+        } 
     } catch (error) {
         console.error("Error occured while fetching the resource: ", error.message)
         return res.status(500).json({ error: "Internal server error" })

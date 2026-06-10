@@ -22,16 +22,19 @@ import { ReactComponent as ClassroomIcon } from '../../Assets/icons/NavIcons/cla
 import { ReactComponent as SettingsAdminIcon } from '../../Assets/icons/NavIcons/admin-settings.svg';
 import { ReactComponent as CategoriesIcon } from '../../Assets/icons/NavIcons/categories.svg';
 import { ReactComponent as LevelsIcon } from '../../Assets/icons/NavIcons/trophy.svg';
+import { ReactComponent as OnlineClassIcon } from '../../Assets/icons/NavIcons/online-course.svg';
+
 
 
 // Student Navigation
 export const teacherNavItems = [
     { title: 'mainNav.home', icon: HomeIcon, path: '/' },
     { title: 'mainNav.courses', icon: CoursesIcon, path: '/courses' },
+    { title: 'mainNav.onlineclasses', icon: OnlineClassIcon, path: '/online-courses' },
+    { title: 'mainNav.classrooms', icon: ClassroomIcon, path: '/classrooms' },
     { title: 'mainNav.searchCourses', icon: SearchIcon, path: "/search" },
     { title: 'mainNav.calendar', icon: CalendarIcon, path: '/calendar' },
     { title: 'mainNav.students', icon: PeopleIcon, path: '/my-students' },
-    { title: 'mainNav.classrooms', icon: ClassroomIcon, path: '/classrooms' },
     { title: 'mainNav.chats', icon: ChatIcon, path: '/chats' },
 ];
 
@@ -39,6 +42,7 @@ export const teacherTools = [
     { title: 'tools.createCourse', icon: CreateCourseIcon, path: '/create-course' },
     { title: 'tools.createExercise', icon: CreateExerciseIcon, path: '/create-assignment' },
     { title: 'tools.createTip', icon: CreateTipIcon, path: '/create-tip' },
+    { title: 'tools.createOnlineCourse', icon: OnlineClassIcon, path: '/create-online-course' },
     { title: 'tools.aiAssistant', icon: AiIcon, path: "/ai-bot" },
 ];
 
@@ -53,14 +57,15 @@ export const teacherMobileNav = [
 export const studentNavItems = [
     { title: 'mainNav.home', icon: HomeIcon, path: "/" },
     { title: 'mainNav.searchCourses', icon: SearchIcon, path: "/search" },
+    { title: 'mainNav.onlineclasses', icon: OnlineClassIcon, path: '/online-courses' },
+    { title: 'mainNav.classrooms', icon: ClassroomIcon, path: '/classrooms' },
     { title: 'mainNav.myActivities', icon: CoursesIcon, path: "/activities" },
     { title: 'mainNav.myPerformance', icon: ChartIcon, path: "/progress" },
-    { title: 'mainNav.classrooms', icon: ClassroomIcon, path: '/classrooms' },
     { title: 'mainNav.chats', icon: ChatIcon, path: '/chats' },
 ];
 
 export const studentTools = [
-    { title: 'tools.ocrScanner', icon: ScannerIcon, path: "/ocr" },
+    { title: 'tools.aiAssistant', icon: AiIcon, path: "/ai-bot" },
     { title: 'tools.shareResources', icon: ShareIcon, path: "/share" },
 ];
 
@@ -104,7 +109,7 @@ export const adminMainNav = [
 
 export const adminSubTools = [
     { path: '/settings/subjects', icon: CategoriesIcon, title: 'mainNav.subjects' },
-    { path: '/settings/levels', icon: LevelsIcon, title: 'mainNav.levels',}
+    { path: '/settings/levels', icon: LevelsIcon, title: 'mainNav.levels', }
 ];
 
 

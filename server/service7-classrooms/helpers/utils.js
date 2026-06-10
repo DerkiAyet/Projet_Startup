@@ -9,7 +9,7 @@ async function resolveUser(userId) {
     // Check Redis first
     const cached = await redis.get(`user:${id}`);
     if (cached) {
-        console.log("Fetched from Redis")
+        console.log("Fetched from Redis", id)
         return JSON.parse(cached)
     };
 
@@ -17,6 +17,7 @@ async function resolveUser(userId) {
     const kafkaUser = getUser(id);
     if (kafkaUser) {
         // Save into Redis so all instances benefit
+        console.log("Fetched from Kafka", id)
         await redis.setex(`user:${id}`, 300, JSON.stringify(kafkaUser));
         return kafkaUser;
     }
@@ -28,13 +29,15 @@ async function resolveUser(userId) {
         { timeout: 5000 }
     );
     const user = {
-        userId: data.user.id,
+        id: data.user.id,
         userName: data.user.userName,
         familyName: data.user.familyName,
         givenName: data.user.givenName,
-        userImg: data.user.uerImg,
+        userImg: data.user.userImg,
         role: data.user.role
     };
+
+    console.log("fetched from uri", id)
 
     // Cache result so next call is instant
     await redis.setex(`user:${id}`, 300, JSON.stringify(user));
@@ -74,7 +77,10 @@ async function resolveUserInterests(userId, role) {
             { headers: { "x-user-id": id }, timeout: 5000 }
         );
         interests = data;
-        await redis.setex(cacheKey, 300, JSON.stringify(interests));
+         // ← only cache if there's actual data (that's the bug in the case of register for first time)
+        if (interests && interests.length > 0) {
+            await redis.setex(cacheKey, 300, JSON.stringify(interests));
+        }
         return interests;
     } catch {
         return [];

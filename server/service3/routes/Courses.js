@@ -300,8 +300,6 @@ router.get('/search', async (req, res) => {
         const categoryNames = normalizeList(categoryName);
         const subCategoryNames = normalizeList(subCategoryName);
 
-        console.log('Search params:', { title, categoryIds, categoryNames, subCategoryNames, level });
-
         // ── ONLY filter by database-level filters (no title here!) ──
         const mongoFilter = { visibility: true };
 

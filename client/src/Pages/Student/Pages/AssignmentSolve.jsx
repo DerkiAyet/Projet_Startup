@@ -102,7 +102,7 @@ function AssignmentSolve() {
               selected: []
             })),
             grade: null,
-            teacherExplanation: "",
+            teacherExplanation: "", 
             localFile: null, // for the pass file option
             fileUrl: ""
           }));

@@ -5,7 +5,7 @@ const CourseModel = require('../models/Courses')
 const SolvingModel = require('../models/Solving')
 const AssignmentModel = require('../models/Assignments')
 const QuizAttemptModel = require('../models/QuizAttempts')
-const QuizModel = require("../models/Quizes");
+const QuizeModel = require("../models/Quizes");
 const axios = require('axios')
 const multer = require('multer')
 const { updateGamification } = require('../config/kafka/producer')
@@ -77,7 +77,7 @@ router.get('/courses-enrolled', async (req, res) => {
     const userId = req.headers['x-user-id']
 
     try {
-        const cachedKey = `enrollments:${studentId}`
+        const cachedKey = `enrollments:${userId}`
         const cached = await redis.get(cachedKey)
         if (cached) return res.status(200).json(JSON.parse(cached))
 
@@ -432,7 +432,7 @@ router.post("/quiz-attempts/start", async (req, res) => {
     const { quizId } = req.body;
 
     try {
-        const quiz = await QuizModel.findById(quizId);
+        const quiz = await QuizeModel.findById(quizId);
         if (!quiz) return res.status(404).json({ error: "Quiz not found" });
 
         // If an incomplete attempt exists, return it instead of creating a new one
@@ -507,7 +507,7 @@ router.put("/quiz-attempts/:attemptId/submit", async (req, res) => {
         if (attempt.completedAt)
             return res.status(400).json({ error: "This attempt has already been submitted" });
 
-        const quiz = await QuizModel.findById(attempt.quizId);
+        const quiz = await QuizeModel.findById(attempt.quizId);
         if (!quiz) return res.status(404).json({ error: "Quiz not found" });
 
         // Set answers
@@ -573,7 +573,7 @@ router.get("/quiz-attempts/quiz/:quizId", async (req, res) => {
     const { quizId } = req.params;
 
     try {
-        const quiz = await QuizModel.findById(quizId);
+        const quiz = await QuizeModel.findById(quizId);
         if (!quiz) return res.status(404).json({ error: "Quiz not found" });
 
         if (quiz.teacherId != teacherId)

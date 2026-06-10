@@ -156,7 +156,7 @@ function setupWebSocket(server) {
       console.log(`Socket ${socket.id} joined in game system:${userId}`);
     });
 
-    socket.on('leave_game', ({ userId }) => {
+    socket.on('leave_game', ({ userId }) => { 
       socket.leave(`gamification:${userId}`);
     });
 

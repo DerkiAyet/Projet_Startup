@@ -16,6 +16,23 @@
     --light-scrollbar-thumb-start: #EC4899;
     --light-scrollbar-thumb-end: #FFFFFF;
     --radius-lg: 20px;
+
+    --cd-pink: #EC4899;
+    --cd-pink-light: #EC489920;
+    --cd-pink-mid: #EC489950;
+    --cd-pink-bg: #FDF2F8;
+    --cd-dark: #1E293B;
+    --cd-grey: #8E8E8E;
+    --cd-dark-grey: #4A4A4A;
+    --cd-border: #D9E1E7;
+    --cd-white: #FFFFFF;
+    --cd-page-bg: #F4F6F8;
+    --modal-bg-color: #F9FAFB;
+    --light-border-section: #D9E1E7;
+    --blue-font-color: #0095F6;
+    --pink-text-color: #831843;
+    --light-grey-font-color: #8E8E8E;
+    --light-border-pink: #FCE7F3;
 }
 
 .as-container {

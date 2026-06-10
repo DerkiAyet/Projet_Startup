@@ -57,7 +57,7 @@ function SignUp() {
         role: "",
         familyName: "",
         givenName: "",
-        DateOfBirth: "",
+        dateOfBirth: "",
         userName: "",
         email: "",
         password: ""
@@ -65,7 +65,7 @@ function SignUp() {
     const [errors, setErrors] = useState({
         familyName: "",
         givenName: "",
-        DateOfBirth: "",
+        dateOfBirth: "",
         userName: "",
         email: "",
         password: ""
@@ -88,8 +88,8 @@ function SignUp() {
         if (!userInfos.givenName.trim()) {
             newErrors.givenName =  t('auth.errors.enterGivenName');
         }
-        if (!userInfos.DateOfBirth.trim()) {
-            newErrors.DateOfBirth =  t('auth.errors.enterBirthDate');
+        if (!userInfos.dateOfBirth.trim()) {
+            newErrors.dateOfBirth =  t('auth.errors.enterBirthDate');
         }
 
         if (Object.keys(newErrors).length > 0) {
@@ -100,7 +100,7 @@ function SignUp() {
         setErrors({
             familyName: "",
             givenName: "",
-            DateOfBirth: "",
+            dateOfBirth: "",
             userName: "",
             email: "",
             password: ""
@@ -138,7 +138,7 @@ function SignUp() {
         setErrors({
             familyName: "",
             givenName: "",
-            DateOfBirth: "",
+            dateOfBirth: "",
             userName: "",
             email: "",
             password: ""
@@ -327,17 +327,17 @@ function SignUp() {
                                                 <label htmlFor="familyName-user">
                                                     {t('auth.dateOfBirth')}
                                                 </label>
-                                                <div className={`input-line ${errors.DateOfBirth ? "input-error" : ""}`}>
+                                                <div className={`input-line ${errors.dateOfBirth ? "input-error" : ""}`}>
                                                     <BirthIcon className="input-birth-icon" />
                                                     <input
                                                         type="date"
                                                         placeholder="dd/mm/yyy"
-                                                        value={userInfos.DateOfBirth}
-                                                        onChange={(e) => setUserInfos({ ...userInfos, DateOfBirth: e.target.value })}
-                                                        onFocus={() => handleFocus("DateOfBirth")}
+                                                        value={userInfos.dateOfBirth}
+                                                        onChange={(e) => setUserInfos({ ...userInfos, dateOfBirth: e.target.value })}
+                                                        onFocus={() => handleFocus("dateOfBirth")}
                                                     />
                                                 </div>
-                                                {errors.DateOfBirth && <p className="error-text">{errors.DateOfBirth}</p>}
+                                                {errors.dateOfBirth && <p className="error-text">{errors.dateOfBirth}</p>}
                                             </div>
                                             <button className='submit-btn' onClick={handlFirstStep}>
                                                 {t('auth.next')}

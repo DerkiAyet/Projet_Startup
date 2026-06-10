@@ -32,7 +32,7 @@ async function resolveUser(userId) {
         userName: data.user.userName,
         familyName: data.user.familyName,
         givenName: data.user.givenName,
-        userImg: data.user.uerImg,
+        userImg: data.user.userImg,
         role: data.user.role
     };
     // Cache result so next call is instant
@@ -73,7 +73,10 @@ async function resolveUserInterests(userId, role) {
             { headers: { "x-user-id": id }, timeout: 5000 }
         );
         interests = data;
-        await redis.setex(cacheKey, 300, JSON.stringify(interests));
+         // ← only cache if there's actual data (that's the bug in the case of register for first time)
+        if (interests && interests.length > 0) {
+            await redis.setex(cacheKey, 300, JSON.stringify(interests));
+        }
         return interests;
     } catch {
         return [];

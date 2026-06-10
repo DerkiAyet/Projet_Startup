@@ -24,13 +24,15 @@
     "classrooms": "Salles de classe",
     "platform-settings": "Paramètres d’administration",
     "subjects": "Matières",
-    "levels": "Niveaux"
+    "levels": "Niveaux",
+    "onlineclasses": "Cours en ligne"
   },
   "tools": {
     "tools": "Outils",
     "createCourse": "Créer cours",
     "createExercise": "Créer Affectation",
     "createTip": "Créer conseil",
+    "createOnlineCourse": "Cours numérique",
     "aiAssistant": "Assistant IA",
     "ocrScanner": "Scanner OCR",
     "shareResources": "Partager des ressources"

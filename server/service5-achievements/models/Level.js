@@ -47,7 +47,7 @@ const levelSchema = new mongoose.Schema({
     },
     name: {
         type: String,
-        required: true
+        required: true 
     },
     key: {
         type: Number, // level:0, 1,....

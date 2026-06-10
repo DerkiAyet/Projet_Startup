@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap');
 
 :root {
-    --bg-main: #f5f4f0;
+    --bg-main: #f5f4f0; 
     --bg-panel: #ffffff;
     --bg-hover: #f0eeea;
     --bg-active: #e8e5df;

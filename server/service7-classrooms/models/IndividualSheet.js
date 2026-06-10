@@ -8,10 +8,10 @@ const individualSheetSchema = new mongoose.Schema({
     },
     studentId: {
         type: Number,
-        required: true
+        required: true 
     },
     exerciseId: {
-        type: Number,  
+        type: String,  
         required: true
     },
     answer: {

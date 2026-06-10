@@ -358,7 +358,7 @@ router.get('/assignments/stats-by-student', async (req, res) => {
                     ]).then(res => (res[0]?.count || 0)),
                 ]);
 
-                const responseUser = await resolveUser(stat._id);
+                const userInfo = await resolveUser(stat._id);
                 return {
                     studentId: stat._id,
                     studentFamilyName: userInfo?.familyName || 'Unknown',

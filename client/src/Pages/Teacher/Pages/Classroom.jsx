@@ -26,13 +26,17 @@ const getClassroomColor = (classroomId) => {
 };
 
 const ClassroomCard = ({ color, classroom, active, isMember, alreadyRequested, sendRequest }) => {
-    const initials = getInitials(classroom.name);
     const { userAuth } = useContext(AppContext);
-
+    const initials = getInitials(classroom.name);
     const navigate = useNavigate()
 
+    const isCreator = userAuth?.userId 
+    ? String(userAuth.userId) === String(classroom?.creator?.id)
+    : false;
+
     const handleClick = () => {
-        if (isMember || userAuth.userId === classroom?.creator?.userId) {
+        console.log("userId:", userAuth.userId, "creator id:", classroom?.creator?.id)
+        if (isMember || isCreator) {
             navigate(`/classrooms/${classroom._id}`)
         } else {
             alert("Unauthorized: you're not a member to this classroom or not even the creator")
@@ -387,7 +391,7 @@ function Classroom() {
 
                                     {
                                         classrooms.map((classroom) => {
-                                            const isMemeber = userAuth.role === "student" ? (classroom?.members?.some((m) => String(m.userId) === String(userAuth.userId))) : false
+                                            const isMemeber = userAuth.role === "student" ? (classroom?.members?.some((m) => String(m.id) === String(userAuth.userId))) : false
                                             const alreadyRequested = userAuth.role === "student" ? (classroom?.pendingRequests?.some((r) => String(r.student.userId) === String(userAuth.userId))) : false
                                             return (
                                                 <ClassroomCard

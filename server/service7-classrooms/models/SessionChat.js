@@ -5,6 +5,11 @@ const sessionChatSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Classroom',
     },
+    sessionId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'CollaborativeSession',
+        required: true
+    },
     senderId: {
         type: Number,
         required: true
@@ -14,7 +19,7 @@ const sessionChatSchema = new mongoose.Schema({
         required: true
     },
     readBy: [
-        {userId: {type: Number}, readAt: {type: Date, default: Date.now}}
+        { userId: { type: Number }, readAt: { type: Date, default: Date.now } }
     ]
 }, { timestamps: true });
 

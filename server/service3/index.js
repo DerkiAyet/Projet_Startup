@@ -59,14 +59,17 @@ app.use("/activity", activityRoute)
 const EventsRoute = require('./routes/Events');
 app.use("/events", EventsRoute)
 
-const StatisticsRoute = require('./routes/Statistcs')
-app.use("/stats", StatisticsRoute)
+const StatisticsRoute = require('./routes/Statistcs');
+app.use("/stats", StatisticsRoute);
 
-const resourcesRoute = require('./routes/Resources')
-app.use('resources', resourcesRoute)
+const resourcesRoute = require('./routes/Resources');
+app.use('/resources', resourcesRoute);
 
-redis.on('connect', () => console.log("Redis Connected"))
-redis.on('error', (err) => console.error("Error while connecting with Redis: ", err))
+const onlineRoute = require('./routes/OnlineCourses');
+app.use('/online-courses', onlineRoute);
+
+redis.on('connect', () => console.log("Redis Connected"));
+redis.on('error', (err) => console.error("Error while connecting with Redis: ", err));
 
 const startServer = async () => {
     try {

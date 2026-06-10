@@ -9,7 +9,7 @@ async function resolveUser(userId) {
     // Check Redis first
     const cached = await redis.get(`user:${id}`);
     if (cached) {
-        console.log("Fetched from Redis")
+        console.log("Fetched from Redis for user", id)
         return JSON.parse(cached)
     };
 
@@ -18,6 +18,7 @@ async function resolveUser(userId) {
     if (kafkaUser) {
         // Save into Redis so all instances benefit
         await redis.setex(`user:${id}`, 300, JSON.stringify(kafkaUser));
+        console.log(kafkaUser)
         return kafkaUser;
     }
 
@@ -32,7 +33,7 @@ async function resolveUser(userId) {
         userName: data.user.userName,
         familyName: data.user.familyName,
         givenName: data.user.givenName,
-        userImg: data.user.usrImg,
+        userImg: data.user.userImg,
         role: data.user.role
     };
 
@@ -67,6 +68,7 @@ async function resolveUserInterests(userId, role) {
     }
 
     // Fallback to HTTP
+    // Fallback to HTTP
     try {
         const authServiceBaseUrl = await discoverAuthService();
         const { data } = await axios.get(
@@ -74,7 +76,12 @@ async function resolveUserInterests(userId, role) {
             { headers: { "x-user-id": id }, timeout: 5000 }
         );
         interests = data;
-        await redis.setex(cacheKey, 300, JSON.stringify(interests));
+
+        // ← only cache if there's actual data (that's the bug in the case of register for first time)
+        if (interests && interests.length > 0) {
+            await redis.setex(cacheKey, 300, JSON.stringify(interests));
+        }
+
         return interests;
     } catch {
         return [];

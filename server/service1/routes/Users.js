@@ -503,7 +503,7 @@ router.post("/student/interests", async (req, res) => {
 
         //publie en kafka
         await publishStudentInterests(studentId, interests);
-
+        await redis.del(`interests:${studentId}`);
         return res.status(200).json({
             msg: "Interests updated successfully",
             interests
@@ -585,7 +585,7 @@ router.post("/teacher/expertise", async (req, res) => {
         await TeacherExpertise.bulkCreate(insertData);
 
         await publishTeacherExpertise(teacherId, expertise);
-
+        await redis.del(`interests:${teacherId}`);
 
         return res.status(200).json({
             msg: "Expertise updated successfully",
@@ -748,7 +748,7 @@ router.get('/admin/get-teachers', async (req, res) => {
         return res.status(200).json(teachers)
     } catch (error) {
         console.log('error while fetching for teachers: ', error.message)
-        return res.status(500).json({error: error.message})
+        return res.status(500).json({ error: error.message })
     }
 })
 
@@ -761,7 +761,7 @@ router.get('/admin/get-students', async (req, res) => {
         return res.status(200).json(students)
     } catch (error) {
         console.log('error while fetching for students: ', error.message)
-        return res.status(500).json({error: error.message})
+        return res.status(500).json({ error: error.message })
     }
 })
 
@@ -774,7 +774,7 @@ router.get('/admin/get-parents', async (req, res) => {
         return res.status(200).json(parents)
     } catch (error) {
         console.log('error while fetching for parents: ', error.message)
-        return res.status(500).json({error: error.message})
+        return res.status(500).json({ error: error.message })
     }
 })
 

@@ -24,6 +24,9 @@ app.get("/info", (req, res) =>
 const recRoute = require('./routes/recommendations')
 app.use('/recommendations', recRoute)
 
+const reportRoute = require('./routes/reports')
+app.use('/reports', reportRoute)
+
 eurekaClient.start((error) => {
     console.log(error || "Node service registered with Eureka");
 });

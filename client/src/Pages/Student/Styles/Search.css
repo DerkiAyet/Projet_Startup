@@ -268,7 +268,7 @@
     transition: border-color 0.18s, background 0.18s, color 0.18s, transform 0.12s;
     position: relative;
 }
- 
+
 .dropdown-cat-chip:hover {
     border-color: var(--light-pink-accent-color);
     background: #fff5f8;
@@ -397,6 +397,40 @@
     margin-top: 0.3rem;
     color: #8E8E8E;
     font-weight: 500;
+}
+
+.moc-btn {
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    background-color: #fff;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 600;
+    color: var(--light-dark-color);
+    position: relative;
+    border: 0;
+    margin-left: auto;
+    margin-right: 2rem;
+    font-size: 1rem;
+    text-transform: capitalize;
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+
+.moc-btn:hover {
+    background: var(--light-pink-accent-color);
+    color: #fff;
+    cursor: pointer;
+    box-shadow: 0 3px 12px rgba(242, 157, 182, 0.4);
+}
+
+.moc-btn:hover svg path{
+    fill: #fff;
 }
 
 @media (max-width: 768px) {

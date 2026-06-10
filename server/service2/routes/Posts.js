@@ -171,13 +171,13 @@ router.get("/", async (req, res) => {
 
 router.get('/parent-hub', async (req, res) => {
     try {
-        const parentId = req.headers['x-user-if']
+        const parentId = req.headers['x-user-id']
         const userRole = req.headers['x-user-role'];
         if (userRole !== "parent") return res.status(403).json({ error: "Action unauthorized" })
 
         const cachedKey = `feed:${parentId}`
         const cached = await redis.get(cachedKey)
-        if (cached) return res.status(200).json(cached)
+        if (cached) return res.status(200).json(JSON.parse(cached))
 
         const posts = await Post.find({ isParentHub: true }).sort({ createdAt: -1 })
         const enrichedPosts = await Promise.all(
@@ -513,15 +513,15 @@ router.post('/:postId/comment/:commentId/reply/:replyId/like', async (req, res) 
         const commentId = req.params.commentId
         const replyId = req.params.replyId
 
-        console.log("looking for replyId:", replyId, typeof replyId);
-        console.log("reply ids in db:", comment.replies.map(r => ({ id: r._id, type: typeof r._id })));
-
         const post = await Post.findById(postId)
         if (!post) return res.status(404).json({ error: "post not found" })
         const comment = post.comments.find(((c) => c._id == commentId))
         if (!comment) return res.status(404).json({ error: "comment not found" })
         const reply = comment.replies.find((r) => r._id == replyId)
         if (!reply) return res.status(404).json({ reply: "reply not found" })
+
+        console.log("looking for replyId:", replyId, typeof replyId);
+        console.log("reply ids in db:", comment.replies.map(r => ({ id: r._id, type: typeof r._id })));
 
         const alreadyLiked = reply.likes.some(like => like.userId == userId);
 

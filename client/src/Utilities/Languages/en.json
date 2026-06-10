@@ -24,13 +24,15 @@
     "classrooms": "Classrooms",
     "platform-settings": "System Settings",
     "subjects": "Subjects",
-    "levels": "Levels"
+    "levels": "Levels",
+    "onlineclasses": "Online Courses"
   },
   "tools": {
     "tools": "Tools",
     "createCourse": "Create Course",
     "createExercise": "Create Assignment",
     "createTip": "Create Tip",
+    "createOnlineCourse": "Digital Course",
     "aiAssistant": "AI Assistant",
     "ocrScanner": "OCR Scanner",
     "shareResources": "Share Resources"

@@ -3,7 +3,7 @@
   position: fixed;
   bottom: 28px;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(-50%); 
   background: #ffffff;
   border: 0.5px solid rgba(236, 72, 153, 0.3);
   border-left: 3px solid #EC4899;
