@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState, useContext } from 'react';
 import '../Styles/RessourcePage.css';
 import { ReactComponent as CloseIcon } from '../../../Assets/icons/TimelineIcons/close.svg'
 import { ReactComponent as EmojiIcon } from '../../../Assets/icons/TimelineIcons/emoji-icon.svg'
+import { ReactComponent as ScrollIcon } from '../../../Assets/icons/CourseIcons/next-icon.svg'
 import { AppContext } from '../../../App';
 import EmojiPicker from 'emoji-picker-react';
 import { ReactComponent as CommentIcon } from '../../../Assets/icons/TimelineIcons/comment-post.svg'
@@ -11,6 +12,7 @@ import { ReactComponent as LikeIcon } from '../../../Assets/icons/TimelineIcons/
 import { ReactComponent as FullHeartIcon } from '../../../Assets/icons/TimelineIcons/full-heart.svg'
 import axios from 'axios'
 import { useTranslation } from 'react-i18next';
+import ReactDOM from 'react-dom'
 
 
 const timeAgo = (dateString, t) => {
@@ -61,6 +63,7 @@ const StarRating = ({ resourceId, currentRating, onRate }) => {
 
 const AttachmentViewer = ({ attachments = [], thumbnail }) => {
     const [current, setCurrent] = useState(0);
+    const [lightbox, setLightbox] = useState(false);
 
     // If no attachments, fall back to thumbnail
     const items = attachments.length > 0
@@ -86,7 +89,7 @@ const AttachmentViewer = ({ attachments = [], thumbnail }) => {
 
     const renderContent = () => {
         if (item.fileType === 'image') {
-            return <img src={fileUrl} alt={`attachment-${current}`} className="attachment-img" />;
+            return <img src={fileUrl} alt={`attachment-${current}`} className="attachment-img" onClick={() => setLightbox(true)} />;
         }
         if (item.fileType === 'pdf') {
             return (
@@ -125,19 +128,33 @@ const AttachmentViewer = ({ attachments = [], thumbnail }) => {
                         onClick={prev}
                         disabled={current === 0}
                     >
-                        ‹
+                        <ScrollIcon className="scroll-icon" />
                     </button>
                     <button
                         className="attachment-nav next"
                         onClick={next}
                         disabled={current === items.length - 1}
                     >
-                        ›
+                        <ScrollIcon className="scroll-icon" style={{transform: "rotate(180deg)"}} />
                     </button>
                     <div className="attachment-counter">
                         {current + 1} / {items.length}
                     </div>
                 </>
+            )}
+            {lightbox && ReactDOM.createPortal(
+                <div className="lightbox-overlay" onClick={() => setLightbox(false)}>
+                    <button className="lightbox-close" onClick={e => { e.stopPropagation(); setLightbox(false); }}>
+                        <CloseIcon className="lightbox-icon" />
+                    </button>
+                    <img
+                        src={fileUrl}
+                        alt="full view"
+                        className="lightbox-img"
+                        onClick={e => e.stopPropagation()}
+                    />
+                </div>,
+                document.body  // ← must be document.body, not a ref inside the component
             )}
         </div>
     );
@@ -216,10 +233,10 @@ export const CommentLine = ({ resourceId, commentId, commentTxt, commentUserName
 
     return (
         <div className="comment-line">
-            <div className="comment-user-img" style={{ flexShrink: 0 }}>
+            <div className="comment-user-img" style={{ flexShrink: 0, alignSelf: 'flex-start' }}>
                 {commentUserImg
-                    ? <img src={commentUserImg} alt="comment user" />
-                    : <div className="user-initials-avatar" style={{ backgroundColor: 'var(--accent-pink)' }}>
+                    ? <img src={commentUserImg} alt="comment user" style={{ flexShrink: 0 }} />
+                    : <div className="user-initials-avatar" style={{ backgroundColor: 'var(--accent-pink)', flexShrink: 0 }}>
                         {commentUserFamily?.charAt(0).toUpperCase()}
                         {commentUserGiven?.charAt(0).toUpperCase()}
                     </div>
@@ -296,14 +313,15 @@ export const CommentLine = ({ resourceId, commentId, commentTxt, commentUserName
 
 // ─── RessourcePage ────────────────────────────────────────────────────────────
 
-function RessourcePage({ selectedPost, visible, onClose, changePostComments, changeCommentReplies, followees, setFollowees }) {
+function RessourcePage({ selectedResource, visible, onClose, changeResourceComments, changeCommentReplies }) {
     const { t } = useTranslation()
-    const [post, setPost] = useState(selectedPost);
-    const [comments, setComments] = useState(selectedPost.comments || []);
+    const { darkMode, userAuth } = useContext(AppContext);
+    const [resource, setResource] = useState(selectedResource);
+    const [comments, setComments] = useState(selectedResource.comments || []);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [commentBody, setCommentBody] = useState({ commentText: '' });
-    const [userRating, setUserRating] = useState(selectedPost.userRating ?? 0);
-    const { darkMode, userAuth } = useContext(AppContext);
+    const userRatingData = selectedResource.ratings.find((r) => String(r.userId) ===String(userAuth.userId))
+    const [userRating, setUserRating] = useState(userRatingData?.rating ?? 0);
 
     const showEmojiPickerRef = useRef(null);
 
@@ -322,7 +340,7 @@ function RessourcePage({ selectedPost, visible, onClose, changePostComments, cha
         if (!commentBody.commentText.trim()) return;
         try {
             const res = await axios.post(
-                `${process.env.REACT_APP_API_URL_GATEWAY}/content/resources/${post._id}/comment`,
+                `${process.env.REACT_APP_API_URL_GATEWAY}/content/resources/${resource._id}/comment`,
                 { text: commentBody.commentText },
                 { headers: { "Content-Type": "application/json" } }
             );
@@ -336,7 +354,7 @@ function RessourcePage({ selectedPost, visible, onClose, changePostComments, cha
             };
             const updated = [...comments, newComment];
             setComments(updated);
-            changePostComments?.(updated);
+            changeResourceComments?.(updated);
             setCommentBody({ commentText: '' });
         } catch (error) {
             console.error(error.response?.data);
@@ -346,7 +364,7 @@ function RessourcePage({ selectedPost, visible, onClose, changePostComments, cha
     const handleRate = (star) => {
         setUserRating(star);
         axios.post(
-            `${process.env.REACT_APP_API_URL_GATEWAY}/content/resources/${post._id}/rating`,
+            `${process.env.REACT_APP_API_URL_GATEWAY}/content/resources/${resource._id}/rating`,
             { rating: star },
             { headers: { "Content-Type": "application/json" } }
         ).catch(err => console.error(err));
@@ -360,37 +378,12 @@ function RessourcePage({ selectedPost, visible, onClose, changePostComments, cha
         setCommentBody(prev => ({ ...prev, commentText: prev.commentText + emojiObject.emoji }));
     };
 
-    const toggleFollow = (followeeId) => {
-        axios.post(`${process.env.REACT_APP_API_URL_GATEWAY}/posts/follow`, { followeeId },
-            { headers: { "Content-Type": "application/json" } })
-            .then(res => {
-                if (res.data.followAdded) {
-                    setFollowees(prev => ({
-                        ...prev,
-                        followeesIds: [...prev.followeesIds, followeeId],
-                        followees: [...prev.followees, {
-                            followeeUserName: post.user.userName,
-                            followeeFamilyName: post.user.familyName,
-                            followeeGivenName: post.user.givenName,
-                            followeeUserImg: post.user.userImg
-                        }]
-                    }));
-                } else {
-                    setFollowees(prev => ({
-                        ...prev,
-                        followeesIds: prev.followeesIds.filter(id => id !== followeeId),
-                        followees: prev.followees.filter(f => f.followeeUserName !== post.user.userName)
-                    }));
-                }
-            });
-    };
-
     const toggleLikeComment = (commentId, setLiked) => {
-        axios.post(`${process.env.REACT_APP_API_URL_GATEWAY}/content/resources/${post._id}/comment/${commentId}/like`, {},
+        axios.post(`${process.env.REACT_APP_API_URL_GATEWAY}/content/resources/${resource._id}/comment/${commentId}/like`, {},
             { headers: { "Content-Type": "application/json" } })
             .then(res => {
                 const nowLiked = res.data.likes?.some(l => l.userId === userAuth.userId) ?? false;
-                setPost(prev => ({
+                setResource(prev => ({
                     ...prev,
                     comments: prev.comments?.map(c => c._id === commentId ? res.data : c)
                 }));
@@ -408,32 +401,25 @@ function RessourcePage({ selectedPost, visible, onClose, changePostComments, cha
                 {/* ── Left: Attachment Viewer ── */}
                 <div className="post-img-container" style={{ position: 'relative', background: '#111' }}>
                     <AttachmentViewer
-                        attachments={post.attachments || []}
-                        thumbnail={post.thumbnail}
+                        attachments={resource.attachments || []}
+                        thumbnail={resource.thumbnail}
                     />
                 </div>
 
-                {/* ── Right: Comments + Rating ── */}
                 <div className="post-comments-section">
 
-                    {/* Owner line */}
                     <div className="post-owner-line">
                         <div className="post-owner-infos">
                             <div className="post-owner-img">
-                                {post.user?.userImg
-                                    ? <img src={post.user.userImg} alt="owner" />
+                                {resource.student?.userImg
+                                    ? <img src={resource.student.userImg} alt="owner" />
                                     : <div className="user-initials-avatar" style={{ backgroundColor: 'var(--accent-pink)' }}>
-                                        {post.user?.familyName?.charAt(0).toUpperCase()}
-                                        {post.user?.givenName?.charAt(0).toUpperCase()}
+                                        {resource.student?.familyName?.charAt(0).toUpperCase()}
+                                        {resource.student?.givenName?.charAt(0).toUpperCase()}
                                     </div>
                                 }
                             </div>
-                            <span style={{ fontWeight: '420', fontSize: '1.1rem' }}>{post.user?.userName}</span>
-                            {!followees?.followeesIds?.includes(post.studentId) && userAuth.userId !== post.studentId && (
-                                <span className="demande-follow" style={{ cursor: 'pointer' }} onClick={() => toggleFollow(post.studentId)}>
-                                    {t('posts.follow')}
-                                </span>
-                            )}
+                            <span style={{ fontWeight: '420', fontSize: '1.1rem' }}>{resource.student?.userName}</span>
                         </div>
                         <CloseIcon onClick={onClose} style={{ cursor: 'pointer' }} />
                     </div>
@@ -442,17 +428,17 @@ function RessourcePage({ selectedPost, visible, onClose, changePostComments, cha
                     <div className="post-comments-container">
                         {/* Resource description as top comment */}
                         <CommentLine
-                            resourceId={post._id}
-                            commentTxt={post.description || post.title || ''}
-                            commentUserName={post.user?.userName}
-                            commentUserImg={post.user?.userImg}
-                            commentUserFamily={post.user?.familyName}
-                            commentUserGiven={post.user?.givenName}
+                            resourceId={resource._id}
+                            commentTxt={resource.description || resource.title || ''}
+                            commentUserName={resource.student?.userName}
+                            commentUserImg={resource.student?.userImg}
+                            commentUserFamily={resource.student?.familyName}
+                            commentUserGiven={resource.student?.givenName}
                         />
                         {comments.map(comment => (
                             <CommentLine
                                 key={comment._id}
-                                resourceId={post._id}
+                                resourceId={resource._id}
                                 commentId={comment._id}
                                 commentTxt={comment.text || ''}
                                 commentUserName={comment.userName}
@@ -474,7 +460,7 @@ function RessourcePage({ selectedPost, visible, onClose, changePostComments, cha
                             <div className="icons-first-line">
                                 <div className="icon-flex">
                                     <CommentIcon className="post-icon" />
-                                    {post.commentsCount > 0 && <span>{post.commentsCount}</span>}
+                                    {resource.commentsCount > 0 && <span>{resource.commentsCount}</span>}
                                 </div>
                                 <ShareIcon className="post-icon" />
                             </div>
@@ -484,18 +470,18 @@ function RessourcePage({ selectedPost, visible, onClose, changePostComments, cha
                         {/* Rating row */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px' }}>
                             <StarRating
-                                resourceId={post._id}
+                                resourceId={resource._id}
                                 currentRating={userRating}
                                 onRate={handleRate}
                             />
-                            {post.avgRating > 0 && (
+                            {resource.avgRating > 0 && (
                                 <span style={{ fontSize: '0.82rem', color: '#aaa' }}>
-                                    {post.avgRating.toFixed(1)} avg
+                                    {resource.avgRating.toFixed(1)} avg
                                 </span>
                             )}
                         </div>
 
-                        <span className="post-time-ago">{timeAgo(post.createdAt, t)}</span>
+                        <span className="post-time-ago">{timeAgo(resource.createdAt, t)}</span>
                     </div>
 
                     {/* Comment input */}

@@ -97,6 +97,7 @@ router.get('/me', async (req, res) => {
         const resources = await ResourceModel.find({ studentId: studentId })
         const enrichedResources = await Promise.all(
             resources.map(async (resource) => {
+                const responceUser = await resolveUser(studentId)
                 const responseCategory = await resolveCategory(resource.category.id)
                 const responseField = await resolveField(resource.category.subCategory)
 
@@ -105,17 +106,35 @@ router.get('/me', async (req, res) => {
                     : `${process.env.GATEWAY_URI}/auth/uploads/${responseCategory.subImg}`;
 
                 const comments = await CommentModel.find({ contentId: resource._id, contentType: "resource" })
-
+                const enrichedComments = await Promise.all(
+                    comments.map(async (c) => {
+                        const responseCommentUser = await resolveUser(c.userId)
+                        return {
+                            _id: c._id,
+                            text: c.text,
+                            userId: responseCommentUser.id,
+                            userName: responseCommentUser.userName,
+                            familyName: responseCommentUser.familyName,
+                            givenName: responseCommentUser.givenName,
+                            userImg: responseCommentUser.userImg,
+                            role: responseCommentUser.role
+                        }
+                    })
+                )
                 return {
                     _id: resource._id,
                     title: resource.title,
                     description: resource.description,
                     thumbnail,
+                    student: responceUser,
                     category: responseCategory,
                     subCategory: responseField ?? null,
                     attachments: resource.attachments,
+                    comments: enrichedComments,
                     commentsCount: comments.length,
                     avgRating: resource.averageRating(),
+                    ratings: resource.ratings,
+                    viewCount: resource.views.length,
                     visibility: resource.visibility,
                     createdAt: resource.createdAt
                 }
@@ -132,22 +151,22 @@ router.get('/me', async (req, res) => {
 
 router.get('/recommended/me', async (req, res) => {
     try {
-        const userRole = req.headers['x-user-id']
-        if (userRole !== "student" && userRole !== "teacher") return res.status(403).json({ error: "Forbbiden" })
+        const userId = Number(req.headers['x-user-id'])
 
-        const cachedKey = `recommendedResources:${currentUserId}`
+        const cachedKey = `recommendedResources:${userId}`
         const cached = await redis.get(cachedKey)
         if (cached) return res.status(200).json(JSON.parse(cached))
 
-        const userId = Number(req.headers['x-user-id'])
         const interestIds = await resolveUserInterests(userId, null)
+
+        if (!interestIds?.length) return res.status(200).json([])   // <-- guard
 
         const resources = await ResourceModel.find({
             visibility: true,
             "category.id": { $in: interestIds }
         });
 
-        if (!resources.length) return res.json([]);
+        if (!resources.length) return res.status(200).json([]);
 
         const enrichedResources = await Promise.all(
             resources.map(async (resource) => {
@@ -160,7 +179,21 @@ router.get('/recommended/me', async (req, res) => {
                     : `${process.env.GATEWAY_URI}/auth/uploads/${responseCategory.subImg}`;
 
                 const comments = await CommentModel.find({ contentId: resource._id, contentType: "resource" })
-
+                const enrichedComments = await Promise.all(
+                    comments.map(async (c) => {
+                        const responseCommentUser = await resolveUser(c.userId)
+                        return {
+                            _id: c._id,
+                            text: c.text,
+                            userId: responseCommentUser.id,
+                            userName: responseCommentUser.userName,
+                            familyName: responseCommentUser.familyName,
+                            givenName: responseCommentUser.givenName,
+                            userImg: responseCommentUser.userImg,
+                            role: responseCommentUser.role
+                        }
+                    })
+                )
                 return {
                     _id: resource._id,
                     title: resource.title,
@@ -170,13 +203,20 @@ router.get('/recommended/me', async (req, res) => {
                     subCategory: responseField ?? null,
                     attachments: resource.attachments,
                     commentsCount: comments.length,
+                    comments: enrichedComments,
                     avgRating: resource.averageRating(),
+                    ratings: resource.ratings,
+                    viewCount: resource.views.length,
                     visibility: resource.visibility,
                     createdAt: resource.createdAt,
                     student: responseUser
                 }
             })
         )
+
+        await redis.set(cachedKey, JSON.stringify(enrichedResources), 'EX', 300)
+        return res.status(200).json(enrichedResources)
+
     } catch (error) {
         console.error("Error occured while fetching for recommendations: ", error.message)
         return res.status(500).json({ error: "Internal server error" })
@@ -245,9 +285,30 @@ router.get("/:resourceId", async (req, res) => {
             visibility: resource.visibility,
             createdAt: resource.createdAt,
             student: responseUser
-        } 
+        }
     } catch (error) {
         console.error("Error occured while fetching the resource: ", error.message)
+        return res.status(500).json({ error: "Internal server error" })
+    }
+})
+
+router.put('/:id/view', async (req, res) => {
+    try {
+        const userId = Number(req.headers['x-user-id'])
+        const resource = await ResourceModel.findById(req.params.id)
+        if (!resource) return res.status(404).json({ err: "resource not found" })
+
+        const isOwner = resource.studentId === userId
+        if (isOwner) return res.status(400).json({ msg: "you're the owner of the resource" })
+        const alreadyViewed = resource.views.some((v) => v.userId === userId)
+        if (!alreadyViewed) return res.status(400).json({ msg: "user already viewed this resource" })
+
+        resource.views.push({ userId })
+        await resource.save()
+
+        res.status(200).json({ msg: "mark as view", viewAdded: true })
+    } catch (error) {
+        console.error("Error occured while marking a view to the resource: ", error.message)
         return res.status(500).json({ error: "Internal server error" })
     }
 })
@@ -292,7 +353,7 @@ router.post('/:resourceId/comment/:commentId/reply', async (req, res) => {
             text: req.body.text,
         }
 
-        comment.replies.push(reply)  
+        comment.replies.push(reply)
         await comment.save()
 
         const savedReply = comment.replies[comment.replies.length - 1]

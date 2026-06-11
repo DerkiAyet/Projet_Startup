@@ -319,6 +319,7 @@ router.post("/", upload.single('media'), async (req, res) => {
 
         if (userRole === "student") await updateGamification("PUBLISH_POST", Number(userId))
 
+        await redis.del(`myPosts:${userId}`)
         res.status(201).json(newPost);
     } catch (err) {
         console.error('Upload error:', err);
@@ -364,10 +365,104 @@ router.get("/user/:userId", async (req, res) => {
     try {
         const posts = await Post.find({ userId: req.params.userId });
         res.json(posts);
+
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
+
+router.get('/me', async (req, res) => {
+    try {
+        const userId = Number(req.headers['x-user-id'])
+
+        const cachedKey = `myPosts:${userId}`
+        const cached = await redis.get(cachedKey)
+        if (cached) return res.status(200).json(JSON.parse(cached))
+
+        const posts = await Post.find({ userId: userId })
+        const enrichedPosts = await Promise.all(
+            posts.map(async (post) => {
+                try {
+                    let resolvedUser = await resolveUser(post.userId)
+
+                    const commentsCount = post.comments.reduce((acc, c) => {
+                        return acc + 1 + (c.replies ? c.replies.length : 0);
+                    }, 0);
+                    const enrichedComments = await Promise.all(
+                        (post.comments || []).map(async (c) => {
+                            let resolvedCommentUser = await resolveUser(c.userId)
+                            const enrichedReplies = await Promise.all(
+                                (c.replies || []).map(async (r) => {
+                                    let resolvedReplyUser = await resolveUser(r.userId)
+                                    return {
+                                        _id: r._id,
+                                        text: r.text,
+                                        likes: r.likes,
+                                        userName: resolvedReplyUser.userName,
+                                        familyName: resolvedReplyUser.familyName,
+                                        givenName: resolvedReplyUser.givenName,
+                                        userImg: resolvedReplyUser.userImg,
+                                        role: resolvedReplyUser.role,
+                                    };
+                                })
+                            );
+
+                            return {
+                                _id: c._id,
+                                text: c.text,
+                                replies: enrichedReplies,
+                                likes: c.likes,
+                                userId: c.userId,
+                                userName: resolvedCommentUser.userName,
+                                familyName: resolvedCommentUser.familyName,
+                                givenName: resolvedCommentUser.givenName,
+                                userImg: resolvedCommentUser.userImg,
+                                role: resolvedCommentUser.role,
+                                createdAt: c.createdAt
+                            };
+                        })
+                    );
+
+                    return {
+                        _id: post._id,
+                        userId: post.userId,
+                        content: post.content,
+                        mediaUrl: post.mediaUrl,
+                        mediaType: post.mediaType,
+                        mediaSize: post.mediaSize,
+                        visibility: post.visibility,
+                        tags: post.tags,
+                        mentions: post.mentions,
+                        urls: post.urls,
+                        likes: post.likes,
+                        createdAt: post.createdAt,
+                        comments: enrichedComments,
+                        likesCount: post.likes.length,
+                        commentsCount,
+                        user: {
+                            userId: resolvedUser.id,
+                            userName: resolvedUser.userName,
+                            familyName: resolvedUser.familyName,
+                            givenName: resolvedUser.givenName,
+                            userImg: resolvedUser.userImg,
+                            role: resolvedUser.role
+                        }
+                    };
+
+                } catch (err) {
+                    console.error("Failed to enrich post:", err.message);
+                    return { ...post.toObject(), user: null };
+                }
+            })
+        );
+
+        await redis.setex(cachedKey, 120, JSON.stringify(enrichedPosts));
+        res.status(200).json(enrichedPosts);
+    } catch (error) {
+        console.log("error: ", error.message)
+        res.status(500).json({ error: error.message });
+    }
+})
 
 // UPDATE POST
 router.put("/:id", async (req, res) => {
@@ -679,7 +774,7 @@ router.get('/get-followers', async (req, res) => {
                 followersIds: followersIds
             })
 
-    } catch (error) {
+    } catch (err) {
         res.status(500).json({ error: err.message });
     }
 
@@ -715,7 +810,7 @@ router.get('/get-followees', async (req, res) => {
             followeesIds: followeesIds
         })
 
-    } catch (error) {
+    } catch (err) {
         res.status(500).json({ error: err.message });
     }
 

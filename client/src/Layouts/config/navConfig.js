@@ -61,6 +61,7 @@ export const studentNavItems = [
     { title: 'mainNav.classrooms', icon: ClassroomIcon, path: '/classrooms' },
     { title: 'mainNav.myActivities', icon: CoursesIcon, path: "/activities" },
     { title: 'mainNav.myPerformance', icon: ChartIcon, path: "/progress" },
+    { title: 'mainNav.myResources', icon: ShareIcon, path: '/my-resources' },
     { title: 'mainNav.chats', icon: ChatIcon, path: '/chats' },
 ];
 

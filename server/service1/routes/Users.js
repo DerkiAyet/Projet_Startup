@@ -4,7 +4,7 @@ const nodemailer = require('nodemailer')
 require('dotenv').config({ path: '../config_service/config.env' });
 const { publishSubject, publishSubSubject, publishStudentInterests, publishTeacherExpertise } = require('../config_service/kafka/producer');
 
-const { ChildParent, Users, Students, Parents, Subjects, StudentInterest, TeacherExpertise, SubSubjects } = require('../models');
+const { ChildParent, Users, Students, Parents, Subjects, StudentInterest, TeacherExpertise, SubSubjects, Teachers, Adresses } = require('../models');
 const { createChildByParent, createParentApprovalEmail } = require('./utilities/utilities');
 const { where } = require('sequelize');
 const jwt = require("jsonwebtoken");
@@ -775,6 +775,53 @@ router.get('/admin/get-parents', async (req, res) => {
     } catch (error) {
         console.log('error while fetching for parents: ', error.message)
         return res.status(500).json({ error: error.message })
+    }
+})
+
+router.get('/users/user-infos', async (req, res) => {
+    try {
+        const userId = req.headers['x-user-id']
+        
+        const [user, address] = await Promise.all([
+            Users.findByPk(userId),
+            Adresses.findOne({ where: { userId } })
+        ])
+        
+        if (!user) return res.status(400).json({ error: "user does not exist" })
+
+        let normalized = {
+            id: user.id,
+            userName: user.userName,
+            familyName: user.familyName,
+            givenName: user.givenName,
+            userImg: user.uerImg,
+            role: user.role,
+            bio: user.bio,
+            dateOfBirth: user.dateOfBirth,
+            gender: user.gender,
+            phoneNumber: user.phoneNumber,
+            address: address ? {
+                addressLine1: address.addressLine1,
+                addressLine2: address.addressLine2,
+                city: address.city,
+                state: address.state,
+                postalCode: address.postalCode,
+                country: address.country,
+            } : null
+        }
+
+        if (user.role === "student") {
+            const student = await Students.findOne({ where: { idStudent: userId } })
+            if (student) normalized = { ...normalized, levelOfEducation: student.levelOfEducation, institution: student.institution }
+        } else if (user.role === "teacher") {
+            const teacher = await Teachers.findOne({ where: { idTeacher: userId } })
+            if (teacher) normalized = { ...normalized, grade: teacher.grade, placeOfWork: teacher.placeOfWork }
+        }
+
+        return res.status(200).json(normalized)
+    } catch (error) {
+        console.error('Error fetching user:', error.message)
+        res.status(500).json({ error: 'Internal server error' })
     }
 })
 

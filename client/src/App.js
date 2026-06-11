@@ -51,6 +51,8 @@ import CollaborativeSession from './Pages/Student/Pages/CollaborativeSession';
 import OnlineCourses from './Pages/Teacher/Pages/OnlineCourses';
 import CreateOnlineCourse from './Pages/Teacher/Pages/CreateOnlineCourse';
 import CreateRessource from './Pages/Student/Pages/CreateRessource';
+import MyResources from './Pages/Student/Pages/MyResources';
+import Profile from './Pages/Home/Pages/Profile';
 
 axios.defaults.withCredentials = true;
 
@@ -239,6 +241,7 @@ function App() {
               <Route path="courses/:id" element={<CourseDisplay />} />
               <Route path="calendar" element={<CalendarPage />} />
               <Route path="my-students" element={<MyStudents />} />
+              <Route path="my-resources" element={<MyResources />} />
               <Route path="chats" element={<Chat />} />
               <Route path="create-course" element={<CreateCourse />} />
               <Route path="create-assignment" element={<CreateAssignment />} />
@@ -261,7 +264,7 @@ function App() {
               <Route path="settings/levels/:levelId" element={<Missions />} />
               <Route path="settings/levels" element={<Levels />} />
               <Route path="content" element={<Content />} />
-              <Route path="profile" element={<section className='main-container'>Profile</section>} />
+              <Route path="profile" element={<Profile />} />
               <Route path="classrooms" element={<Classroom />} />
               <Route path='classrooms/:classroomId' element={<ClassroomPage />} />
               <Route path='classrooms/:classroomId/sessions/:sessionId' element={<CollaborativeSession />} />

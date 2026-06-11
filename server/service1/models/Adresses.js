@@ -22,11 +22,7 @@ module.exports = (sequelize, DataTypes) => {
         },
         country: {
             type: DataTypes.STRING,
-            allowNull: true,  // store ISO country code, not full name
-            validate: {
-                len: [2, 2],   // "US", "FR", "DZ"
-                msg: "Use 2-letter ISO country codes"
-            }
+            allowNull: true,
         },
         userId: {
             type: DataTypes.INTEGER,

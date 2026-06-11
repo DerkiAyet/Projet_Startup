@@ -4,6 +4,7 @@ import { ReactComponent as SearchIcon } from '../../../Assets/icons/CourseIcons/
 import CoursesView from '../Components/CoursesView'
 import axios from 'axios'
 import QuizSolve from '../Components/QuizSolve'
+import RessourcePage from '../Components/RessourcePage'
 
 function SearchPage() {
 
@@ -62,6 +63,12 @@ function SearchPage() {
     const [assignments, setAssignments] = useState([])
     const [tips, setTips] = useState([])
 
+    const [resources, setResources] = useState([])
+    const [resourcePageOpen, setResourcePageOpen] = useState({
+        visible: false,
+        resource: null
+    })
+
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -72,6 +79,9 @@ function SearchPage() {
 
                 const assignRes = await axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/assignments/recommended/me`)
                 setAssignments(assignRes.data)
+
+                const resourceRes = await axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/resources/recommended/me`)
+                setResources(resourceRes.data)
 
             } catch (error) {
                 console.error("Error:", error)
@@ -226,8 +236,26 @@ function SearchPage() {
 
             {/* ─── Results area ───────────────────────────────── */}
             <div className="search-results-area">
-                <CoursesView courses={courses} assignments={assignments} searched={searched} loading={loading} query={query} selectedCats={selectedCats.map(c => c.name).join(', ')} />
+                <CoursesView
+                    courses={courses}
+                    assignments={assignments}
+                    resources={resources}
+                    setResourcePageOpen={setResourcePageOpen}
+                    searched={searched}
+                    loading={loading}
+                    query={query}
+                    selectedCats={selectedCats.map(c => c.name).join(', ')}
+                    setResources={setResources}
+                />
             </div>
+
+            {resourcePageOpen.visible &&
+                <RessourcePage
+                    selectedResource={resourcePageOpen.resource}
+                    visible={resourcePageOpen.visible}
+                    onClose={() => setResourcePageOpen({ visible: false, resource: null })}
+
+                />}
         </div>
     )
 }

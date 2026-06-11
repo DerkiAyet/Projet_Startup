@@ -52,7 +52,7 @@
 
 /*--------------Post Card---------------*/
 
-.postsfeed-flex-column .post-card-wrapper {
+.post-card-wrapper {
     width: 100%;
     padding: 0.7rem 0;
     border-bottom: 1px solid var(--light-border-section);

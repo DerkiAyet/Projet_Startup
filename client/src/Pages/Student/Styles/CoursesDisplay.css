@@ -189,6 +189,7 @@
     border-top-right-radius: 10px;
     overflow: hidden;
     position: relative;
+    border-bottom: 1px solid var(--light-border-section);
 }
 
 .courses-grid-container .course-card .course-img-box img {

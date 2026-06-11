@@ -178,6 +178,38 @@ export const CourseCard = ({ course, onClick, isSelected, typeView }) => {
     )
 }
 
+export const ResourceCard = ({ resource, openResource }) => {
+    return (
+        <div
+            className={`course-card`}
+            onClick={() => openResource?.(resource)}
+        >
+            <div className="course-img-box">
+                <img src={fixMediaUrl(resource.thumbnail)} alt={resource.title} />
+                <MenuIcon className="menu-card-icon" />
+            </div>
+            <div className="course-infos-box">
+                <span className='course-cat' style={{ color: `#${resource.category.color}` }}>{resource.category?.name} {resource.subCategory ? ` - ${resource.subCategory?.name}` : ''} </span>
+                <h3>{resource.title}</h3>
+                <h5 className='made-by'>Student: {resource?.student?.givenName} {resource?.student?.familyName}</h5>
+                <div className="course-features">
+                    <div className="flex-left">
+                        <div className="flex-line" style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                            <PeopleIcon /> {resource.viewCount} views
+                        </div>
+                        <div className="flex-line" style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                            <CommentIcon /> {resource.commentsCount}+
+                        </div>
+                    </div>
+                    <div className="flex-line" style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                        <LessonIcon /> {resource?.attachments?.length > 0 ? `${resource?.attachments?.length}` : ""}
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
 // ─── Course Card (Line / Row) ─────────────────────────────────────────────────
 export const CourseCardLine = ({ course, typeView }) => {
 
@@ -284,13 +316,33 @@ export const CourseCardLine = ({ course, typeView }) => {
 }
 
 
-function CoursesView({ courses, assignments, searched, loading, query, selectedCats }) {
-    const categories = ["Courses", "Assignments", "Quizes", "Tips"]
+function CoursesView({ courses, assignments, searched, loading, query, selectedCats, resources, setResourcePageOpen, setResources }) {
+    const categories = ["Courses", "Assignments", "Quizes", "Tips", "Resource Library"]
     const [currentCategory, setCurrentCategory] = useState("Courses")
     const [categoryIndex, setCategoryIndex] = useState(0)
     const [viewClicked, setViewClicked] = useState(false)
     const [viewMode, setViewMode] = useState("grid")
 
+    const handleOpenResource = async (resource) => {
+        try {
+            const { data } = await axios.put(
+                `${process.env.REACT_APP_API_URL_GATEWAY}/content/resources/${resource._id}/view`, {},
+                { headers: { "Content-Type": "application/json" } }
+            )
+            setResourcePageOpen({
+                visible: true,
+                resource: data.viewAdded
+                    ? { ...resource, viewCount: resource.viewCount + 1 }
+                    : resource
+            })
+            setResources((prev) =>
+                prev.map((r) => r._id === resource._id ? { ...r, viewCount: r.viewCount + 1 } : r)
+            )
+        } catch (error) {
+            console.log(error.message)
+            setResourcePageOpen({ visible: true, resource })
+        }
+    }
 
     return (
         <div className='courses-container' onClick={() => viewClicked && setViewClicked(false)}>
@@ -351,7 +403,7 @@ function CoursesView({ courses, assignments, searched, loading, query, selectedC
 
                 {currentCategory === "Courses" && <ViewCourses viewMode={viewMode} courses={courses} searched={searched} loading={loading} query={query} categories={selectedCats} />}
                 {currentCategory === "Assignments" && <ViewAssignments viewMode={viewMode} assignments={assignments} searched={searched} loading={loading} query={query} categories={selectedCats} />}
-
+                {currentCategory === "Resource Library" && <ViewResources resources={resources} searched={searched} loading={loading} query={query} categories={selectedCats} handleOpenResource={handleOpenResource} />}
             </div>
         </div>
     )
@@ -454,6 +506,35 @@ const ViewAssignments = ({ viewMode, assignments, searched, loading, query, cate
                             ))}
                         </div>
                     )}
+        </>
+    )
+}
+
+const ViewResources = ({ resources, searched, loading, query, categories, handleOpenResource }) => {
+
+    return (
+        <>
+            {
+                searched && !loading && resources.length === 0 ? (
+                    <div className="search-empty-state">
+                        <img src={NotFound} alt="not found" style={{ width: "200px" }} />
+                        <p>No resources found for <strong>"{query}"</strong>{categories.length > 0 && ` in ${categories}`}
+                        </p>
+                    </div>
+
+                ) :
+                    <div className={`courses-grid-wrapper`}>
+                        <div className="courses-grid-container">
+                            {resources.map((resource) => (
+                                <ResourceCard
+                                    key={resource._id}
+                                    resource={resource}
+                                    openResource={(resource) => handleOpenResource(resource)}
+                                />
+                            ))}
+                        </div>
+                    </div>
+            }
         </>
     )
 }

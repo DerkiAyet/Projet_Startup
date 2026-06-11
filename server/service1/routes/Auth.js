@@ -757,7 +757,45 @@ router.put('/edit-profile', upload.single('userImg'), async (req, res) => {
             attributes: { exclude: ['pwd'] }
         });
 
-        res.status(200).json(updatedUser);
+        let normalized = {
+            id: updatedUser.id,
+            userName: updatedUser.userName,
+            familyName: updatedUser.familyName,
+            givenName: updatedUser.givenName,
+            userImg: updatedUser.uerImg,
+            role: updatedUser.role,
+            bio: updatedUser.bio,
+            dateOfBirth: updatedUser.dateOfBirth,
+            gender: updatedUser.gender,
+            phoneNumber: updatedUser.phoneNumber,
+            address: updatedUser.Adresse ? {
+                addressLine1: updatedUser.Adresse.addressLine1,
+                addressLine2: updatedUser.Adresse.addressLine2,
+                city: updatedUser.Adresse.city,
+                state: updatedUser.Adresse.state,
+                postalCode: updatedUser.Adresse.postalCode,
+                country: updatedUser.Adresse.country,
+            } : null
+        }
+
+        if (updatedUser.role === "student") {
+            const student = await Students.findOne({ where: { idStudent: userId } })
+            if (student) normalized = {
+                ...normalized,
+                levelOfEducation: student.levelOfEducation,
+                institution: student.institution
+            }
+        } else if (updatedUser.role === "teacher") {
+            const teacher = await Teachers.findOne({ where: { idTeacher: userId } })
+            if (teacher) normalized = {
+                ...normalized,
+                grade: teacher.grade,
+                placeOfWork: teacher.placeOfWork
+            }
+        }
+
+        await redis.del(`user:${userId}`)
+        res.status(200).json(normalized);
 
     } catch (error) {
         console.error(error);
