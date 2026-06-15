@@ -244,7 +244,7 @@ function Profile() {
     )
 }
 
-const FollowPopup = ({ type, followers, followees, onClose }) => {
+export const FollowPopup = ({ type, followers, followees, onClose }) => {
     const [search, setSearch] = useState('')
     const navigate = useNavigate()
     const list = type === 'followers' ? followers : followees
@@ -278,7 +278,7 @@ const FollowPopup = ({ type, followers, followees, onClose }) => {
                         <span className="follow-popup-empty">No users found</span>
                     )}
                     {filtered.map(u => (
-                        <div key={u.id} className="follow-popup-item" onClick={() => navigate(`/profile/${u.id}`)}>
+                        <div key={u.id} className="follow-popup-item" onClick={() => navigate(`/users/${u.userName}/profile`)}>
                             <div className="follow-popup-img">
                                 {u.userImg
                                     ? <img src={`${process.env.REACT_APP_API_URL_GATEWAY}/auth/uploads/${u.userImg}`} alt={u.userName} />

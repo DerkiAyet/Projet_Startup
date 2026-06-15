@@ -4,7 +4,7 @@ const TipModel = require('../models/Tips')
 const CommentModel = require('../models/Comments')
 const axios = require('axios')
 const multer = require('multer')
-const { resolveCategory, resolveField, resolveUser, resolveUserInterests } = require('../helpers/utils')
+const { resolveCategory, resolveField, resolveUser, resolveUserInterests, resolveOtherUser } = require('../helpers/utils')
 const { enrichContent } = require('./Courses')
 const redis = require('../config/redis.config')
 
@@ -158,6 +158,78 @@ router.get('/teacher-tips', async (req, res) => {
     } catch (error) {
         console.error("Error while fetching the teacher tips:", error.message);
         res.status(500).json({ error: "Internal server error" });
+    }
+})
+
+router.get('/teacher-assigns/:userName', async (req, res) => {
+    try {
+        const tipsCachedKey = `teacher:tips:${req.params.userName}`
+        const tipsCached = await redis.get(tipsCachedKey)
+        if (tipsCached) return res.status(200).json(JSON.parse(tipsCached))
+
+        const userInfos = await resolveOtherUser(req.params.userName)
+
+        const tips = await TipModel.find({ teacherId: userInfos.id })
+        const enrichedTips = await Promise.all(
+            tips.map(async (tip) => {
+                try {
+                    const responseUser = userInfos
+                    const responseCategory = await resolveCategory(tip.category.id)
+                    const responseField = await resolveField(tip.category.subCategory);
+
+                    const comments = await CommentModel.find({
+                        contentId: tip._id,
+                        contentType: "tip"
+                    });
+
+                    const thumbnail = tip.thumbnail
+                        ? `${process.env.GATEWAY_URI}/content/uploads/${assign.thumbnail}`
+                        : `${process.env.GATEWAY_URI}/auth/uploads/${responseCategory.subImg}`;
+
+                    return {
+                        _id: tip._id,
+                        teacherId: tip.teacherId,
+                        title: tip.title,
+                        description: tip.description,
+                        thumbnail,
+                        content: tip.content,
+                        category: {
+                            idSubject: responseCategory.idSubject,
+                            name: responseCategory.name,
+                            color: responseCategory.color
+                        },
+                        subCategory: responseField
+                            ? {
+                                idSub: responseField.idSub,
+                                name: responseField.name
+                            }
+                            : null,
+                        ratings: tip.ratings,
+                        avgRating: tip.averageRating(),
+                        comments,
+                        commentsCount: comments.length,
+                        visibility: tip.visibility,
+                        createdAt: tip.createdAt,
+                        teacher: {
+                            userId: responseUser.id,
+                            userName: responseUser.userName,
+                            familyName: responseUser.familyName,
+                            givenName: responseUser.givenName,
+                            userImg: responseUser.userImg,
+                            role: "teacher"
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error while fetching for the quizes", error.message)
+                }
+            })
+        )
+
+        await redis.setex(tipsCachedKey, 120, JSON.stringify(enrichedTips))
+        res.status(200).json(enrichedTips);
+    } catch (error) {
+        console.log("error: ", error.message)
+        res.status(500).json({ error: error.message });
     }
 })
 

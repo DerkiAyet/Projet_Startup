@@ -6,23 +6,17 @@ const { getUser, getStudentInterests, getTeacherExpertise } = require('../config
 async function resolveUser(userId) {
     const id = String(userId);
 
-    // Check Redis first
     const cached = await redis.get(`user:${id}`);
     if (cached) {
-        console.log("Fetched from Redis for user", id)
         return JSON.parse(cached)
     };
 
-    // Check Kafka in-memory cache
     const kafkaUser = getUser(id);
     if (kafkaUser) {
-        // Save into Redis so all instances benefit
         await redis.setex(`user:${id}`, 300, JSON.stringify(kafkaUser));
-        console.log(kafkaUser)
         return kafkaUser;
     }
 
-    // Fallback to HTTP
     const authServiceBaseUrl = await discoverAuthService();
     const { data } = await axios.get(
         `${authServiceBaseUrl}/get_user_byId/${id}`,
@@ -37,21 +31,17 @@ async function resolveUser(userId) {
         role: data.user.role
     };
 
-    // Cache result so next call is instant
     await redis.setex(`user:${id}`, 300, JSON.stringify(user));
     return user;
 }
 
-// Resolve interests: Redis → Kafka cache → Auth service HTTP
 async function resolveUserInterests(userId, role) {
     const id = String(userId);
     const cacheKey = `interests:${id}`;
 
-    // Check Redis
     const cached = await redis.get(cacheKey);
     if (cached) return JSON.parse(cached);
 
-    //Check Kafka cache
     let interests;
     if (role === 'teacher') {
         interests = getTeacherExpertise(id);
@@ -67,8 +57,6 @@ async function resolveUserInterests(userId, role) {
         return interests;
     }
 
-    // Fallback to HTTP
-    // Fallback to HTTP
     try {
         const authServiceBaseUrl = await discoverAuthService();
         const { data } = await axios.get(
@@ -77,7 +65,7 @@ async function resolveUserInterests(userId, role) {
         );
         interests = data;
 
-        // ← only cache if there's actual data (that's the bug in the case of register for first time)
+        // only cache if there's actual data (that's the bug in the case of register for first time)
         if (interests && interests.length > 0) {
             await redis.setex(cacheKey, 300, JSON.stringify(interests));
         }

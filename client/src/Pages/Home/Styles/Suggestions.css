@@ -5,6 +5,9 @@
     --blue-bg-color: #0095F6;
     --grey-text-color: #8E8E8E;
     --dark-text-color: #262626;
+    --text-muted: #a8a8a8;
+    --text-dark: #374151;
+    --main-color: #EC4899;
 }
 
 .postsfeed-wrapper .suggestions-column {
@@ -66,6 +69,11 @@
 
 }
 
+.suggested-account-line .user-infos-box .complete-name{
+    font-size: 0.9rem;
+    color: var(--grey-text-color);
+}
+
 .suggested-account-line .suggested-for-you {
     font-size: 0.7rem;
     font-weight: 300;
@@ -82,6 +90,20 @@
     flex-shrink: 0;
 }
 
+.suggested-account-line .user-initials-avatar{
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 1.06rem;
+    text-transform: uppercase;
+    background-color: var(--main-color);
+}
+
 .suggested-account-line .img-user-circle img {
     width: 100%;
     height: 100%;
@@ -92,6 +114,42 @@
 .suggested-account-line .follow-account{
     color: var(--blue-bg-color);
     font-weight: 600;
+}
+
+.suggestions-column .search-wrap {
+    position: relative;
+    display: flex;
+    max-height: 40px;
+    height: auto;
+}
+
+.suggestions-column .search-wrap input {
+    width: 100%;
+    padding: 10px 14px 10px 38px;
+    border: none;
+    border-radius: 15px;
+    background: #F9FAFB;
+    font-family: var(--font);
+    font-size: 0.875rem;
+    color: var(--text-dark);
+    outline: none;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+    border: 1.5px solid var(--light-border-section);
+    transition: background 0.2s;
+}
+
+.suggestions-column .search-wrap input::placeholder {
+    color: var(--text-muted);
+}
+
+.suggestions-column .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 1rem;
+    pointer-events: none;
 }
 
 @media (max-width: 768px) {

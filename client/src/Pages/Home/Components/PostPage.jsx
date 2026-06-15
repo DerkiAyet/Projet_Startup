@@ -167,7 +167,7 @@ export const CommentLine = ({ setPosts, postId, commentId, commentTxt, commentUs
             <div className="comment-user-img" style={{ flexShrink: 0 }}>
                 {
                     commentUserImg ?
-                        <img src={commentUserImg || '/default_picture.jpeg'} alt="comment user" /> :
+                        <img src={commentUserImg ? `${process.env.REACT_APP_API_URL_GATEWAY}/auth/uploads/${commentUserImg}` : '/default_picture.jpeg'} alt="comment user" /> :
                         <div className="user-initials-avatar" style={{ backgroundColor: 'var(--accent-pink)' }}>
                             {commentUserFamily?.charAt(0).toUpperCase()}
                             {commentUserGiven?.charAt(0).toUpperCase()}
@@ -494,7 +494,7 @@ function PostPage({selectedPost, visible, onClose, changePostComments, changeCom
                                 {
                                     post.user.userImg ?
                                         <img
-                                            src={post.user.userImg || '../../../Assests/images/default_picture.jpeg'}
+                                            src={post.user.userImg ? `${process.env.REACT_APP_API_URL_GATEWAY}/auth/uploads/${post.user.userImg}` : '../../../Assests/images/default_picture.jpeg'}
                                             alt="post owner"
                                         /> :
                                         <div className="user-initials-avatar" style={{ backgroundColor: 'var(--accent-pink)' }}>

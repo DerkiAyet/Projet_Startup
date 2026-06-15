@@ -88,8 +88,8 @@ function CreateTip() {
             newErrors.description = "Please enter the course description.";
         }
 
-        if (!tipData.content.trim()) {
-            newErrors.level = "Please enter the tip content.";
+        if (!tipData.level.trim()) {
+            newErrors.level = "Please enter the level content.";
         }
 
         // If there are errors → show UI errors, stop function
@@ -117,6 +117,7 @@ function CreateTip() {
             formData.append("description", tipData.description);
             formData.append("thumbnail", tipData.thumbnail);
             formData.append("category", JSON.stringify(tipData.category));
+            formData.append("content", JSON.stringify(tipData.content));
 
 
             await axios.post(`${process.env.REACT_APP_API_URL_GATEWAY}/content/tips`, formData)

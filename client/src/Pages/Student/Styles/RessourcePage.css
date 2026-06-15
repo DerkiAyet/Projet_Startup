@@ -77,9 +77,18 @@
 }
 
 .post-owner-line .post-owner-img {
-    height: 40px;
+     height: 40px;
     width: 40px;
+    min-height: 40px;
+    min-width: 40px;
+    flex-shrink: 0;
     border-radius: 50%;
+    overflow: hidden;
+}
+
+.post-owner-img .user-initials-avatar{
+    height: 100%;
+    width: 100%; 
 }
 
 .post-owner-img img {
@@ -382,7 +391,7 @@
 }
 
 .post-page-container .user-initials-avatar,
-.cd-comment-list .user-initials-avatar {
+.cd-comment-list .user-initials-avatar, .post-owner-img .user-initials-avatar {
     border-radius: 50%;
     display: flex;
     align-items: center;

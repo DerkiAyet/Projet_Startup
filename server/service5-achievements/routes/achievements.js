@@ -177,11 +177,24 @@ router.get('/my-progress', async (req, res) => {
                 }
             })
 
-        await redis.setex(cacheKey, 300, JSON.stringify(result))
-        return res.status(200).json({
+        const nextLevel = await LevelModel.findOne({key: currentLevel.key + 1}).select("coverImg name xpRequired")
+
+        const result = {
+            currentLevel: {
+                name: currentLevel.name,
+                coverImg: currentLevel.coverImg,
+                missions: currentLevel.missions
+            },
             currentProgress: record,
-            whatToDo: awaitedMissions
-        })
+            whatToDo: awaitedMissions,
+            nextLevel: {
+                name: nextLevel.name,
+                coverImg: nextLevel.coverImg,
+                xpRequired: nextLevel.xpRequired
+            },
+        }
+        await redis.setex(cacheKey, 300, JSON.stringify(result))
+        return res.status(200).json(result)
     } catch (error) {
         console.log("error fetching for the student progress", error.message)
         res.status(500).json({ error: "Internal Server Error", msg: error.message })

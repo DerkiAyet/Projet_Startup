@@ -152,7 +152,8 @@
     font-size: 0.82rem;
     font-weight: 600;
     color: var(--ms-text-muted);
-    text-transform: uppercase;
+    text-transform: capitalize;
+    font-family: "Kumbh Sans", cursive;
     letter-spacing: 0.05em;
     margin: 0 0 1rem;
 }

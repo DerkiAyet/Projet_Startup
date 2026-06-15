@@ -360,7 +360,7 @@ function Courses() {
     )
 }
 
-const ViewCourses = ({ viewMode, courses }) => {
+export const ViewCourses = ({ viewMode, courses }) => {
 
     const [selectedCourse, setSelectedCourse] = useState(null)
 
@@ -402,7 +402,7 @@ const ViewCourses = ({ viewMode, courses }) => {
     )
 }
 
-const ViewAssignments = ({ viewMode, assignments }) => {
+export const ViewAssignments = ({ viewMode, assignments }) => {
     const [selectedCourse, setSelectedCourse] = useState(null)
 
     const handleCardClick = (course) => {
@@ -443,4 +443,4 @@ const ViewAssignments = ({ viewMode, assignments }) => {
     )
 }
 
-export default Courses
+export default Courses 

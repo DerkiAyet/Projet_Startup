@@ -13,7 +13,7 @@ const CHUNK_SIZE = 6 * 1024 * 1024; // 6MB chunk size for streaming uploads to C
 const streamifier = require('streamifier');
 const fs = require('fs');
 const path = require('path');
-const { resolveUser, resolveUserInterests, resolveCategory, resolveField } = require('../helpers/utils')
+const { resolveUser, resolveUserInterests, resolveCategory, resolveField, resolveOtherUser } = require('../helpers/utils')
 const redis = require('../config/redis.config')
 
 const diskStorage = multer.diskStorage({
@@ -258,7 +258,7 @@ router.get('/recommended/me', async (req, res) => {
 
         const cachedKey = `recommendedCourses:${currentUserId}`
         const cached = await redis.get(cachedKey)
-        if(cached) return res.status(200).json(JSON.parse(cached))
+        if (cached) return res.status(200).json(JSON.parse(cached))
 
         const interestIds = await resolveUserInterests(currentUserId, null);
 
@@ -502,7 +502,7 @@ router.get('/teacher-courses', async (req, res) => {
 
         const cachedKey = `teacherCourses:${userId}`
         const cached = await redis.get(cachedKey)
-        if(cached) return res.status(200).json(JSON.parse(cached))
+        if (cached) return res.status(200).json(JSON.parse(cached))
 
         const courses = await CourseModel.find({ teacherId: userId })
 
@@ -570,6 +570,88 @@ router.get('/teacher-courses', async (req, res) => {
     }
 })
 
+router.get('/teacher-courses/:userName', async (req, res) => {
+    try {
+        const coursesCachedKey = `teacher:courses:${req.params.userName}`
+        const cachedCourses = await redis.get(coursesCachedKey)
+        if (cachedCourses) return res.status(200).json(JSON.parse(cachedCourses))
+
+        const userInfos = await resolveOtherUser(req.params.userName)
+
+        const courses = await CourseModel.find({ teacherId: userInfos.id })
+        const enrichedCourses = await Promise.all(
+            courses.map(async (course) => {
+                try {
+                    const responseUser = userInfos
+                    const responseCategory = await resolveCategory(course.category.id)
+                    const responseField = await resolveField(course.category.subCategory);
+
+                    const comments = await CommentModel.find({
+                        contentId: course._id,
+                        contentType: "course"
+                    });
+
+                    const enrolls = await EnrollementModel.find({ courseId: course._id })
+
+                    const quiz = await QuizeModel.findOne({ courseId: course._id });
+
+                    const thumbnail = course.thumbnail
+                        ? `${process.env.GATEWAY_URI}/content/uploads/${course.thumbnail}`
+                        : `${process.env.GATEWAY_URI}/auth/uploads/${responseCategory.subImg}`;
+
+                    return {
+                        _id: course._id,
+                        teacherId: course.teacherId,
+                        title: course.title,
+                        description: course.description,
+                        thumbnail,
+                        level: course.level,
+                        category: {
+                            idSubject: responseCategory.idSubject,
+                            name: responseCategory.name,
+                            color: responseCategory.color
+                        },
+                        subCategory: responseField
+                            ? {
+                                idSub: responseField.idSub,
+                                name: responseField.name
+                            }
+                            : null,
+                        lessons: course.lessons,
+                        tags: course.tags,
+                        ratings: course.ratings,
+                        avgRating: course.averageRating(),
+                        comments,
+                        commentsCount: comments.length,
+                        enrollCount: enrolls.length,
+                        visibility: course.visibility,
+                        createdAt: course.createdAt,
+                        quiz: quiz || null,
+                        teacher: {
+                            userId: responseUser.id,
+                            userName: responseUser.userName,
+                            familyName: responseUser.familyName,
+                            givenName: responseUser.givenName,
+                            userImg: responseUser.userImg,
+                            role: "teacher"
+                        }
+                    }
+
+                } catch (error) {
+                    console.error("Error while fetching for the quizes", error.message)
+                }
+            })
+        )
+
+        await redis.setex(coursesCachedKey, 120, JSON.stringify(enrichedCourses))
+        res.status(200).json(enrichedCourses);
+
+    } catch (error) {
+        console.log("error: ", error.message)
+        res.status(500).json({ error: error.message });
+    }
+})
+
 router.get('/:id', async (req, res) => {
     const courseId = req.params.id
     try {
@@ -594,14 +676,14 @@ router.get('/:id', async (req, res) => {
             enrichedComments = await Promise.all(
                 comments.map(async (c) => {
                     const resolvedCommentUser = await resolveUser(c.userId)
-                   
+
                     const replies = c.replies
                     let enrichedReplies
                     if (replies) {
                         enrichedReplies = await Promise.all(
                             replies.map(async (r) => {
                                 const resolvedUser = await resolveUser(r.userId)
-                        
+
                                 return {
                                     _id: r._id,
                                     text: r.text,
@@ -873,4 +955,4 @@ router.post('/:courseId/quiz', async (req, res) => {
     }
 })
 
-module.exports = {router, enrichContent};
+module.exports = { router, enrichContent };

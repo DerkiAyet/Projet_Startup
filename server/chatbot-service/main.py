@@ -1,5 +1,4 @@
 from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 import httpx
@@ -7,19 +6,13 @@ import json
 
 app = FastAPI(title="Chatbot Service")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # OLLAMA_URL = "http://ollama:11434"
 import os
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
-MODEL_NAME = "llama3.2"
+MODEL_NAME = os.getenv("MODEL_NAME", "llama3.2:1b")
 
-SYSTEM_PROMPT = """You are a helpful academic assistant for an educational platform called Edtech.
+
+SYSTEM_PROMPT = """You are a helpful academic assistant for an educational platform called SnapLearn.
 You help students, teachers, and parents with:
 - Academic questions and explanations
 - Understanding course content
@@ -52,7 +45,7 @@ def health():
 def info():
     return {"service": "Python Chatbot Service", "model": MODEL_NAME, "status": "UP"}
 
-@app.get("/chatbot/models")
+@app.get("/models")
 async def get_models():
     """List available Ollama models"""
     async with httpx.AsyncClient(timeout=10) as client:
@@ -62,7 +55,7 @@ async def get_models():
         except Exception as e:
             raise HTTPException(status_code=503, detail=f"Ollama unreachable: {str(e)}")
 
-@app.post("/chatbot/chat", response_model=ChatResponse)
+@app.post("/chat", response_model=ChatResponse)
 async def chat(req: ChatRequest):
     # Build conversation history for context
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
@@ -102,7 +95,7 @@ async def chat(req: ChatRequest):
         except Exception as e:
             raise HTTPException(status_code=503, detail=f"Ollama error: {str(e)}")
 
-@app.post("/chatbot/stream")
+@app.post("/stream")
 async def chat_stream(req: ChatRequest):
     """Streaming endpoint — returns text as it's generated"""
     from fastapi.responses import StreamingResponse

@@ -106,11 +106,11 @@ spring:
         
         # ── CHATBOT ──────────────────────────────────────────────
         - id: chatbot-service
-          uri: http://chatbot-service:8000 #the python service won't use Eureka so gateway will solve it directly
+          uri: ${CHATBOT_URL:http://localhost:8000} #the python service won't use Eureka so gateway will solve it directly
           predicates:
             - Path=/chatbot/**
           filters:
-            - StripPrefix=0
+            - StripPrefix=1
 
 eureka:
   client:

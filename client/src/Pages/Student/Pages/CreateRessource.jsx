@@ -1,13 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react'
 import '../../Teacher/Styles/CreateCourse.css'
 import { ReactComponent as DocumentIcon } from '../../../Assets/icons/CourseIcons/document-icon.svg'
-import { ReactComponent as BackIcon } from '../../../Assets/icons/CourseIcons/back-icon.svg'
 import PublishSuccessPopup from '../Components/PublishSuccessPopup'
 import axios from 'axios'
 
 axios.defaults.withCredentials = true
 
-// reusable chevron svg
 const Chevron = () => (
     <svg width="10" height="6" viewBox="0 0 10 6" fill="none"
         style={{ position: 'absolute', right: '60px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
@@ -46,7 +44,6 @@ function CreateRessource() {
     const selectedCategory = categories.find(c => c.idSubject === formData.category.id)
     const availableSubcategories = selectedCategory?.subCategories || []
 
-    // ── Helpers ──────────────────────────────────────────────
 
     const set = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }))
@@ -82,7 +79,6 @@ function CreateRessource() {
         set('description', descriptionRef.current.value)
     }
 
-    // ── Validation ────────────────────────────────────────────
 
     const validate = () => {
         const e = {}
@@ -91,7 +87,6 @@ function CreateRessource() {
         return e
     }
 
-    // ── Submit ────────────────────────────────────────────────
 
     const handlePublish = async (e) => {
         e.preventDefault()
@@ -119,7 +114,6 @@ function CreateRessource() {
         }
     }
 
-    // ── Render ────────────────────────────────────────────────
 
     return (
         <div className="create-course-container">
@@ -132,7 +126,6 @@ function CreateRessource() {
 
                 <form className="create-course-form" onSubmit={handlePublish}>
 
-                    {/* ── Title ── */}
                     <div className="form-group">
                         <span>Title</span>
                         <div className="input-wrapper">

@@ -649,7 +649,6 @@ const SessionsPanel = ({ sessions, idClassroom, author, addSession }) => {
                                     {!session.isCompleted && (
                                         <button
                                             className="session-join-btn"
-                                            onClick={() => window.location.href = `/sessions/${session._id}`}
                                         >
                                             {isTeacher ? "Manage" : "Join"}
                                             <i className="ri-arrow-right-line" />

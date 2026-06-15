@@ -6,22 +6,18 @@ const { getUser, getStudentInterests, getTeacherExpertise, getSubject, getSubSub
 async function resolveUser(userId) {
     const id = String(userId);
 
-    // Check Redis first
+    // Check Redis
     const cached = await redis.get(`user:${id}`);
     if (cached) {
-        console.log("Fetched from Redis")
         return JSON.parse(cached)
     };
 
-    // Check Kafka in-memory cache
     const kafkaUser = getUser(id);
     if (kafkaUser) {
-        // Save into Redis so all instances benefit
         await redis.setex(`user:${id}`, 300, JSON.stringify(kafkaUser));
         return kafkaUser;
     }
 
-    // Fallback to HTTP
     const authServiceBaseUrl = await discoverAuthService();
     const { data } = await axios.get(
         `${authServiceBaseUrl}/get_user_byId/${id}`,
@@ -35,12 +31,27 @@ async function resolveUser(userId) {
         userImg: data.user.userImg,
         role: data.user.role
     };
-    // Cache result so next call is instant
+
     await redis.setex(`user:${id}`, 300, JSON.stringify(user));
     return user;
 }
 
-// Resolve interests: Redis → Kafka cache → Auth service HTTP
+async function resolveOtherUser(userName) {
+    const userCachedKey = `portfolio:${userName}`
+    const userCached = await redis.get(userCachedKey)
+    if (userCached) return JSON.parse(userCached)
+
+    const authServiceBaseUrl = await discoverAuthService();
+    const { data } = await axios.get(
+        `${authServiceBaseUrl}/users/${userName}`,
+        { timeout: 5000 }
+    );
+    const userInfos = data
+
+    await redis.setex(userCachedKey, 120, JSON.stringify(userInfos));
+    return userInfos
+}
+
 async function resolveUserInterests(userId, role) {
     const id = String(userId);
     const cacheKey = `interests:${id}`;
@@ -49,7 +60,6 @@ async function resolveUserInterests(userId, role) {
     const cached = await redis.get(cacheKey);
     if (cached) return JSON.parse(cached);
 
-    //Check Kafka cache
     let interests;
     if (role === 'teacher') {
         interests = getTeacherExpertise(id);
@@ -65,7 +75,6 @@ async function resolveUserInterests(userId, role) {
         return interests;
     }
 
-    // Fallback to HTTP
     try {
         const authServiceBaseUrl = await discoverAuthService();
         const { data } = await axios.get(
@@ -73,7 +82,7 @@ async function resolveUserInterests(userId, role) {
             { headers: { "x-user-id": id }, timeout: 5000 }
         );
         interests = data;
-         // ← only cache if there's actual data (that's the bug in the case of register for first time)
+        // only cache if there's actual data (that's the bug in the case of register for first time)
         if (interests && interests.length > 0) {
             await redis.setex(cacheKey, 300, JSON.stringify(interests));
         }
@@ -87,7 +96,6 @@ async function resolveCategory(categoryId) {
     const id = String(categoryId)
     const cached = await redis.get(`category:${id}`)
     if (cached) {
-        console.log("Fetched from Redis")
         return JSON.parse(cached)
     };
 
@@ -114,7 +122,6 @@ async function resolveField(fieldId) {
     const id = String(fieldId)
     const cached = await redis.get(`field:${id}`)
     if (cached) {
-        console.log("Fetched from Redis")
         return JSON.parse(cached)
     };
 
@@ -137,4 +144,4 @@ async function resolveField(fieldId) {
     }
 }
 
-module.exports = { resolveUser, resolveUserInterests, resolveCategory, resolveField }
+module.exports = { resolveUser, resolveUserInterests, resolveCategory, resolveField, resolveOtherUser }

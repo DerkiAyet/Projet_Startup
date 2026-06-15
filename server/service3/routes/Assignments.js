@@ -8,7 +8,7 @@ const { discoverAuthService } = require('../config/discovery.service')
 const multer = require('multer')
 const QuizAttemptModel = require('../models/QuizAttempts')
 const { enrichContent } = require('./Courses')
-const { resolveCategory, resolveField, resolveUser, resolveUserInterests } = require('../helpers/utils')
+const { resolveCategory, resolveField, resolveUser, resolveUserInterests, resolveOtherUser } = require('../helpers/utils')
 const redis = require('../config/redis.config')
 
 const storage = multer.diskStorage({
@@ -337,6 +337,85 @@ router.get('/teacher-assigns', async (req, res) => {
         res.status(200).json(enrichedAssigns)
     } catch (error) {
         res.status(500).json({ error: "Internal server error", message: error.message });
+    }
+})
+
+router.get('/teacher-assigns/:userName', async (req, res) => {
+    try {
+        const assignCachedKey = `teacher:assigns:${req.params.userName}`
+        const assignsCached = await redis.get(assignCachedKey)
+        if (assignsCached) return res.status(200).json(JSON.parse(assignsCached))
+
+        const userInfos = await resolveOtherUser(req.params.userName)
+
+        const assignments = await AssignmentModel.find({ teacherId: userInfos.id })
+        const enrichedAssigns = await Promise.all(
+            assignments.map(async (assign) => {
+                try {
+                    const responseUser = userInfos
+                    const responseCategory = await resolveCategory(assign.category.id)
+                    const responseField = await resolveField(assign.category.subCategory);
+
+                    const comments = await CommentModel.find({
+                        contentId: assign._id,
+                        contentType: "assignment"
+                    });
+
+                    const solutions = await SolvingModel.find({ assignment: assign._id })
+
+                    const thumbnail = assign.thumbnail
+                        ? `${process.env.GATEWAY_URI}/content/uploads/${assign.thumbnail}`
+                        : `${process.env.GATEWAY_URI}/auth/uploads/${responseCategory.subImg}`;
+
+                    return {
+                        _id: assign._id,
+                        teacherId: assign.teacherId,
+                        title: assign.title,
+                        description: assign.description,
+                        thumbnail,
+                        level: assign.level,
+                        category: {
+                            idSubject: responseCategory.idSubject,
+                            name: responseCategory.name,
+                            color: responseCategory.color
+                        },
+                        subCategory: responseField
+                            ? {
+                                idSub: responseField.idSub,
+                                name: responseField.name
+                            }
+                            : null,
+                        exercises: assign.exercises,
+                        tags: assign.tags,
+                        ratings: assign.ratings,
+                        avgRating: assign.averageRating(),
+                        comments,
+                        commentsCount: comments.length,
+                        solveCount: solutions.length,
+                        visibility: assign.visibility,
+                        createdAt: assign.createdAt,
+                        teacher: {
+                            userId: responseUser.id,
+                            userName: responseUser.userName,
+                            familyName: responseUser.familyName,
+                            givenName: responseUser.givenName,
+                            userImg: responseUser.userImg,
+                            role: "teacher"
+                        }
+                    }
+
+                } catch (error) {
+                    console.error("Error while fetching for the quizes", error.message)
+                }
+            })
+        )
+
+        await redis.setex(assignCachedKey, 120, JSON.stringify(enrichedAssigns))
+        res.status(200).json(enrichedAssigns);
+
+    } catch (error) {
+        console.log("error: ", error.message)
+        res.status(500).json({ error: error.message });
     }
 })
 

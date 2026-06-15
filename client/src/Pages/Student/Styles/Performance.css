@@ -1,0 +1,287 @@
+/* ── XP Bar Card ── */
+.ms-xp-bar-card {
+    background: var(--ms-surface);
+    border: 0.5px solid var(--ms-border);
+    border-radius: var(--ms-radius);
+    padding: 1.2rem 1.4rem;
+    box-shadow: var(--ms-shadow);
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+}
+
+.ms-xp-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: #F29DB618;
+    color: #EC4899;
+    font-size: 0.85rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.ms-xp-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.ms-xp-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ms-xp-top-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.ms-xp-level-name {
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--ms-text);
+    line-height: 1;
+    margin-bottom: 2px;
+}
+
+.ms-xp-label {
+    font-size: 0.75rem;
+    color: var(--ms-text-muted);
+}
+
+.ms-xp-points-badge {
+    background: #FFF3E0;
+    border-radius: 20px;
+    padding: 4px 12px;
+    display: flex;
+    align-items: baseline;
+    gap: 3px;
+}
+
+.ms-xp-points-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #E65100;
+}
+
+.ms-xp-points-label {
+    font-size: 0.7rem;
+    color: #BF360C;
+    font-weight: 600;
+}
+
+.ms-xp-track {
+    height: 8px;
+    background: var(--ms-border);
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.ms-xp-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #F29DB6, #EC4899);
+    border-radius: 99px;
+    transition: width 0.5s ease;
+}
+
+.ms-xp-bottom-row {
+    display: flex;
+    justify-content: space-between;
+}
+
+.ms-xp-hint {
+    font-size: 0.7rem;
+    color: var(--ms-text-hint);
+}
+
+.ms-xp-badge-img {
+    width: 52px;
+    height: 52px;
+    object-fit: contain;
+    flex-shrink: 0;
+    opacity: 0.9;
+}
+
+/* ── Achievements ── */
+.ms-achievements-card {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.ms-achievements-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    max-height: 260px;
+    padding-right: 4px;
+}
+
+.ms-achievements-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.ms-achievements-list::-webkit-scrollbar-track {
+    background: var(--ms-border);
+    border-radius: 99px;
+}
+
+.ms-achievements-list::-webkit-scrollbar-thumb {
+    background: #F29DB6;
+    border-radius: 99px;
+}
+
+.ms-achievement-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: var(--ms-bg);
+    border-radius: var(--ms-radius-sm);
+}
+
+.ms-achievement-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #EAF3DE;
+    color: #3B6D11;
+    font-size: 0.8rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.ms-achievement-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.ms-achievement-label {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--ms-text);
+}
+
+.ms-achievement-date {
+    font-size: 0.7rem;
+    color: var(--ms-text-hint);
+}
+
+/* ── Missions ── */
+.ms-missions-card {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.ms-missions-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.ms-next-level {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ms-next-level-img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+}
+
+.ms-next-level-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--ms-text-muted);
+}
+
+.ms-missions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ms-mission-row {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.ms-mission-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ms-mission-label {
+    font-size: 0.82rem;
+    color: var(--ms-text);
+    font-weight: 500;
+}
+
+.ms-mission-pct {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--ms-text-muted);
+}
+
+.ms-mission-track {
+    height: 6px;
+    background: var(--ms-border);
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.ms-mission-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #BA68C8, #8B5CF6);
+    border-radius: 99px;
+    transition: width 0.4s ease;
+}
+
+.search-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem;
+    margin-top: 3rem;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.9rem;
+    color: var(--light-grey-font-color);
+}
+
+.loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--light-border-section);
+    border-top-color: var(--light-pink-accent-color);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .postsfeed-container{
+    height: calc(100vh - 110px);
+  }
+}

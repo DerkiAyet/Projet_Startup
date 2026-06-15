@@ -13,6 +13,7 @@ const { publishUsers, startGame } = require('../config_service/kafka/producer');
 const { Users, Parents, Students, Teachers, Admins, ResetPassword, Adresses } = require('../models');
 const { Model, where } = require('sequelize');
 const redis = require('../config_service/redis.config')
+const db = require("../models")
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -25,6 +26,54 @@ const storage = multer.diskStorage({
 })
 
 const upload = multer({ storage: storage })
+
+const createInitialAdmin = async () => {
+    const t = await db.sequelize.transaction();
+    try {
+        const admin = await Admins.findOne({ where: { email: process.env.ADMIN_EMAIL } })
+        if (admin) {
+            await t.rollback();
+            return;
+        }
+
+        const hashedPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD, 10);
+        const familyName = process.env.ADMIN_FAMILY_NAME;
+        const givenName = process.env.ADMIN_GIVEN_NAME;
+        const email = process.env.ADMIN_EMAIL;
+
+        const newAdmin = await Users.create({
+            userName: `admin_${Date.now()}`,
+            familyName,
+            givenName,
+            email,
+            pwd: hashedPassword,
+            role: 'admin'
+        }, { transaction: t });
+        
+        await Admins.create({
+            familyName: newAdmin.familyName,
+            givenName: newAdmin.givenName,
+            email: newAdmin.email,
+            pwd: hashedPassword,
+        }, { transaction: t });
+
+        await t.commit();
+        
+        await publishUsers({
+            id: newAdmin.id,
+            userName: newAdmin.userName,
+            familyName: newAdmin.familyName,
+            givenName: newAdmin.givenName,
+            userImg: newAdmin.uerImg,
+            role: newAdmin.role
+        })
+
+        console.log("Admin Created");
+    } catch (err) {
+        await t.rollback();
+        throw err;
+    }
+}
 
 router.post('/register', async (req, res) => {
 
@@ -933,10 +982,24 @@ router.post('/reset-password/:token', async (req, res) => {
 router.get('/users/:userName', async (req, res) => {
     const userName = req.params.userName
     try {
+        const cachedKey = `portfolio:${userName}`
+        const cached = await redis.get(cachedKey)
+        if (cached) return res.status(200).json(JSON.parse(cached))
+
         const user = await Users.findOne({ where: { userName: userName } })
         if (!user) return res.status(400).json({ error: "user does not exist" })
 
-        res.status(200).json({ sucess: "user found", user })
+        const normalized = {
+            id: user.id,
+            userName: user.userName,
+            familyName: user.familyName,
+            givenName: user.givenName,
+            userImg: user.uerImg,
+            role: user.role
+        }
+
+        await redis.setex(cachedKey, 120, JSON.stringify(normalized))
+        res.status(200).json(normalized)
     } catch (error) {
         console.error('Error resetting password:', error.message);
         res.status(500).json({ error: 'Internal server error' });
@@ -972,6 +1035,6 @@ router.get('/get_user_byId/:userId', async (req, res) => {
 })
 
 
-module.exports = router;
+module.exports = { router, createInitialAdmin };
 
 

@@ -235,7 +235,7 @@ export const CommentLine = ({ resourceId, commentId, commentTxt, commentUserName
         <div className="comment-line">
             <div className="comment-user-img" style={{ flexShrink: 0, alignSelf: 'flex-start' }}>
                 {commentUserImg
-                    ? <img src={commentUserImg} alt="comment user" style={{ flexShrink: 0 }} />
+                    ? <img src={`${process.env.REACT_APP_API_URL_GATEWAY}/auth/uploads/${commentUserImg}`} alt="comment user" style={{ flexShrink: 0 }} />
                     : <div className="user-initials-avatar" style={{ backgroundColor: 'var(--accent-pink)', flexShrink: 0 }}>
                         {commentUserFamily?.charAt(0).toUpperCase()}
                         {commentUserGiven?.charAt(0).toUpperCase()}
@@ -320,7 +320,7 @@ function RessourcePage({ selectedResource, visible, onClose, changeResourceComme
     const [comments, setComments] = useState(selectedResource.comments || []);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [commentBody, setCommentBody] = useState({ commentText: '' });
-    const userRatingData = selectedResource.ratings.find((r) => String(r.userId) ===String(userAuth.userId))
+    const userRatingData = selectedResource.ratings.find((r) => String(r.userId) === String(userAuth.userId))
     const [userRating, setUserRating] = useState(userRatingData?.rating ?? 0);
 
     const showEmojiPickerRef = useRef(null);
@@ -412,7 +412,7 @@ function RessourcePage({ selectedResource, visible, onClose, changeResourceComme
                         <div className="post-owner-infos">
                             <div className="post-owner-img">
                                 {resource.student?.userImg
-                                    ? <img src={resource.student.userImg} alt="owner" />
+                                    ? <img src={`${process.env.REACT_APP_API_URL_GATEWAY}/auth/uploads/${resource.student.userImg}`} alt="owner" />
                                     : <div className="user-initials-avatar" style={{ backgroundColor: 'var(--accent-pink)' }}>
                                         {resource.student?.familyName?.charAt(0).toUpperCase()}
                                         {resource.student?.givenName?.charAt(0).toUpperCase()}

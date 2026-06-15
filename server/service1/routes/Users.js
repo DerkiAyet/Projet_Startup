@@ -702,7 +702,7 @@ router.get('/get-user-intrests', async (req, res) => {
     }
 })
 
-//----------Search
+//----------Search 
 router.get('/search', async (req, res) => {
     const { q } = req.query;
 
@@ -781,12 +781,12 @@ router.get('/admin/get-parents', async (req, res) => {
 router.get('/users/user-infos', async (req, res) => {
     try {
         const userId = req.headers['x-user-id']
-        
+
         const [user, address] = await Promise.all([
             Users.findByPk(userId),
             Adresses.findOne({ where: { userId } })
         ])
-        
+
         if (!user) return res.status(400).json({ error: "user does not exist" })
 
         let normalized = {
@@ -822,6 +822,57 @@ router.get('/users/user-infos', async (req, res) => {
     } catch (error) {
         console.error('Error fetching user:', error.message)
         res.status(500).json({ error: 'Internal server error' })
+    }
+})
+
+router.get('/users/:userName', async (req, res) => {
+    try {
+        const userName = req.params.userName
+    
+        const cachedKey = `portfolioDetailed${userName}`
+        const cached = await redis.get(cachedKey)
+        if(cached) return res.status(200).json(JSON.parse(cached))
+
+        const user = await Users.findOne({ where: { userName } })
+        if (!user) return res.status(400).json({ error: "user does not exist" })
+
+        const userId = user.id
+        const address = await Adresses.findOne({ where: { userId } })
+
+        let normalized = {
+            id: user.id,
+            userName: user.userName,
+            familyName: user.familyName,
+            givenName: user.givenName,
+            userImg: user.uerImg,
+            role: user.role,
+            bio: user.bio,
+            dateOfBirth: user.dateOfBirth,
+            gender: user.gender,
+            phoneNumber: user.phoneNumber,
+            address: address ? {
+                addressLine1: address.addressLine1,
+                addressLine2: address.addressLine2,
+                city: address.city,
+                state: address.state,
+                postalCode: address.postalCode,
+                country: address.country,
+            } : null
+        }
+
+        if (user.role === "student") {
+            const student = await Students.findOne({ where: { idStudent: userId } })
+            if (student) normalized = { ...normalized, levelOfEducation: student.levelOfEducation, institution: student.institution }
+        } else if (user.role === "teacher") {
+            const teacher = await Teachers.findOne({ where: { idTeacher: userId } })
+            if (teacher) normalized = { ...normalized, grade: teacher.grade, placeOfWork: teacher.placeOfWork }
+        }
+
+        await redis.setex(cachedKey, 120, JSON.stringify(normalized))
+        return res.status(200).json(normalized)
+    } catch (error) {
+        console.log("error while fetching for user infos", error.message)
+        res.status(500).json({ error: "Internal Server Error" })
     }
 })
 

@@ -4,7 +4,7 @@ const router = express.Router()
 const ResourceModel = require('../models/Resources')
 const CommentModel = require('../models/Comments')
 const multer = require('multer')
-const { resolveUser, resolveCategory, resolveField, resolveUserInterests } = require('../helpers/utils')
+const { resolveUser, resolveCategory, resolveField, resolveUserInterests, resolveOtherUser } = require('../helpers/utils')
 const redis = require('../config/redis.config')
 const path = require('path')
 
@@ -219,6 +219,69 @@ router.get('/recommended/me', async (req, res) => {
 
     } catch (error) {
         console.error("Error occured while fetching for recommendations: ", error.message)
+        return res.status(500).json({ error: "Internal server error" })
+    }
+})
+
+router.get('/student-resources/:userName', async(req, res) => {
+    try {
+        const resourceCachedKey = `student:resources:${req.params.userName}`
+        const resourcesCached = await redis.get(resourceCachedKey)
+        if (resourcesCached) return res.status(200).json(JSON.parse(resourcesCached))
+
+        const userInfos = await resolveOtherUser(req.params.userName)
+
+        const resources = await ResourceModel.find({studentId: userInfos.id})
+        const enrichedResources = await Promise.all(
+            resources.map(async (resource) => {
+                const responseUser = userInfos
+                const responseCategory = await resolveCategory(resource.category.id)
+                const responseField = await resolveField(resource.category.subCategory)
+
+                const thumbnail = resource.thumbnail
+                    ? `${process.env.GATEWAY_URI}/content/uploads/${resource.thumbnail}`
+                    : `${process.env.GATEWAY_URI}/auth/uploads/${responseCategory.subImg}`;
+
+                const comments = await CommentModel.find({ contentId: resource._id, contentType: "resource" })
+                const enrichedComments = await Promise.all(
+                    comments.map(async (c) => {
+                        const responseCommentUser = await resolveUser(c.userId)
+                        return {
+                            _id: c._id,
+                            text: c.text,
+                            userId: responseCommentUser.id,
+                            userName: responseCommentUser.userName,
+                            familyName: responseCommentUser.familyName,
+                            givenName: responseCommentUser.givenName,
+                            userImg: responseCommentUser.userImg,
+                            role: responseCommentUser.role
+                        }
+                    })
+                )
+                return {
+                    _id: resource._id,
+                    title: resource.title,
+                    description: resource.description,
+                    thumbnail,
+                    category: responseCategory,
+                    subCategory: responseField ?? null,
+                    attachments: resource.attachments,
+                    comments: enrichedComments,
+                    commentsCount: comments.length,
+                    avgRating: resource.averageRating(),
+                    ratings: resource.ratings,
+                    viewCount: resource.views.length,
+                    visibility: resource.visibility,
+                    createdAt: resource.createdAt,
+                    student: responseUser
+                }
+            })
+        )
+
+        await redis.setex(resourceCachedKey, 120, JSON.stringify(enrichedResources))
+        return res.status(200).json(enrichedResources)
+    } catch (error) {
+        console.error("Error occured while fetching for student ressources: ", error.message)
         return res.status(500).json({ error: "Internal server error" })
     }
 })

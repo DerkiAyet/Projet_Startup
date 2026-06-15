@@ -464,6 +464,200 @@ router.get('/me', async (req, res) => {
     }
 })
 
+router.get('/users/:userName', async (req, res) => {
+    try {
+        const userName = req.params.userName
+
+        const postsCachedKey = `user:posts:${userName}`
+        const cachedPosts = await redis.get(postsCachedKey)
+        if (cachedPosts) return res.status(200).json(JSON.parse(cachedPosts))
+
+        let userInfos;
+        const userCachedKey = `portfolio:${userName}`
+        const userCached = await redis.get(userCachedKey)
+        if (userCached) userInfos = JSON.parse(userCached)
+
+        const authServiceBaseUrl = await discoverAuthService();
+        if (!userInfos) {
+            const { data } = await axios.get(
+                `${authServiceBaseUrl}/users/${userName}`,
+                { timeout: 5000 }
+            );
+
+            userInfos = data
+        }
+
+        const userId = userInfos.id
+        const posts = await Post.find({ userId })
+        const enrichedPosts = await Promise.all(
+            posts.map(async (post) => {
+                try {
+                    let resolvedUser = await resolveUser(post.userId)
+
+                    const commentsCount = post.comments.reduce((acc, c) => {
+                        return acc + 1 + (c.replies ? c.replies.length : 0);
+                    }, 0);
+                    const enrichedComments = await Promise.all(
+                        (post.comments || []).map(async (c) => {
+                            let resolvedCommentUser = await resolveUser(c.userId)
+                            const enrichedReplies = await Promise.all(
+                                (c.replies || []).map(async (r) => {
+                                    let resolvedReplyUser = await resolveUser(r.userId)
+                                    return {
+                                        _id: r._id,
+                                        text: r.text,
+                                        likes: r.likes,
+                                        userName: resolvedReplyUser.userName,
+                                        familyName: resolvedReplyUser.familyName,
+                                        givenName: resolvedReplyUser.givenName,
+                                        userImg: resolvedReplyUser.userImg,
+                                        role: resolvedReplyUser.role,
+                                    };
+                                })
+                            );
+
+                            return {
+                                _id: c._id,
+                                text: c.text,
+                                replies: enrichedReplies,
+                                likes: c.likes,
+                                userId: c.userId,
+                                userName: resolvedCommentUser.userName,
+                                familyName: resolvedCommentUser.familyName,
+                                givenName: resolvedCommentUser.givenName,
+                                userImg: resolvedCommentUser.userImg,
+                                role: resolvedCommentUser.role,
+                                createdAt: c.createdAt
+                            };
+                        })
+                    );
+
+                    return {
+                        _id: post._id,
+                        userId: post.userId,
+                        content: post.content,
+                        mediaUrl: post.mediaUrl,
+                        mediaType: post.mediaType,
+                        mediaSize: post.mediaSize,
+                        visibility: post.visibility,
+                        tags: post.tags,
+                        mentions: post.mentions,
+                        urls: post.urls,
+                        likes: post.likes,
+                        createdAt: post.createdAt,
+                        comments: enrichedComments,
+                        likesCount: post.likes.length,
+                        commentsCount,
+                        user: {
+                            userId: resolvedUser.id,
+                            userName: resolvedUser.userName,
+                            familyName: resolvedUser.familyName,
+                            givenName: resolvedUser.givenName,
+                            userImg: resolvedUser.userImg,
+                            role: resolvedUser.role
+                        }
+                    };
+
+                } catch (err) {
+                    console.error("Failed to enrich post:", err.message);
+                    return { ...post.toObject(), user: null };
+                }
+            })
+        );
+
+        await redis.setex(userCachedKey, 120, JSON.stringify(userInfos));
+        await redis.setex(postsCachedKey, 120, JSON.stringify(enrichedPosts))
+        res.status(200).json(enrichedPosts);
+
+    } catch (error) {
+        console.log("error: ", error.message)
+        res.status(500).json({ error: error.message });
+    }
+})
+
+router.get('/users/:userName/follow-stats', async(req, res) => {
+    try {
+        let userInfos;
+        const userCachedKey = `portfolio:${req.params.userName}`
+        const userCached = await redis.get(userCachedKey)
+        if (userCached) userInfos = JSON.parse(userCached)
+
+        const authServiceBaseUrl = await discoverAuthService();
+        if (!userInfos) {
+            const { data } = await axios.get(
+                `${authServiceBaseUrl}/users/${req.params.userName}`,
+                { timeout: 5000 }
+            );
+
+            userInfos = data
+        }
+        const userId = userInfos.id
+
+        const followers = await Follow.find({ followeeId: userId })
+        const followersIds = followers.map((f) => f.followerId)
+        const followees = await Follow.find({ followerId: userId })   
+        const followeesIds = followees.map((f) => f.followeeId)     
+
+        const enrichedFollowers = await Promise.all(
+            followers.map(async (follower) => {
+                try {
+
+                    const resolvedUser = await resolveUser(follower.followerId);
+
+                    return {
+                        id: follower.followerId,
+                        userName: resolvedUser.userName,
+                        familyName: resolvedUser.familyName,
+                        givenName: resolvedUser.givenName,
+                        userImg: resolvedUser.userImg,
+                        role: resolvedUser.role
+                    }
+
+                } catch (error) {
+                    console.error("Failed to fetch user:", err.message);
+                }
+            })
+        )
+
+        const enrichedFollowees = await Promise.all(
+            followees.map(async (followee) => {
+                try {
+
+                    const resolvedUser = await resolveUser(followee.followeeId);
+
+                    return {
+                        id: followee.followeeId,
+                        userName: resolvedUser.userName,
+                        familyName: resolvedUser.familyName,
+                        givenName: resolvedUser.givenName,
+                        userImg: resolvedUser.userImg,
+                        role: resolvedUser.role
+                    }
+
+                } catch (error) {
+                    console.error("Failed to fetch user:", err.message);
+                }
+            })
+        )
+
+        const result = {
+            followersData: {
+                followersIds,
+                followers: enrichedFollowers
+            },
+            followeesData: {
+                followeesIds,
+                followees: enrichedFollowees
+            }
+        }
+
+        res.status(200).json(result)
+    } catch (error) {
+        console.log("error: ", error.message)
+        res.status(500).json({ error: error.message });
+    }
+})
+
 // UPDATE POST
 router.put("/:id", async (req, res) => {
     try {

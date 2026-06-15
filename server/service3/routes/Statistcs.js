@@ -8,7 +8,7 @@ const QuizAttemptModel = require('../models/QuizAttempts')
 const QuizModel = require("../models/Quizes");
 const { discoverAuthService } = require('../config/discovery.service')
 const axios = require('axios')
-const {resolveField, resolveUser } = require('../helpers/utils')
+const { resolveField, resolveUser } = require('../helpers/utils')
 const redis = require('../config/redis.config')
 
 router.get('/my-students/stats', async (req, res) => {
@@ -578,8 +578,8 @@ router.get('/my-children/stats', async (req, res) => {
         ]);
 
         const enrollmentMap = Object.fromEntries(enrollmentsByChild.map(e => [e._id.toString(), e]));
-        const submissionMap  = Object.fromEntries(submissionsByChild.map(s => [s._id.toString(), s]));
-        const quizMap        = Object.fromEntries(quizAttemptsByChild.map(q => [q._id.toString(), q]));
+        const submissionMap = Object.fromEntries(submissionsByChild.map(s => [s._id.toString(), s]));
+        const quizMap = Object.fromEntries(quizAttemptsByChild.map(q => [q._id.toString(), q]));
 
         const allSubCatIds = new Set();
         enrollmentsByChild.forEach(e =>
@@ -623,7 +623,7 @@ router.get('/my-children/stats', async (req, res) => {
 
             const categoryScores = {};
             let grandTotalScore = 0;
-            let grandTotalMax   = 0;
+            let grandTotalMax = 0;
 
             (subData?.submissions ?? []).forEach(({ assignmentId, score }) => {
                 // use subCatId not categoryId
@@ -634,9 +634,9 @@ router.get('/my-children/stats', async (req, res) => {
                 if (!categoryScores[catId]) categoryScores[catId] = { totalScore: 0, totalMax: 0 };
 
                 categoryScores[catId].totalScore += score;
-                categoryScores[catId].totalMax   += meta.maxScore;
+                categoryScores[catId].totalMax += meta.maxScore;
                 grandTotalScore += score;
-                grandTotalMax   += meta.maxScore;
+                grandTotalMax += meta.maxScore;
             });
 
             const avgScoreByCategory = Object.entries(categoryScores).map(([subCatId, { totalScore, totalMax }]) => ({
@@ -654,9 +654,9 @@ router.get('/my-children/stats', async (req, res) => {
             return {
                 studentId: child.userId,
                 familyName: child.familyName ?? 'Unknown',
-                givenName:  child.givenName  ?? 'Unknown',
-                email:      child.email      ?? null,
-                img:        child.userImg    ?? null,
+                givenName: child.givenName ?? 'Unknown',
+                email: child.email ?? null,
+                img: child.userImg ?? null,
                 linkedAt: child.linkedAt,
                 totalEnrollments,
                 enrollmentsBySubCategory,
@@ -672,6 +672,220 @@ router.get('/my-children/stats', async (req, res) => {
     } catch (error) {
         console.error(error);
         return res.status(500).json({ error: 'Server error', message: error.message });
+    }
+});
+
+router.get('/progress/me', async (req, res) => {
+    try {
+        const userRole = req.headers['x-user-role']
+        if (userRole !== "student") return res.status(403).json({ error: "Action Forbidden" })
+
+        const studentId = Number(req.headers['x-user-id'])
+
+        const cachedKey = `myProgress${studentId}`
+        const cached = await redis.get(cachedKey)
+        if (cached) return res.status(200).json(JSON.parse(cached))
+
+        const [myEnrollments, mySubmissions, myQuizAttempts] = await Promise.all([
+
+            EnrollementModel.aggregate([
+                { $match: { studentId: studentId } },
+                {
+                    $lookup: {
+                        from: 'courses',
+                        localField: 'courseId',
+                        foreignField: '_id',
+                        as: 'course',
+                    },
+                },
+                { $unwind: '$course' },
+                {
+                    $group: {
+                        _id: '$course.category.subCategory',
+                        count: { $sum: 1 },
+                    },
+                },
+            ]),
+
+            SolvingModel.aggregate([
+                {
+                    $match: {
+                        studentId: studentId,
+                        posted: true,
+                        score: { $ne: null },
+                    },
+                },
+                {
+                    $group: {
+                        _id: '$assignment',
+                        totalScore: { $sum: '$score' },
+                        count: { $sum: 1 },
+                    },
+                },
+            ]),
+
+            QuizAttemptModel.aggregate([
+                { $match: { studentId: studentId } },
+                { $count: 'totalQuizAttempts' },
+            ]),
+        ]);
+
+        // enrollments
+        const totalEnrollments = myEnrollments.reduce((sum, e) => sum + e.count, 0);
+        const enrollmentSubCatIds = myEnrollments.map(e => e._id?.toString()).filter(Boolean);
+
+        // submissions — one doc per assignment now
+        const assignmentIds = mySubmissions.map(s => s._id);
+        const assignmentsSolved = await AssignmentModel.find({ _id: { $in: assignmentIds } }).select('_id maxScore category');
+        const maxScoreMap = Object.fromEntries(
+            assignmentsSolved.map(a => [
+                a._id.toString(),
+                { maxScore: a.maxScore || 0, subCatId: a.category?.subCategory }
+            ])
+        );
+
+        const totalSubmissions = mySubmissions.reduce((sum, s) => sum + s.count, 0);
+
+        // collect all subCatIds for name resolution
+        const allSubCatIds = new Set(enrollmentSubCatIds);
+        mySubmissions.forEach(s => {
+            const meta = maxScoreMap[s._id?.toString()];
+            if (meta?.subCatId) allSubCatIds.add(meta.subCatId.toString());
+        });
+
+        const subCatNameMap = {};
+        await Promise.all(
+            [...allSubCatIds].map(async (subCatId) => {
+                try {
+                    const cat = await resolveField(subCatId);
+                    subCatNameMap[subCatId] = cat.name;
+                } catch (_) {
+                    subCatNameMap[subCatId] = 'Unknown';
+                }
+            })
+        );
+
+        const enrollmentsBySubCategory = myEnrollments.map(e => ({
+            subCategoryId: e._id,
+            subCategoryName: subCatNameMap[e._id?.toString()] ?? 'Unknown',
+            count: e.count,
+        }));
+
+        // scores by category
+        const categoryScores = {};
+        let grandTotalScore = 0;
+        let grandTotalMax = 0;
+
+        mySubmissions.forEach(({ _id: assignmentId, totalScore, count }) => {
+            const meta = maxScoreMap[assignmentId?.toString()];
+            if (!meta) return;
+
+            const catId = meta.subCatId?.toString() ?? 'uncategorized';
+            if (!categoryScores[catId]) categoryScores[catId] = { totalScore: 0, totalMax: 0 };
+
+            categoryScores[catId].totalScore += totalScore;
+            categoryScores[catId].totalMax += meta.maxScore * count;
+            grandTotalScore += totalScore;
+            grandTotalMax += meta.maxScore * count;
+        });
+
+        const avgScoreByCategory = Object.entries(categoryScores).map(([subCatId, { totalScore, totalMax }]) => ({
+            subCategoryId: subCatId,
+            subCategoryName: subCatNameMap[subCatId] ?? 'Unknown',
+            avgScorePercentage: totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0,
+        }));
+
+        const overallAvgScorePercentage = grandTotalMax > 0
+            ? Math.round((grandTotalScore / grandTotalMax) * 100)
+            : 0;
+
+        const totalQuizAttempts = myQuizAttempts[0]?.totalQuizAttempts ?? 0;
+
+        const progressDetails = {
+            studentId,
+            totalEnrollments,
+            enrollmentsBySubCategory,
+            totalSubmissions,
+            overallAvgScorePercentage,
+            avgScoreByCategory,
+            totalQuizAttempts,
+        };
+
+        await redis.setex(cachedKey, 300, JSON.stringify(progressDetails))
+        return res.status(200).json(progressDetails);
+
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: 'Server error', message: error.message });
+    }
+})
+
+router.get('/progress/me/assignments/avg-score-by-subcategory', async (req, res) => {
+    try {
+        const userRole = req.headers['x-user-role'];
+        if (userRole !== 'student') {
+            return res.status(403).json("Unauthorized");
+        }
+
+        const studentId = req.headers['x-user-id'];
+
+        const submittedSolutions = await SolvingModel.find({ studentId: studentId })
+
+        const assignmentIds = submittedSolutions.map(s => s.assignment);
+        const assignmentsSolved = await AssignmentModel.find({ _id: { $in: assignmentIds } }).select('_id maxScore category');
+        const assignmentsMeta = Object.fromEntries(
+            assignmentsSolved.map(a => [
+                a._id.toString(),
+                { maxScore: a.maxScore || 0, subCatId: a.category?.subCategory?.toString() }
+            ])
+        );
+
+        // group by subCategoryId
+        const groupedBySubCat = {};
+        submittedSolutions.forEach(s => {
+            const meta = assignmentsMeta[s.assignment?.toString()];
+            if (!meta) return;
+
+            const subCatId = meta.subCatId ?? 'uncategorized';
+            if (!groupedBySubCat[subCatId]) {
+                groupedBySubCat[subCatId] = { totalScore: 0, totalMax: 0, count: 0 };
+            }
+
+            groupedBySubCat[subCatId].totalScore += s.score ?? 0;
+            groupedBySubCat[subCatId].totalMax += meta.maxScore;
+            groupedBySubCat[subCatId].count += 1;
+        });
+
+        const avgScoreBySubCategory = Object.entries(groupedBySubCat).map(([subCatId, { totalScore, totalMax, count }]) => ({
+            subCategoryId: subCatId,
+            avgScorePercentage: totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0,
+            submissionCount: count,
+        }));
+
+        const result = await Promise.all(
+            Object.values(avgScoreBySubCategory).map(async (entry) => {
+                const { subCategoryId, avgScorePercentage, submissionCount } = entry;
+
+                let subCategoryName = 'Unknown';
+                try {
+                    const responseCategory = await resolveField(subCategoryId);
+                    subCategoryName = responseCategory.name;
+                } catch (_) { /* keep 'Unknown' if lookup fails */ }
+
+                return {
+                    subCategoryId,
+                    subCategoryName,
+                    avgScorePercentage,
+                    submissionCount                
+                };
+            })
+        );
+
+        return res.json(result);
+
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json("Server error");
     }
 });
 

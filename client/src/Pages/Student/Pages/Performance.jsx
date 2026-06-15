@@ -1,355 +1,385 @@
 import React, { useState, useEffect, useContext } from "react";
+import {
+    BarChart, Bar, LineChart, Line,
+    XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell
+} from "recharts";
+import axios from "axios";
+import "../../Teacher/Styles/MyStudents.css";
+import "../Styles/Performance.css"
 import { AppContext } from "../../../App";
-import "../Styles/Activity.css";
-import { ReactComponent as CourseIcon } from '../../../Assets/icons/CourseIcons/lessons-course.svg';
-import { ReactComponent as AssignmentIcon } from '../../../Assets/icons/CourseIcons/target-icon.svg';
-import { ReactComponent as QuizIcon } from '../../../Assets/icons/CourseIcons/bar-chart.svg';
-import { ReactComponent as TimeIcon } from '../../../Assets/icons/CourseIcons/timer-icon.svg';
-import { ReactComponent as TrophyIcon } from '../../../Assets/icons/TimelineIcons/full-heart.svg';
 
-// Simple chart components using SVG (no external libraries needed)
-const ProgressChart = ({ percentage, color }) => {
-    const radius = 70;
-    const circumference = 2 * Math.PI * radius;
-    const offset = circumference - (percentage / 100) * circumference;
+axios.defaults.withCredentials = true;
 
-    return (
-        <svg width="180" height="180" viewBox="0 0 180 180">
-            <circle
-                cx="90"
-                cy="90"
-                r={radius}
-                stroke="#E5E7EB"
-                strokeWidth="12"
-                fill="none"
-            />
-            <circle
-                cx="90"
-                cy="90"
-                r={radius}
-                stroke={color}
-                strokeWidth="12"
-                fill="none"
-                strokeDasharray={circumference}
-                strokeDashoffset={offset}
-                strokeLinecap="round"
-                transform="rotate(-90 90 90)"
-                style={{ transition: "stroke-dashoffset 0.5s ease" }}
-            />
-            <text x="90" y="85" textAnchor="middle" fontSize="28" fontWeight="700" fill="#1E293B">
-                {percentage}%
-            </text>
-            <text x="90" y="110" textAnchor="middle" fontSize="12" fill="#8E8E8E">
-                Completed
-            </text>
-        </svg>
-    );
+// const STUDENT_COLORS = [
+//     "#378ADD", "#7F77DD", "#1D9E75", "#BA7517",
+//     "#D85A30", "#C2487E", "#2AADBB", "#8B5CF6",
+// ];
+
+const getMessage = (type, toDo) => {
+    switch (type) {
+        case "PUBLISH_POST":
+            return `Publish ${toDo} post(s)`;
+
+        case "NEW_FOLLOWEE":
+            return `Follow ${toDo} user(s)`;
+
+        case "NEW_FOLLOWER":
+            return `Gain ${toDo} new follower(s)`;
+
+        case "ENROLL_COURSE":
+            return `Enroll in ${toDo} course(s)`;
+
+        case "SOLVE_QUIZ":
+            return `Complete ${toDo} quiz(zes)`;
+
+        case "SEND_SOLUTION":
+            return `Submit ${toDo} solution(s)`;
+
+        case "GET_GRADE":
+            return `Earn ${toDo} graded result(s)`;
+
+        case "PARTICIPATE_CLASSROOM":
+            return `Join ${toDo} classroom session(s)`;
+
+        case "DO_HOMEWORK":
+            return `Complete ${toDo} homework task(s)`;
+
+        case "PARTICPATE_SESSION":
+            return `Participate in ${toDo} live session(s)`;
+
+        case "SHARE_RESSOURCE":
+            return `Share ${toDo} learning resource(s)`;
+
+        default:
+            return "Unknown mission";
+    }
 };
 
-const BarChart = ({ data, title }) => {
-    const maxValue = Math.max(...data.map(d => d.value), 1);
-    
-    return (
-        <div className="bar-chart">
-            <h4 className="chart-title">{title}</h4>
-            <div className="bars-container">
-                {data.map((item, index) => (
-                    <div key={index} className="bar-item">
-                        <div className="bar-label">{item.label}</div>
-                        <div className="bar-wrapper">
-                            <div 
-                                className="bar-fill" 
-                                style={{ 
-                                    width: `${(item.value / maxValue) * 100}%`,
-                                    backgroundColor: item.color || "#EC4899"
-                                }}
-                            />
-                        </div>
-                        <div className="bar-value">{item.value}</div>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-};
-
-const ActivityTimeline = ({ activities }) => {
-    return (
-        <div className="timeline">
-            <h4 className="timeline-title">Recent Activity</h4>
-            <div className="timeline-items">
-                {activities.map((activity, index) => (
-                    <div key={index} className="timeline-item">
-                        <div className="timeline-dot" style={{ backgroundColor: activity.color }} />
-                        <div className="timeline-content">
-                            <div className="timeline-header">
-                                <span className="timeline-type">{activity.type}</span>
-                                <span className="timeline-date">{activity.date}</span>
-                            </div>
-                            <div className="timeline-title-text">{activity.title}</div>
-                            {activity.score && (
-                                <div className="timeline-score">Score: {activity.score}%</div>
-                            )}
-                        </div>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-};
-
-const StatsCard = ({ icon: Icon, title, value, subtitle, color }) => (
-    <div className="stats-card">
-        <div className="stats-icon" style={{ backgroundColor: `${color}15`, color: color }}>
-            <Icon />
-        </div>
-        <div className="stats-info">
-            <div className="stats-value">{value}</div>
-            <div className="stats-title">{title}</div>
-            {subtitle && <div className="stats-subtitle">{subtitle}</div>}
-        </div>
-    </div>
-);
-
-export default function Performance() {
-    const { userAuth } = useContext(AppContext);
-    const [loading, setLoading] = useState(false);
-    const [selectedPeriod, setSelectedPeriod] = useState("week");
-
-    // Local mock data
-    const mockData = {
-        enrolledCourses: [
-            { id: 1, title: "React Fundamentals", lessons: [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }, { id: 5 }] },
-            { id: 2, title: "JavaScript Mastery", lessons: [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }] },
-            { id: 3, title: "Node.js Backend", lessons: [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }, { id: 5 }, { id: 6 }] },
-            { id: 4, title: "Python Programming", lessons: [{ id: 1 }, { id: 2 }, { id: 3 }] }
-        ],
-        completedLessons: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
-        solvedAssignments: [
-            { id: 1, title: "React Components", score: 92 },
-            { id: 2, title: "JavaScript Functions", score: 88 },
-            { id: 3, title: "Node.js API", score: 78 },
-            { id: 4, title: "Python OOP", score: 95 }
-        ],
-        quizResults: [
-            { id: 1, title: "React Quiz", score: 95 },
-            { id: 2, title: "JavaScript Quiz", score: 82 },
-            { id: 3, title: "Node.js Quiz", score: 88 },
-            { id: 4, title: "Python Quiz", score: 91 }
-        ],
-        totalStudyTime: 47,
-        categoryProgress: [
-            { name: "React", progress: 85, color: "#EC4899" },
-            { name: "JavaScript", progress: 72, color: "#F59E0B" },
-            { name: "Node.js", progress: 60, color: "#10B981" },
-            { name: "Python", progress: 90, color: "#6366F1" }
-        ]
-    };
-
-    // Calculate stats from mock data
-    const totalLessons = mockData.enrolledCourses.reduce((sum, c) => sum + (c.lessons?.length || 0), 0);
-    const completionRate = totalLessons > 0 ? Math.round((mockData.completedLessons.length / totalLessons) * 100) : 0;
-    
-    const allScores = [...mockData.solvedAssignments.map(a => a.score), ...mockData.quizResults.map(q => q.score)];
-    const averageScore = allScores.length > 0 ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length) : 0;
-
-    // Weekly progress data (changes based on selected period)
-    const getWeeklyProgress = () => {
-        switch(selectedPeriod) {
-            case "week":
-                return [
-                    { label: "Mon", value: 65, color: "#EC4899" },
-                    { label: "Tue", value: 72, color: "#EC4899" },
-                    { label: "Wed", value: 80, color: "#EC4899" },
-                    { label: "Thu", value: 78, color: "#EC4899" },
-                    { label: "Fri", value: 85, color: "#EC4899" },
-                    { label: "Sat", value: 90, color: "#EC4899" },
-                    { label: "Sun", value: 88, color: "#EC4899" }
-                ];
-            case "month":
-                return [
-                    { label: "Week 1", value: 45, color: "#EC4899" },
-                    { label: "Week 2", value: 62, color: "#EC4899" },
-                    { label: "Week 3", value: 78, color: "#EC4899" },
-                    { label: "Week 4", value: 85, color: "#EC4899" }
-                ];
-            default:
-                return [
-                    { label: "Jan", value: 45, color: "#EC4899" },
-                    { label: "Feb", value: 52, color: "#EC4899" },
-                    { label: "Mar", value: 68, color: "#EC4899" },
-                    { label: "Apr", value: 72, color: "#EC4899" },
-                    { label: "May", value: 78, color: "#EC4899" },
-                    { label: "Jun", value: 85, color: "#EC4899" }
-                ];
-        }
-    };
-
-    // Recent activities
-    const recentActivities = [
-        { type: "Course", title: "Completed React Hooks lesson", date: "2024-01-15", score: null, color: "#10B981" },
-        { type: "Assignment", title: "JavaScript Basics - Functions", date: "2024-01-14", score: 88, color: "#F59E0B" },
-        { type: "Quiz", title: "React Fundamentals Quiz", date: "2024-01-13", score: 95, color: "#EC4899" },
-        { type: "Course", title: "Started Node.js module", date: "2024-01-12", score: null, color: "#10B981" },
-        { type: "Assignment", title: "Python OOP Project", date: "2024-01-11", score: 95, color: "#F59E0B" },
-        { type: "Quiz", title: "JavaScript Advanced Quiz", date: "2024-01-10", score: 82, color: "#EC4899" }
-    ];
-
-    // Achievements
-    const achievements = [
-        { name: "Quick Learner", description: "Completed 5 lessons in a week", icon: "⚡" },
-        { name: "Quiz Master", description: "Scored 90%+ on 3 quizzes", icon: "🏆" },
-        { name: "Dedicated Student", description: "Studied 40+ hours total", icon: "📚" },
-        { name: "Perfect Score", description: "Got 100% on an assignment", icon: "🎯" },
-        { name: "Consistency King", description: "Active for 15 days straight", icon: "👑" }
-    ];
-
-    // Category distribution based on progress
-    const categoryDistribution = mockData.categoryProgress.map(cat => ({
-        label: cat.name,
-        value: cat.progress,
-        color: cat.color
-    }));
-
-    if (loading) {
+const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
         return (
-            <div className="activity-loading">
-                <div className="loading-spinner" />
-                <span>Loading your activity...</span>
+            <div className="ms-tooltip">
+                <p className="ms-tooltip-label">{label}</p>
+                <p className="ms-tooltip-value">{payload[0].value}{payload[0].name === "avg" ? "%" : " enrollments"}</p>
             </div>
         );
     }
+    return null;
+};
+
+function ActivityDonut({ data }) {
+    if (!data) return null;
+
+    const total = data.solutions + data.quizAttempts + data.enrollments;
+    const items = [
+        { label: 'Assignment solutions', value: data.solutions, color: '#BA68C8' },
+        { label: 'Quiz attempts', value: data.quizAttempts, color: '#FFC727' },
+        { label: 'Course enrollments', value: data.enrollments, color: '#FFB6C1' },
+    ];
 
     return (
-        <div className="student-activity-container">
-            <div className="activity-header">
-                <h1>My Learning Activity</h1>
-                <p>Track your progress and achievements</p>
-            </div>
+        <div className="ms-card">
+            <p className="ms-card-title">Student activity breakdown</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
 
-            {/* Stats Grid */}
-            <div className="stats-grid">
-                <StatsCard 
-                    icon={CourseIcon}
-                    title="Courses Enrolled"
-                    value={mockData.enrolledCourses.length}
-                    subtitle="Active courses"
-                    color="#EC4899"
-                />
-                <StatsCard 
-                    icon={AssignmentIcon}
-                    title="Assignments Solved"
-                    value={mockData.solvedAssignments.length}
-                    subtitle={`Avg: ${averageScore}%`}
-                    color="#F59E0B"
-                />
-                <StatsCard 
-                    icon={QuizIcon}
-                    title="Quizzes Completed"
-                    value={mockData.quizResults.length}
-                    subtitle="Total attempts"
-                    color="#10B981"
-                />
-                <StatsCard 
-                    icon={TimeIcon}
-                    title="Study Time"
-                    value={`${mockData.totalStudyTime}h`}
-                    subtitle="Total hours"
-                    color="#6366F1"
-                />
-            </div>
-
-            {/* Main Content Grid */}
-            <div className="activity-grid">
-                {/* Left Column */}
-                <div className="activity-left">
-                    {/* Completion Progress */}
-                    <div className="activity-card progress-card">
-                        <h3 className="card-title">Overall Progress</h3>
-                        <div className="progress-chart-wrapper">
-                            <ProgressChart percentage={completionRate} color="#EC4899" />
-                        </div>
-                        <div className="progress-stats">
-                            <div className="stat-item">
-                                <span className="stat-label">Lessons Completed</span>
-                                <span className="stat-value">{mockData.completedLessons.length}</span>
-                            </div>
-                            <div className="stat-item">
-                                <span className="stat-label">Total Lessons</span>
-                                <span className="stat-value">{totalLessons}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Weekly Activity Chart */}
-                    <div className="activity-card">
-                        <BarChart data={getWeeklyProgress()} title="Learning Activity" />
-                    </div>
-
-                    {/* Category Distribution */}
-                    <div className="activity-card">
-                        <h4 className="chart-title">Progress by Category</h4>
-                        <div className="category-distribution">
-                            {categoryDistribution.map((cat, idx) => (
-                                <div key={idx} className="category-item">
-                                    <div className="category-header">
-                                        <span className="category-name" style={{ color: cat.color }}>{cat.label}</span>
-                                        <span className="category-percentage">{cat.value}%</span>
-                                    </div>
-                                    <div className="category-bar">
-                                        <div className="category-fill" style={{ width: `${cat.value}%`, backgroundColor: cat.color }} />
-                                    </div>
-                                </div>
+                {/* Fixed size so the absolute center label knows where to sit */}
+                <div style={{ position: 'relative', width: 180, height: 180, flexShrink: 0 }}>
+                    <PieChart width={180} height={180}>
+                        <Pie
+                            data={items}
+                            dataKey="value"
+                            cx={85}
+                            cy={85}
+                            innerRadius={55}
+                            outerRadius={80}
+                            strokeWidth={3}
+                        >
+                            {items.map((entry) => (
+                                <Cell key={entry.label} fill={entry.color} />
                             ))}
-                        </div>
+                        </Pie>
+                        <Tooltip
+                            formatter={(value) => [
+                                `${value} (${total > 0 ? Math.round((value / total) * 100) : 0}%)`,
+                            ]}
+                        />
+                    </PieChart>
+                    {/* Center label — works because parent has fixed 180x180 */}
+                    <div style={{
+                        position: 'absolute',
+                        top: 0, left: 0, right: 0, bottom: 0,
+                        display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', justifyContent: 'center',
+                        pointerEvents: 'none'
+                    }}>
+                        <span style={{ fontSize: 22, fontWeight: 600, color: 'var(--ms-text)' }}>{total}</span>
+                        <span style={{ fontSize: 11, color: 'var(--ms-text-muted)' }}>total actions</span>
                     </div>
                 </div>
 
-                {/* Right Column */}
-                <div className="activity-right">
-                    {/* Achievements */}
-                    <div className="activity-card achievements-card">
-                        <h3 className="card-title">
-                            <TrophyIcon className="card-icon" />
-                            Achievements
-                        </h3>
-                        <div className="achievements-list">
-                            {achievements.map((achievement, idx) => (
-                                <div key={idx} className="achievement-item">
-                                    <div className="achievement-icon">{achievement.icon}</div>
-                                    <div className="achievement-info">
-                                        <div className="achievement-name">{achievement.name}</div>
-                                        <div className="achievement-desc">{achievement.description}</div>
-                                    </div>
-                                </div>
-                            ))}
+                {/* Legend */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    {items.map(item => (
+                        <div key={item.label}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                <span style={{ width: 10, height: 10, borderRadius: 2, background: item.color, flexShrink: 0 }} />
+                                <span style={{ fontSize: 13, color: 'var(--ms-text-muted)' }}>{item.label}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, paddingLeft: 18 }}>
+                                <span style={{ fontSize: 20, fontWeight: 600, color: 'var(--ms-text)' }}>{item.value}</span>
+                                <span style={{ fontSize: 12, color: 'var(--ms-text-muted)' }}>
+                                    {total > 0 ? Math.round((item.value / total) * 100) : 0}%
+                                </span>
+                            </div>
                         </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export default function MyPerformance() {
+
+    const { userAuth } = useContext(AppContext)
+
+    const [barData, setBarData] = useState([]);
+    const [lineData, setLineData] = useState([]);
+    const [activityBreakdown, setActivityBreakdown] = useState(null);
+    const [loading, setLoading] = useState(false)
+    const [gameProgress, setGameProgress] = useState(null);
+
+    useEffect(() => {
+
+        const fetchData = async () => {
+            setLoading(true)
+            try {
+                const [progressRes, perCategoryRes, gameRes] = await Promise.all([
+                    axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/stats/progress/me`),
+                    axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/stats/progress/me/assignments/avg-score-by-subcategory`),
+                    axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/game/achievements/my-progress`)
+                ])
+
+                setBarData(
+                    progressRes.data.enrollmentsBySubCategory.map((e) => ({
+                        name: e.subCategoryName,
+                        enrollments: e.count
+                    }))
+                )
+
+                setActivityBreakdown({
+                    solutions: progressRes.data.totalSubmissions,
+                    quizAttempts: progressRes.data.totalQuizAttempts,
+                    enrollments: progressRes.data.totalEnrollments
+                })
+
+                setLineData(
+                    perCategoryRes.data.map((a) => ({
+                        name: a.subCategoryName,
+                        avg: a.avgScorePercentage
+                    }))
+                )
+
+                setGameProgress(gameRes.data)
+            } catch (error) {
+                console.error("error while fetching", error.message)
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        fetchData()
+
+    }, [])
+
+    if (loading) {
+        return (
+            <div className="search-loading">
+                <div className="loading-spinner" />
+                <span>Fetching your performance...</span>
+            </div>
+
+        )
+    }
+
+    const achievementsOfCurrentLevel = gameProgress
+    ? gameProgress.currentProgress?.achievements?.filter((achievement) =>
+        gameProgress.currentLevel?.missions?.some(
+            (mission) => achievement.missionId === mission._id
+        )
+    )
+    : [];
+
+    return (
+        <div className="ms-container">
+
+            <div className="ms-header">
+                <div className="ms-header-left">
+                    <h1 className="ms-title">My Progress</h1>
+                    <p className="ms-subtitle">Track progress, review assignments, and monitor activity</p>
+                </div>
+            </div>
+
+            {gameProgress && (
+                <>
+                    <div className="ms-xp-bar-card">
+                        <div className="ms-xp-avatar">
+                            {userAuth?.userImg
+                                ? <img src={`${process.env.REACT_APP_API_URL_GATEWAY}/auth/uploads/${userAuth.userImg}`} alt="avatar" />
+                                : <span>{userAuth?.givenName?.[0]}{userAuth?.familyName?.[0]}</span>
+                            }
+                        </div>
+                        <div className="ms-xp-info">
+                            <div className="ms-xp-top-row">
+                                <div>
+                                    <span className="ms-xp-level-name">{gameProgress.currentLevel?.name}</span>
+                                    <span className="ms-xp-label">Level {gameProgress.currentProgress?.xp} / {gameProgress.nextLevel?.xpRequired} XP</span>
+                                </div>
+                                <div className="ms-xp-points-badge">
+                                    <span className="ms-xp-points-value">{gameProgress.currentProgress?.points}</span>
+                                    <span className="ms-xp-points-label">pts</span>
+                                </div>
+                            </div>
+                            <div className="ms-xp-track">
+                                <div
+                                    className="ms-xp-fill"
+                                    style={{
+                                        width: `${Math.min((gameProgress.currentProgress?.xp / gameProgress.nextLevel?.xpRequired) * 100, 100)}%`
+                                    }}
+                                />
+                            </div>
+                            <div className="ms-xp-bottom-row">
+                                <span className="ms-xp-hint">{gameProgress.currentProgress?.xp} XP earned</span>
+                                <span className="ms-xp-hint">{gameProgress.nextLevel?.xpRequired - gameProgress.currentProgress?.xp} XP to next level</span>
+                            </div>
+                        </div>
+                        <img
+                            src={`${process.env.REACT_APP_API_URL_GATEWAY}/game/uploads/${gameProgress.currentLevel?.coverImg}`}
+                            alt="current badge"
+                            className="ms-xp-badge-img"
+                        />
                     </div>
 
-                    {/* Recent Activity Timeline */}
-                    <div className="activity-card">
-                        <ActivityTimeline activities={recentActivities} />
-                    </div>
-
-                    {/* Top Performances */}
-                    <div className="activity-card">
-                        <h4 className="chart-title">Best Performances</h4>
-                        <div className="performances-list">
-                            {[...mockData.solvedAssignments, ...mockData.quizResults]
-                                .sort((a, b) => b.score - a.score)
-                                .slice(0, 3)
-                                .map((result, idx) => (
-                                    <div key={idx} className="performance-item">
-                                        <div className="performance-title">{result.title}</div>
-                                        <div className="performance-score" style={{ color: result.score >= 80 ? "#10B981" : "#F59E0B" }}>
-                                            {result.score}%
+                    <div className="ms-bottom-row">
+                        <div className="ms-card ms-achievements-card">
+                            <p className="ms-card-title">What you've achieved in this level</p>
+                            <div className="ms-achievements-list">
+                                {achievementsOfCurrentLevel
+                                    .filter(a => a.completed)
+                                    .map(a => (
+                                        <div key={a._id} className="ms-achievement-row">
+                                            <div className="ms-achievement-icon">✓</div>
+                                            <div className="ms-achievement-info">
+                                                <span className="ms-achievement-label">
+                                                    {getMessage(
+                                                        gameProgress.currentLevel?.missions?.find(
+                                                            m => m._id === a.missionId
+                                                        )?.type ?? '',
+                                                        gameProgress.currentLevel?.missions?.find(
+                                                            m => m._id === a.missionId
+                                                        )?.toDo ?? ''
+                                                    )}
+                                                </span>
+                                                <span className="ms-achievement-date">
+                                                    {new Date(a.achievedAt).toLocaleDateString()}
+                                                </span>
+                                            </div>
                                         </div>
+                                    ))
+                                }
+                            </div>
+                        </div>
+
+                        <div className="ms-card ms-missions-card">
+                            <div className="ms-missions-header">
+                                <p className="ms-card-title" style={{ margin: 0 }}>Missions to complete</p>
+                                {gameProgress.nextLevel && (
+                                    <div className="ms-next-level">
+                                        <img
+                                            src={`${process.env.REACT_APP_API_URL_GATEWAY}/game/uploads/${gameProgress.nextLevel?.coverImg}`}
+                                            alt="next level"
+                                            className="ms-next-level-img"
+                                        />
+                                        <span className="ms-next-level-label">{gameProgress.nextLevel?.name}</span>
                                     </div>
-                                ))}
+                                )}
+                            </div>
+                            <div className="ms-missions-list">
+                                {gameProgress.whatToDo.map(m => {
+                                    const pct = m.toDo > 0 ? Math.round((m.progress / m.toDo) * 100) : 0;
+                                    return (
+                                        <div key={m._id} className="ms-mission-row">
+                                            <div className="ms-mission-top">
+                                                <span className="ms-mission-label">{getMessage(m.type, m.toDo)}</span>
+                                                <span className="ms-mission-pct">{m.progress}/{m.toDo}</span>
+                                            </div>
+                                            <div className="ms-mission-track">
+                                                <div className="ms-mission-fill" style={{ width: `${pct}%` }} />
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
                     </div>
+                </>
+            )}
+
+            <div className="ms-charts-row">
+                <div className="ms-card">
+                    <p className="ms-card-title">Enrollements per Speciality</p>
+                    <ResponsiveContainer width="100%" height={200}>
+                        <BarChart data={barData} barSize={28}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--ms-border)" vertical={false} />
+                            <XAxis dataKey="name" tick={{ fontSize: 11, fill: "var(--ms-text-muted)" }} axisLine={false} tickLine={false} />
+                            <YAxis tick={{ fontSize: 11, fill: "var(--ms-text-muted)" }} axisLine={false} tickLine={false} />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Bar dataKey="enrollments" fill="#FFB6C1" radius={[4, 4, 0, 0]} fillOpacity={0.85} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+                <div className="ms-card">
+                    <p className="ms-card-title">Avg score per assignment</p>
+                    <ResponsiveContainer width="100%" height={200}>
+                        <LineChart data={lineData}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--ms-border)" vertical={false} />
+                            <XAxis dataKey="name" tick={{ fontSize: 11, fill: "var(--ms-text-muted)" }} axisLine={false} tickLine={false} />
+                            <YAxis domain={[0, 100]} tickFormatter={v => `${v}%`} tick={{ fontSize: 11, fill: "var(--ms-text-muted)" }} axisLine={false} tickLine={false} />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Line type="monotone" dataKey="avg" stroke="#BA68C8" strokeWidth={2} dot={{ r: 4, fill: "#BA68C8" }} activeDot={{ r: 6 }} />
+                        </LineChart>
+                    </ResponsiveContainer>
                 </div>
             </div>
+
+            {/* <div className="ms-bottom-row">
+
+                <ActivityDonut data={activityBreakdown} />
+                <div className="ms-card ms-card-students">
+                    <p className="ms-card-title">Top Students</p>
+                    <div className="ms-students-list">
+                            {students?.slice(0, 5).map((s, i) => (
+                                <div className="ms-student-row" key={s.id}>
+                                    <span className="ms-rank">#{i + 1}</span>
+                                    <div className="ms-avatar" style={{ background: `${s.color}18`, color: s.color }}>
+                                        {s.initials}
+                                    </div>
+                                    <div className="ms-student-info">
+                                        <span className="ms-student-name">{s.name}</span>
+                                        <span className="ms-student-detail">{s.solved} assignments solved</span>
+                                    </div>
+                                    <div className="ms-score-col">
+                                        <div className="ms-mini-bar-bg">
+                                            <div className="ms-mini-bar-fill" style={{ width: `${s.avg}%`, background: s.color }} />
+                                        </div>
+                                        <span className="ms-mini-pct" style={{ color: s.color }}>{s.avg}%</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                </div>
+
+            </div> */}
         </div>
     );
 }

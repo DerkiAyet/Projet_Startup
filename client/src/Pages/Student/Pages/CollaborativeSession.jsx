@@ -179,17 +179,20 @@ function CollaborativeSession() {
                                 const consensusRes = await axios.get(
                                     `${process.env.REACT_APP_API_URL_GATEWAY}/classrooms/sessions/${sessionId}/consensus`
                                 )
+                                const existingConsensus = consensusRes.data
+
                                 setConsensusArea(
-                                    consensusRes.data.length
-                                        ? consensusRes.data
-                                        : exs.map(ex => ({
+                                    exs.map(ex => {
+                                        const found = existingConsensus.find(c => c.exerciseId === ex._id)
+                                        return found ?? {
                                             sessionId,
                                             exerciseId: ex._id,
                                             exerciseType: ex.exerciseType || "text",
                                             text: "",
                                             isFinal: false,
                                             lockedBy: null,
-                                        }))
+                                        }
+                                    })
                                 )
                             } catch {
                                 setConsensusArea(exs.map(ex => ({

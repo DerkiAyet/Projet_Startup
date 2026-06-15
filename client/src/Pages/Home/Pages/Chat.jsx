@@ -347,7 +347,7 @@ export default function Chat() {
                                     <span className="convo-time">
                                         {convo.lastMessage
                                             ? new Date(convo.lastMessage.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                                            : ''}
+                                           : ''}
                                     </span>
                                 </div>
                                 <div className="convo-bottom">

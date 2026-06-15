@@ -7,6 +7,7 @@ import { SocketProvider } from './Utilities/config/useSocket';
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+import IntroPage from './Partials/Components/IntroPage';
 import TeacherLayout from './Layouts/Components/TeacherLayout';
 import StudentLayout from './Layouts/Components/StudentLayout';
 import ParentLayout from './Layouts/Components/ParentLayout';
@@ -53,6 +54,11 @@ import CreateOnlineCourse from './Pages/Teacher/Pages/CreateOnlineCourse';
 import CreateRessource from './Pages/Student/Pages/CreateRessource';
 import MyResources from './Pages/Student/Pages/MyResources';
 import Profile from './Pages/Home/Pages/Profile';
+import MyPerformance from './Pages/Student/Pages/Performance';
+import ChatBot from './Pages/Home/Pages/ChatBot';
+import UserPortfolio from './Pages/Home/Pages/UserPortfolio';
+import TeacherCourses from './Pages/Teacher/Pages/TeacherCourses';
+import StudentResources from './Pages/Student/Pages/StudentResources';
 
 axios.defaults.withCredentials = true;
 
@@ -80,6 +86,12 @@ function App() {
   useEffect(() => {
     setIsRtl(document.documentElement.dir === "rtl");
   }, []);
+
+  const [showIntro, setShowIntro] = useState(true);
+
+  const handleIntroTimeout = () => {
+    setShowIntro(false); // Hide the intro screen
+  };
 
   const [userAuth, setUserAuth] = useState({
     userId: 0,
@@ -219,64 +231,71 @@ function App() {
 
   return (
     <AppContext.Provider value={{ darkMode, setDarkMode, isRtl, setIsRtl, lang, setLang, userAuth, setUserAuth, getPosts, setGetPosts }}>
-      <SocketProvider >
-        <div className={`App ${isRtl ? "app-rtl" : ""}`} id={darkMode ? 'dark-mode' : 'light-mode'}>
-          <Routes>
+      {showIntro ? (
+        <IntroPage onTimeout={handleIntroTimeout} />
+      ) : (
+        <SocketProvider >
+          <div className={`App ${isRtl ? "app-rtl" : ""}`} id={darkMode ? 'dark-mode' : 'light-mode'}>
+            <Routes>
 
-            <Route path='/register' element={<SignUp />} />
-            <Route path='/register/add-child' element={<AddChild />} />
-            <Route path='/login' element={<Login />} />
-            <Route path='/login/admin' element={<LoginAdmin />} />
-            <Route path='/forget-password' element={<h1>forget password</h1>} />
-            <Route path='/reset-password/:token' element={<h1>reset password</h1>} />
-            <Route path='/welcome' element={<LandingPage />} />
-            <Route path='/create-child' element={<CreateChild />} />
-            <Route path='/confirm-parent' element={<ConfirmParent />} />
+              <Route path='/register' element={<SignUp />} />
+              <Route path='/register/add-child' element={<AddChild />} />
+              <Route path='/login' element={<Login />} />
+              <Route path='/login/admin' element={<LoginAdmin />} />
+              <Route path='/forget-password' element={<h1>forget password</h1>} />
+              <Route path='/reset-password/:token' element={<h1>reset password</h1>} />
+              <Route path='/welcome' element={<LandingPage />} />
+              <Route path='/create-child' element={<CreateChild />} />
+              <Route path='/confirm-parent' element={<ConfirmParent />} />
 
-            {/* Main route based on role */}
-            <Route path="/" element={getLayout()}>
-              {/* Placeholder routes */}
-              <Route index element={getHomePage()} />
-              <Route path="courses" element={<Courses />} />
-              <Route path="courses/:id" element={<CourseDisplay />} />
-              <Route path="calendar" element={<CalendarPage />} />
-              <Route path="my-students" element={<MyStudents />} />
-              <Route path="my-resources" element={<MyResources />} />
-              <Route path="chats" element={<Chat />} />
-              <Route path="create-course" element={<CreateCourse />} />
-              <Route path="create-assignment" element={<CreateAssignment />} />
-              <Route path="create-tip" element={<CreateTip />} />
-              <Route path="create-online-course" element={<CreateOnlineCourse />} />
-              <Route path="share" element={<CreateRessource />} />
-              <Route path="ai-bot" element={<section className='main-container'>AI Assistant</section>} />
-              <Route path="search" element={<SearchPage />} />
-              <Route path="activities" element={<StudentActivity />} />
-              <Route path="activities/solve-assignment/:id" element={<AssignmentSolve />} />
-              <Route path="/activities/review-assignment/:solutionId" element={<AssignmentReview />} />
-              <Route path="progress" element={<section className='main-container'>Progress & Achievements</section>} />
-              <Route path='parent-hub' element={<PostsFeed />} />
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="users" element={<Users />} />
-              <Route path="reports" element={<Reports />} />
-              <Route path="settings" element={<Settings />} />
-              <Route path="settings/subjects" element={<Subjects />} />
-              <Route path="settings/subjects/:subjectId" element={<Specialities />} />
-              <Route path="settings/levels/:levelId" element={<Missions />} />
-              <Route path="settings/levels" element={<Levels />} />
-              <Route path="content" element={<Content />} />
-              <Route path="profile" element={<Profile />} />
-              <Route path="classrooms" element={<Classroom />} />
-              <Route path='classrooms/:classroomId' element={<ClassroomPage />} />
-              <Route path='classrooms/:classroomId/sessions/:sessionId' element={<CollaborativeSession />} />
-              <Route path="online-courses" element={<OnlineCourses />} />
-            </Route>
+              {/* Main route based on role */}
+              <Route path="/" element={getLayout()}>
+                {/* Placeholder routes */}
+                <Route index element={getHomePage()} />
+                <Route path="courses" element={<Courses />} />
+                <Route path="teacher/:userName/courses" element={<TeacherCourses />} />
+                <Route path="courses/:id" element={<CourseDisplay />} />
+                <Route path="calendar" element={<CalendarPage />} />
+                <Route path="my-students" element={<MyStudents />} />
+                <Route path="my-resources" element={<MyResources />} />
+                <Route path="student/:userName/resources" element={<StudentResources />} />
+                <Route path="chats" element={<Chat />} />
+                <Route path="create-course" element={<CreateCourse />} />
+                <Route path="create-assignment" element={<CreateAssignment />} />
+                <Route path="create-tip" element={<CreateTip />} />
+                <Route path="create-online-course" element={<CreateOnlineCourse />} />
+                <Route path="share" element={<CreateRessource />} />
+                <Route path="ai-bot" element={<ChatBot />} />
+                <Route path="search" element={<SearchPage />} />
+                <Route path="activities" element={<StudentActivity />} />
+                <Route path="activities/solve-assignment/:id" element={<AssignmentSolve />} />
+                <Route path="/activities/review-assignment/:solutionId" element={<AssignmentReview />} />
+                <Route path="progress" element={<MyPerformance />} />
+                <Route path='parent-hub' element={<PostsFeed />} />
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="users" element={<Users />} />
+                <Route path="reports" element={<Reports />} />
+                <Route path="settings" element={<Settings />} />
+                <Route path="settings/subjects" element={<Subjects />} />
+                <Route path="settings/subjects/:subjectId" element={<Specialities />} />
+                <Route path="settings/levels/:levelId" element={<Missions />} />
+                <Route path="settings/levels" element={<Levels />} />
+                <Route path="content" element={<Content />} />
+                <Route path="profile" element={<Profile />} />
+                <Route path="users/:userName/profile" element={<UserPortfolio />} />
+                <Route path="classrooms" element={<Classroom />} />
+                <Route path='classrooms/:classroomId' element={<ClassroomPage />} />
+                <Route path='classrooms/:classroomId/sessions/:sessionId' element={<CollaborativeSession />} />
+                <Route path="online-courses" element={<OnlineCourses />} />
+              </Route>
 
-            <Route path='*' element={<NotFound />} />
-          </Routes>
-          <ToastContainer position="top-right" autoClose={10000} />
-          {userAuth.firstAuth && (userAuth.role === "teacher" || userAuth.role === "student") && <IntrestsPopup onFinish={submitIntrests} />}
-        </div>
-      </SocketProvider>
+              <Route path='*' element={<NotFound />} />
+            </Routes>
+            <ToastContainer position="top-right" autoClose={10000} />
+            {userAuth.firstAuth && (userAuth.role === "teacher" || userAuth.role === "student") && <IntrestsPopup onFinish={submitIntrests} />}
+          </div>
+        </SocketProvider>
+      )}
     </AppContext.Provider>
   );
 }
