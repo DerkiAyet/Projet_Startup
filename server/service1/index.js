@@ -51,6 +51,9 @@ app.use('/', authRoutes);
 const userRoutes = require('./routes/Users');
 app.use('/infos', userRoutes);
 
+const analyticsRoute = require('./routes/analytics');
+app.use('/analytics', analyticsRoute);
+
 async function syncDatabase() {
     await db.Users.sync();      // parent first
     await db.Adresses.sync();   // then child

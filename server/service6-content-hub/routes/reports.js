@@ -75,6 +75,37 @@ router.delete('/:id', async (req, res) => {
     }
 })
 
+router.get('/admin/stats', async (req, res) => {
+    try {
+        const userRole = req.headers['x-user-role']
+        if (userRole !== "admin") 
+            return res.status(403).json({ error: "Action Forbidden" })
+
+        const allReports = await Reports.findAll()
+
+        const counts = allReports.reduce((acc, r) => {
+            acc[r.about] = (acc[r.about] || 0) + 1
+            return acc
+        }, {})
+
+        const final = {
+            totalCount: allReports.length,
+            details: [
+                { name: "user", count: counts.user || 0 },
+                { name: "post", count: counts.post || 0 },
+                { name: "content", count: counts.content || 0 },
+                { name: "comment", count: counts.comment || 0 }
+            ]
+        }
+
+        return res.status(200).json(final)
+
+    } catch (error) {
+        console.log("error: ", error.message)
+        return res.status(500).json({ error: "Internal server error" })
+    }
+})
+
 //------------Warnings---------------
 
 router.post('/:reportId/warning', async (req, res) => {

@@ -30,7 +30,7 @@ function IntroPage({ onTimeout }) {
         const timer = setTimeout(() => {
             setIsVisible(false);
             onTimeout();
-        }, 3000);
+        }, 4000);
 
         return () => clearTimeout(timer);
     }, [onTimeout]);

@@ -1,17 +1,563 @@
 :root {
     --light-bg-primary: #FFFFFF;
     --light-bg-secondary: #F9FAFB;
+
+    --dashboard-bg: #F7F6F3;
+    --dashboard-surface: #FFFFFF;
+    --dashboard-border: #EBEBEB;
+    --dashboard-text: #1A1A1A;
+    --dashboard-text-muted: #888780;
+    --dashboard-text-hint: #B4B2A9;
+    --dashboard-radius: 14px;
+    --dashboard-radius-sm: 8px;
+    --dashboard-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .dashboard-container {
-    width: 100%;
-    height: calc(100vh - 55px);
-    position: relative;
+    padding: 2rem 2rem 3rem;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    font-family: 'DM Sans', 'Segoe UI', sans-serif;
+    color: var(--dashboard-text);
 }
 
-.dashboard-wrapper {
-    width: 100%;
-    height: 100%;
+.dashboard-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.dashboard-title {
+    font-size: 1.6rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin: 0 0 2px;
+    color: var(--dashboard-text);
+}
+
+.dashboard-subtitle {
+    font-size: 0.85rem;
+    color: var(--dashboard-text-muted);
+    margin: 0;
+}
+
+.dashboard-tabs {
+    display: flex;
+    gap: 4px;
+    background: #fff;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+    padding: 3px;
+    border-radius: 10px;
+}
+
+.dashboard-tab {
+    padding: 6px 16px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--dashboard-text-muted);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    font-family: "Nunito", sans-serif;
+}
+
+.dashboard-tab.active {
+    background: #F29DB6;
+    color: #fff;
+    box-shadow: var(--dashboard-shadow);
+}
+ 
+.dashboard-stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+.dashboard-stat-card {
+    background: var(--dashboard-surface);
+    border: 0.5px solid var(--dashboard-border);
+    border-radius: var(--dashboard-radius);
+    padding: 1.1rem 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: var(--dashboard-shadow);
+    transition: box-shadow 0.2s;
+}
+
+.dashboard-stat-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.dashboard-stat-accent {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.dashboard-stat-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.dashboard-stat-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.dashboard-stat-value {
+    font-size: 1.4rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--dashboard-text);
+    line-height: 1;
+}
+
+.dashboard-stat-label {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--dashboard-text);
+    margin-top: 3px;
+}
+
+.dashboard-stat-sub {
+    font-size: 0.72rem;
+    color: var(--dashboard-text-hint);
+}
+
+.dashboard-card {
+    background: var(--dashboard-surface);
+    border: 0.5px solid var(--dashboard-border);
+    border-radius: var(--dashboard-radius);
+    padding: 1.2rem 1.4rem;
+    box-shadow: var(--dashboard-shadow);
+}
+
+.dashboard-card-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--dashboard-text-muted);
+    text-transform: capitalize;
+    font-family: "Kumbh Sans", cursive;
+    letter-spacing: 0.05em;
+    margin: 0 0 1rem;
+}
+
+.dashboard-charts-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.dashboard-tooltip {
+    background: var(--dashboard-surface);
+    border: 0.5px solid var(--dashboard-border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-tooltip-label {
+    font-size: 0.75rem;
+    color: var(--dashboard-text-muted);
+    margin: 0 0 2px;
+}
+
+.dashboard-tooltip-value {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--dashboard-text);
+    margin: 0;
+}
+
+.dashboard-bottom-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.dashboard-assign-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.dashboard-assign-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: var(--dashboard-bg);
+    border-radius: var(--dashboard-radius-sm);
+    gap: 12px;
+    transition: background 0.15s;
+}
+
+.dashboard-assign-row:hover {
+    background: var(--dashboard-border);
+}
+
+.dashboard-assign-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+
+.dashboard-assign-title {
+    font-size: 0.83rem;
+    font-weight: 500;
+    color: var(--dashboard-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dashboard-assign-meta {
+    font-size: 0.75rem;
+    color: var(--dashboard-text-muted);
+}
+
+.dashboard-assign-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.dashboard-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+.badge-pending {
+    background: #FAEEDA;
+    color: #854F0B;
+}
+
+.badge-graded {
+    background: #EAF3DE;
+    color: #3B6D11;
+}
+
+.badge-progress {
+    background: #E6F1FB;
+    color: #185FA5;
+}
+
+.dashboard-review-btn {
+    background: none;
+    border: none;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #EC4899;
+    cursor: pointer;
+    padding: 0;
+    white-space: nowrap;
+    transition: opacity 0.15s;
+}
+
+.dashboard-review-btn:hover {
+    opacity: 0.7;
+}
+
+.dashboard-students-list {
     display: flex;
     flex-direction: column;
 }
+
+.dashboard-student-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 0.5px solid var(--dashboard-border);
+    transition: opacity 0.15s;
+}
+
+.dashboard-student-row:last-child {
+    border-bottom: none;
+}
+
+.dashboard-student-row:hover {
+    opacity: 0.8;
+}
+
+.dashboard-rank {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--dashboard-text-hint);
+    width: 20px;
+    flex-shrink: 0;
+}
+
+.dashboard-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    letter-spacing: 0.02em;
+}
+
+.dashboard-student-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+}
+
+.dashboard-student-name {
+    font-size: 0.83rem;
+    font-weight: 500;
+    color: var(--dashboard-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dashboard-student-detail {
+    font-size: 0.72rem;
+    color: var(--dashboard-text-muted);
+}
+
+.dashboard-score-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 3px;
+    flex-shrink: 0;
+    width: 80px;
+}
+
+.dashboard-mini-bar-bg {
+    width: 100%;
+    height: 4px;
+    background: var(--dashboard-border);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.dashboard-mini-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+}
+
+.dashboard-mini-pct {
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+/*---------------React Calendar ---------*/
+
+.react-calendar {
+    border: none;
+    width: 100%;
+    background: transparent;
+    font-family: 'DM Sans', 'Segoe UI', sans-serif;
+    line-height: 1.5;
+}
+
+.dashboard-card .react-calendar {
+    width: 100% !important;
+    max-width: 100%;
+    max-height: 100%;
+    box-sizing: border-box;
+    background: transparent !important;
+    border: 0 !important;
+}
+
+.dashboard-card .react-calendar__tile {
+    aspect-ratio: unset;      /* remove the square forcing */
+    padding: 0.35rem 0.2rem;
+}
+
+.dashboard-card .react-calendar__month-view__days__day {
+    flex-basis: 14.28% !important;  /* force 7 columns */
+    max-width: 14.28% !important;
+}
+
+.dashboard-card .react-calendar__navigation button {
+    padding: 0.2rem 0.3rem;
+}
+
+.react-calendar__navigation {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    height: auto;
+}
+
+.react-calendar__navigation button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--dashboard-text);
+    padding: 0.3rem 0.5rem;
+    border-radius: 8px;
+    transition: background 0.15s;
+    min-width: 0;
+}
+
+.react-calendar__navigation button:hover {
+    background: #F3F4F6;
+}
+
+.react-calendar__navigation button:disabled {
+    opacity: 0.3;
+}
+
+.react-calendar__navigation__label {
+    flex: 1;
+    text-align: center;
+    font-size: 0.88rem !important;
+    font-weight: 600 !important;
+    color: var(--dashboard-text) !important;
+}
+
+.react-calendar__month-view__weekdays {
+    text-align: center;
+    margin-bottom: 0.25rem;
+}
+
+.react-calendar__month-view__weekdays__weekday {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--dashboard-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.3rem 0;
+}
+
+.react-calendar__month-view__weekdays__weekday abbr {
+    text-decoration: none;
+}
+
+.react-calendar__tile {
+    background: none;
+    border: none;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    color: var(--dashboard-text);
+    padding: 0.45rem 0.3rem;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.react-calendar__tile:hover {
+    background: #F3F4F6;
+}
+
+.react-calendar__tile--now {
+    background: #EC489920 !important;
+    color: #EC4899 !important;
+    font-weight: 700;
+}
+
+.react-calendar__tile--active,
+.react-calendar__tile--active:hover {
+    background: #EC4899 !important;
+    color: #fff !important;
+    font-weight: 600;
+}
+
+.react-calendar__tile--active.react-calendar__tile--now {
+    background: #EC4899 !important;
+    color: #fff !important;
+}
+
+.react-calendar__month-view__days__day--weekend {
+    color: #EC4899;
+}
+
+.react-calendar__month-view__days__day--neighboringMonth {
+    color: var(--dashboard-text-hint);
+}
+
+.react-calendar__year-view .react-calendar__tile,
+.react-calendar__decade-view .react-calendar__tile,
+.react-calendar__century-view .react-calendar__tile {
+    padding: 0.75rem 0.5rem;
+    border-radius: 8px;
+}
+
+.search-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem;
+    margin-top: 3rem;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.9rem;
+    color: var(--light-grey-font-color);
+}
+
+.loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--light-border-section);
+    border-top-color: var(--light-pink-accent-color);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 960px) {
+    .dashboard-stats-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .dashboard-charts-row,
+    .dashboard-bottom-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .dashboard-container {
+        padding: 1rem;
+    }
+
+    .dashboard-stats-row {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+

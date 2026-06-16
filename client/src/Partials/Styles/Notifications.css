@@ -5,22 +5,25 @@
     top: 0;
     left: 0;
     z-index: 20;
-    width: 600px;
+    width: 100vw;          /* cover full screen for backdrop */
     height: 100vh;
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;   /* was: center */
+    background-color: rgba(0,0,0,0.3);  /* backdrop */
     box-sizing: border-box;
     font-family: 'Nunito', sans-serif;
-    overflow: hidden;
 }
 
 .notif-wrapper {
-    max-width: 100%;
+    width: 600px;
+    max-width: 100vw;      /* add this */
     height: 100%;
     display: flex;
     flex-direction: column;
     padding: 1.5rem 1rem;
     background-color: #fff;
+    overflow-y: auto;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.08);  /* optional, nice touch */
 }
 
 .notif-wrapper::-webkit-scrollbar{
@@ -143,6 +146,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
+    min-height: 0;
 }
 
 .notif-list::-webkit-scrollbar{

@@ -68,6 +68,9 @@ app.use('/resources', resourcesRoute);
 const onlineRoute = require('./routes/OnlineCourses');
 app.use('/online-courses', onlineRoute);
 
+const analyticsRoute = require('./routes/Analytics');
+app.use('/analytics', analyticsRoute);
+
 redis.on('connect', () => console.log("Redis Connected"));
 redis.on('error', (err) => console.error("Error while connecting with Redis: ", err));
 

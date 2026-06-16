@@ -111,34 +111,38 @@ export default function MyStudents() {
     const [activityBreakdown, setActivityBreakdown] = useState(null);
     const [activeTab, setActiveTab] = useState("overview");
 
- 
+    const [loading, setLoading] = useState(false)
+
     useEffect(() => {
-        axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/stats/my-students/stats`)
-            .then(res => {
-                setStats(res.data)
+        const fetchData = async () => {
+            setLoading(true)
+            try {
+
+                const [statsRes, assignScoresRes, byStudentRes, activityRes] = await Promise.all([
+                    axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/stats/my-students/stats`),
+                    axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/stats/assignments/avg-score-by-subcategory`),
+                    axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/stats/assignments/stats-by-student`),
+                    axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/stats/assignments/activity-breakdown`)
+
+                ])
+
+                setStats(statsRes.data)
                 setBarData(
-                    res.data.enrollementPerCategories.map((e) => ({
+                    statsRes.data.enrollementPerCategories.map((e) => ({
                         name: e.subCategoryName,
                         enrollments: e.enrollments
                     }))
                 )
-            })
-            .catch(console.error);
 
-        axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/stats/assignments/avg-score-by-subcategory`)
-            .then(res => {
                 setLineData(
-                    res.data.avgScoreBySubcategory.map((a) => ({
+                    assignScoresRes.data.avgScoreBySubcategory.map((a) => ({
                         name: a.subCategoryName,
                         avg: a.avgScorePercentage
                     }))
                 )
-            })
 
-        axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/stats/assignments/stats-by-student`)
-            .then((res) => {
                 setStudents(
-                    res.data.statsByStudent.map((s) => ({
+                    byStudentRes.data.statsByStudent.map((s) => ({
                         id: s.studentId,
                         initials: `${s.studentGivenName[0]}${s.studentFamilyName[0]}`.toUpperCase(),
                         name: `${s.studentGivenName} ${s.studentFamilyName}`,
@@ -147,16 +151,33 @@ export default function MyStudents() {
                         color: getStudentColor(s.studentId),
                     }))
                 )
-            })
 
-        axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/stats/assignments/activity-breakdown`)
-            .then(res => setActivityBreakdown(res.data.breakdown))
-            .catch(console.error);
+                setActivityBreakdown(activityRes.data.breakdown)
+            } catch (error) {
+                console.error(error.message)
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        fetchData();
+
     }, [])
+
+    if (loading) {
+        return (
+            <div className="ms-container">
+                <div className="search-loading">
+                    <div className="loading-spinner" />
+                    <span>Fetching data...</span>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="ms-container">
- 
+
             {/* ── Header ── */}
             <div className="ms-header">
                 <div className="ms-header-left">

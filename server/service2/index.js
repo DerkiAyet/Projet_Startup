@@ -25,8 +25,11 @@ app.get("/info", (req, res) =>
     })
 );
 
-const postsRoute = require('./routes/Posts')
-app.use('/', postsRoute)
+const postsRoute = require('./routes/Posts');
+app.use('/', postsRoute);
+
+const analyticsRoute = require('./routes/analytics');
+app.use('/analytics', analyticsRoute);
 
 
 mongoose.connect(process.env.MONGO_URI)

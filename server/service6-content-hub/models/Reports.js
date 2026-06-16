@@ -10,7 +10,7 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.INTEGER,
             allowNull: false
         },
-        about: {
+        about: { 
             type: DataTypes.ENUM('post', 'comment', 'content', 'user'),
             allowNull: false
         },

@@ -151,7 +151,6 @@ export default function Notifications({ onClose }) {
     return true;
   });
 
-  // ── Actions ──────────────────────────────────────────────────
   const markAllRead = async () => {
     try {
       await axios.put(
@@ -205,14 +204,12 @@ export default function Notifications({ onClose }) {
     }
   }
 
-  // ── Render ───────────────────────────────────────────────────
   return (
     <div className="notif-page">
       <div className="notif-wrapper">
         <CloseIcon className="close-icon" onClick={onClose} />
 
         <div className="notif-list-wrapper">
-          {/* Header */}
           <div className="notif-header">
             <div className="notif-header-left">
               <h1 className="notif-title">Notifications</h1>
@@ -229,7 +226,6 @@ export default function Notifications({ onClose }) {
             </button>
           </div>
 
-          {/* Filter tabs */}
           <div className="notif-filters">
             {FILTERS.map((f) => (
               <button
@@ -242,7 +238,6 @@ export default function Notifications({ onClose }) {
             ))}
           </div>
 
-          {/* List */}
           <div className="notif-list">
             {loading ? (
               <div className="notif-empty"><p>Loading...</p></div>
@@ -263,12 +258,10 @@ export default function Notifications({ onClose }) {
                     className={`notif-item ${!notif.isRead ? "notif-item--unread" : ""} ${dismissing === notif._id ? "notif-item--dismissing" : ""}`}
                     onClick={() => handleNotifClick(notif)}
                   >
-                    {/* Unread dot */}
                     <div className="notif-dot-col">
                       {!notif.isRead && <span className="notif-unread-dot" />}
                     </div>
 
-                    {/* Avatar */}
                     <div
                       className="notif-avatar"
                       style={{ background: avatarColor + "22", color: avatarColor }}
@@ -279,7 +272,6 @@ export default function Notifications({ onClose }) {
                       }
                     </div>
 
-                    {/* Content */}
                     <div className="notif-content">
                       <p className="notif-text">
                         {notif.user && notif.user !== "no sender" && (
@@ -301,7 +293,6 @@ export default function Notifications({ onClose }) {
                       </div>
                     </div>
 
-                    {/* Dismiss */}
                     <button
                       className="notif-dismiss-btn"
                       onClick={(e) => { e.stopPropagation(); dismiss(notif._id); }}

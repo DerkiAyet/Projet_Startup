@@ -186,7 +186,7 @@ function App() {
       case "parent":
         return <MyChildren />;
       case "admin":
-        return <section> dashbord of admin </section>;
+        return <Dashboard />;
       default:
         return <section>No user</section>;
     }
@@ -272,7 +272,7 @@ function App() {
                 <Route path="/activities/review-assignment/:solutionId" element={<AssignmentReview />} />
                 <Route path="progress" element={<MyPerformance />} />
                 <Route path='parent-hub' element={<PostsFeed />} />
-                <Route path="dashboard" element={<Dashboard />} />
+                {/* <Route path="dashboard" element={<Dashboard />} /> */}
                 <Route path="users" element={<Users />} />
                 <Route path="reports" element={<Reports />} />
                 <Route path="settings" element={<Settings />} />

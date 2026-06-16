@@ -10,6 +10,8 @@ import { AppContext } from '../../../App'
 import { TimeLineContext } from '../Pages/PostsFeed'
 import axios from 'axios'
 import { useTranslation } from 'react-i18next'
+import { ReportItem } from '../../../Shared/Components/ReportItem'
+import { useNavigate } from 'react-router-dom'
 
 const timeAgo = (dateString, t) => {
     const now = new Date();
@@ -174,6 +176,18 @@ export const PostCard = ({ postText = "", postMedia = "", postUserName = "", med
                 console.log(followees)
             })
     }
+
+    const [reportClicked, setReportClicked] = useState({
+        visible: false,
+        data: {
+            type: "post",
+            refId: post._id
+        }
+    })
+
+    const handleReport = () => setReportClicked({ ...reportClicked, visible: true })
+
+    const navigate = useNavigate()
     return (
         <div className="post-card-wrapper">
             <div className="post-card">
@@ -240,10 +254,19 @@ export const PostCard = ({ postText = "", postMedia = "", postUserName = "", med
                                     <li style={{ cursor: "pointer" }} onClick={openPostPage}>
                                         <p>{t('posts.goToPost')}</p>
                                     </li>
-                                    <li style={{ cursor: "pointer" }}>
+                                    <li style={{ cursor: "pointer" }} onClick={() => navigate(`/users/${post.user.userName}/profile`)}>
                                         <p>{t('posts.aboutAccount')}</p>
                                     </li>
-                                    <li style={{ borderBottom: 'none', cursor: "pointer" }}>
+                                    <li>
+                                        <p
+                                            className='serious-action'
+                                            style={{ color: 'rgb(237, 73, 86)', fontWeight: '500', cursor: "pointer" }}
+                                            onClick={handleReport}
+                                        >
+                                            Report
+                                        </p>
+                                    </li>
+                                    <li style={{ cursor: "pointer" }}>
                                         <p>{t('posts.cancel')}</p>
                                     </li>
                                 </ul>
@@ -313,6 +336,10 @@ export const PostCard = ({ postText = "", postMedia = "", postUserName = "", med
                     <ShareIcon className="share-post-icon" />
                 </div>
             </div>
+            {
+                reportClicked.visible &&
+                <ReportItem data={reportClicked.data} onClose={() => setReportClicked({...reportClicked, visible: false})} />
+            }
         </div>
     )
 }
