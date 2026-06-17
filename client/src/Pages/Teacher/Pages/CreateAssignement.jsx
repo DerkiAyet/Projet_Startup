@@ -376,7 +376,7 @@ function CreateAssignment() {
               {["text", "mcq", "file"].map((type) => (
                 <button
                   key={type}
-                  type="button"
+                  type="button" 
                   className={`exercise-type-btn ${currentExercise.exerciseType === type ? "exercise-type-btn--active" : ""}`}
                   onClick={() => updateCurrentExercise("exerciseType", type)}
                 >

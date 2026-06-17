@@ -300,7 +300,7 @@ export default function ListStudents() {
                                     {solutions.map((sol) => (
                                         <div className="ls-solution-item" key={sol.solution._id}>
                                             <div className="ls-solution-info">
-                                                <h4 className="ls-solution-title">{sol.title}</h4>
+                                                <h4 className="ls-solution-title" style={{fontFamily: "Geologica, sans-serif"}}>{sol.title}</h4>
                                                 <p className="ls-solution-speciality">{sol.speciality}</p>
 
                                                 <div className="ls-score-row">

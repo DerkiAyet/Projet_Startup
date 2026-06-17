@@ -1089,6 +1089,20 @@
     font-size: 0.85rem;
 }
 
+.lesson-type-btn{
+    height: 38px;
+    padding: 0 0.8rem;
+    border-radius: 10px;
+    border: 2px solid var(--light-border-section);
+    background-color: white;
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--light-dark-font-color);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
 @keyframes shimmer {
     0% {
         background-position: 200% 0;

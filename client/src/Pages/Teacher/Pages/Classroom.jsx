@@ -32,7 +32,11 @@ const ClassroomCard = ({ color, classroom, active, isMember, alreadyRequested, s
 
     const isCreator = userAuth?.userId 
     ? String(userAuth.userId) === String(classroom?.creator?.id)
-    : false;
+    : false; 
+
+    const dateOnly = classroom?.createdAt
+        ? new Date(classroom.createdAt).toLocaleDateString()
+        : null;
 
     const handleClick = () => {
         console.log("userId:", userAuth.userId, "creator id:", classroom?.creator?.id)
@@ -70,8 +74,8 @@ const ClassroomCard = ({ color, classroom, active, isMember, alreadyRequested, s
                 </div>
             </div>
 
-            <div className="cr-card-footer">
-                <span className="cr-date">{classroom.createdAt || ""}</span>
+            <div className="cr-card-footer" style={{marginTop: "auto"}}>
+                <span className="cr-date">{dateOnly || ""}</span>
 
                 {userAuth.role === "student" && isMember && (
                     <div className="cr-enrolled">

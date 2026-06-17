@@ -467,7 +467,7 @@ function CreateCourse() {
               <div style={{ display: "flex", gap: "0.8rem", marginBottom: "0.8rem" }}>
                 <button
                   type="button"
-                  className={`draft-btn ${courseData.lessons[currentLessonIndex]?.lessonType !== "video" ? "submit-btn" : ""}`}
+                  className={`lesson-type-btn ${courseData.lessons[currentLessonIndex]?.lessonType !== "video" ? "submit-btn" : ""}`}
                   onClick={() => {
                     const updatedLessons = [...courseData.lessons];
                     updatedLessons[currentLessonIndex].lessonType = "text";
@@ -478,7 +478,7 @@ function CreateCourse() {
                 </button>
                 <button
                   type="button"
-                  className={`draft-btn ${courseData.lessons[currentLessonIndex]?.lessonType === "video" ? "submit-btn" : ""}`}
+                  className={`lesson-type-btn ${courseData.lessons[currentLessonIndex]?.lessonType === "video" ? "submit-btn" : ""}`}
                   onClick={() => {
                     const updatedLessons = [...courseData.lessons];
                     updatedLessons[currentLessonIndex].lessonType = "video";

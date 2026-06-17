@@ -38,6 +38,8 @@ async function checkLevelUp(record) {
         { $set: { currentLevelId: nextLevel._id } }
     )
 
+    await redis.del(`game:progress:${record.studentId}`)
+
     return nextLevel
 }
 
