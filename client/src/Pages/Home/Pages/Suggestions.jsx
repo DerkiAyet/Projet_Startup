@@ -58,7 +58,7 @@ function Suggestions() {
                 <i className="ri-search-line search-icon" />
                 <input
                     type="text"
-                    placeholder="Search for any user..."
+                    placeholder={t("posts.search")}
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onKeyDown={handleKey}

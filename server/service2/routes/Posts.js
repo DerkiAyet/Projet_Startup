@@ -9,7 +9,7 @@ const { discoverAuthService } = require('../config/discovery.service')
 const axios = require('axios')
 const { publishNotification, updateGamification } = require('../config/kafka/producer')
 const redis = require('../config/redis.config')
-const { resolveUser, resolveUserInterests, incrementLike, decrementLike, getLikesCount } = require('../helpers/utils.js')
+const { resolveUser, resolveUserInterests, incrementLike, decrementLike, getLikesCount, deleteByPattern } = require('../helpers/utils.js')
 
 // Configure storage
 const storage = multer.diskStorage({
@@ -68,7 +68,7 @@ router.get("/", async (req, res) => {
             return res.json(JSON.parse(cachedFeed));
         }
 
-        const posts = await Post.find().sort({ createdAt: -1 });
+        const posts = await Post.find({visibility: true}).sort({ createdAt: -1 });
 
         const filteredPosts = [];
 
@@ -179,7 +179,7 @@ router.get('/parent-hub', async (req, res) => {
         const cached = await redis.get(cachedKey)
         if (cached) return res.status(200).json(JSON.parse(cached))
 
-        const posts = await Post.find({ isParentHub: true }).sort({ createdAt: -1 })
+        const posts = await Post.find({ isParentHub: true, visibility: true }).sort({ createdAt: -1 })
         const enrichedPosts = await Promise.all(
             posts.map(async (post) => {
                 try {
@@ -320,6 +320,7 @@ router.post("/", upload.single('media'), async (req, res) => {
         if (userRole === "student") await updateGamification("PUBLISH_POST", Number(userId))
 
         await redis.del(`myPosts:${userId}`)
+        await deleteByPattern("feed:*")
         res.status(201).json(newPost);
     } catch (err) {
         console.error('Upload error:', err);
@@ -332,28 +333,75 @@ router.post("/", upload.single('media'), async (req, res) => {
 // GET POST BY ID
 router.get("/post-info/:id", async (req, res) => {
     try {
+
         const post = await Post.findById(req.params.id);
         if (!post) return res.status(404).json({ error: "Post not found" });
 
-        try {
-            const resolvedUser = await resolveUser(post.userId)
+        let resolvedUser = await resolveUser(post.userId)
 
-            user = {
+        const commentsCount = post.comments.reduce((acc, c) => {
+            return acc + 1 + (c.replies ? c.replies.length : 0);
+        }, 0);
+        const enrichedComments = await Promise.all(
+            (post.comments || []).map(async (c) => {
+                let resolvedCommentUser = await resolveUser(c.userId)
+                const enrichedReplies = await Promise.all(
+                    (c.replies || []).map(async (r) => {
+                        let resolvedReplyUser = await resolveUser(r.userId)
+                        return {
+                            _id: r._id,
+                            text: r.text,
+                            likes: r.likes,
+                            userName: resolvedReplyUser.userName,
+                            familyName: resolvedReplyUser.familyName,
+                            givenName: resolvedReplyUser.givenName,
+                            userImg: resolvedReplyUser.userImg,
+                            role: resolvedReplyUser.role,
+                        };
+                    })
+                );
+
+                return {
+                    _id: c._id,
+                    text: c.text,
+                    replies: enrichedReplies,
+                    likes: c.likes,
+                    userName: resolvedCommentUser.userName,
+                    familyName: resolvedCommentUser.familyName,
+                    givenName: resolvedCommentUser.givenName,
+                    userImg: resolvedCommentUser.userImg,
+                    role: resolvedCommentUser.role
+                };
+            })
+        );
+
+        const enrichedPost = {
+            _id: post._id,
+            userId: post.userId,
+            content: post.content,
+            mediaUrl: post.mediaUrl,
+            mediaType: post.mediaType,
+            mediaSize: post.mediaSize,
+            visibility: post.visibility,
+            tags: post.tags,
+            mentions: post.mentions,
+            urls: post.urls,
+            likes: post.likes,
+            createdAt: post.createdAt,
+            comments: enrichedComments,
+            likesCount: post.likes.length,
+            commentsCount,
+            user: {
                 userId: resolvedUser.id,
                 userName: resolvedUser.userName,
                 familyName: resolvedUser.familyName,
                 givenName: resolvedUser.givenName,
                 userImg: resolvedUser.userImg,
                 role: resolvedUser.role
-            } || null;
-        } catch (err) {
-            console.error("Failed to fetch user:", err.message);
-        }
+            }
+        };
 
-        res.json({
-            ...post.toObject(),
-            user
-        });
+        res.status(200).json(enrichedPost);
 
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -575,7 +623,7 @@ router.get('/users/:userName', async (req, res) => {
     }
 })
 
-router.get('/users/:userName/follow-stats', async(req, res) => {
+router.get('/users/:userName/follow-stats', async (req, res) => {
     try {
         let userInfos;
         const userCachedKey = `portfolio:${req.params.userName}`
@@ -595,8 +643,8 @@ router.get('/users/:userName/follow-stats', async(req, res) => {
 
         const followers = await Follow.find({ followeeId: userId })
         const followersIds = followers.map((f) => f.followerId)
-        const followees = await Follow.find({ followerId: userId })   
-        const followeesIds = followees.map((f) => f.followeeId)     
+        const followees = await Follow.find({ followerId: userId })
+        const followeesIds = followees.map((f) => f.followeeId)
 
         const enrichedFollowers = await Promise.all(
             followers.map(async (follower) => {
@@ -1131,6 +1179,27 @@ router.get('/get-savings', async (req, res) => {
 
     }
 
+})
+
+router.put('/:id/hide', async (req, res) => {
+    try {
+        const userRole = req.headers['x-user-role']
+        const userId = Number(req.headers['x-user-id'])
+
+        const post = await Post.findById(req.params.id)
+        if (post.userId !== userId && userRole !== "admin") return res.status(403).json({ error: "Action Forbidden" })
+
+        if (!post.visibility) return res.status(200).json({ msg: "Post already hidden" })
+
+        post.visibility = false
+        await post.save();
+
+        await deleteByPattern("feed:*")
+        return res.status(200).json({msg: "post hidden with success"})
+    } catch (error) {
+        console.log("error :", error.message)
+        res.status(500).json({ error: "Internal Server Error" })
+    }
 })
 
 module.exports = router;

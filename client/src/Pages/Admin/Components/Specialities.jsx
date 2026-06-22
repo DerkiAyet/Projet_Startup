@@ -229,7 +229,7 @@ function Specialities() {
                                                 <EditIcon />
                                                 Update
                                             </button>
-                                            <button
+                                            {/* <button
                                                 onClick={() => {
                                                     setIdSpecToDelete(spec.idSub)
                                                     setConfirmDelete(true)
@@ -237,7 +237,7 @@ function Specialities() {
                                             >
                                                 <DeleteIcon />
                                                 Delete
-                                            </button>
+                                            </button> */}
                                         </div>
                                     </div>
                                 ))

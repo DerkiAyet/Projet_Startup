@@ -51,7 +51,8 @@ router.post('/of-classroom/:classroomId', async (req, res) => {
                     message: `A new collaborative session has started in ${classroom.name}`,
                     metadata: {
                         classroomId: classroom._id,
-                        sessionId: session._id
+                        sessionId: session._id,
+                        link: `/classrooms/${classroom._id}`
                     }
                 })
             )
@@ -582,6 +583,7 @@ router.put('/:sessionId/consensus/:exerciseId/finalize', async (req, res) => {
             {
                 sessionId: req.params.sessionId,
                 exerciseId: req.params.exerciseId,
+                consensusId: updated._id,
                 finalAnswer: updated.text
             }
         );
@@ -608,7 +610,7 @@ router.put('/:sessionId/consensus/:consensusId/grade', async (req, res) => {
 
         const classroom = await ClassroomModel.findById(session.classroomId)
         if (classroom.teacherId !== teacherId) return res.status(403).json("Forbidden")
-        if (!consensus.submittedAt) return res.status(400).json({ error: "the consensus isn' submitted yet by student" })
+        if (!consensus.finalizedAt) return res.status(400).json({ error: "the consensus isn't submitted yet by student" })
 
         const { grade, teacherRemark } = req.body
         consensus.grade = grade

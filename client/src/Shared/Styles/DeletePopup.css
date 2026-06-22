@@ -11,7 +11,7 @@
 .delete-popup {
     background: #fff;
     border-radius: 20px;
-    border: 1.5px solid var(--stroke-form-color);
+    border: 1.5px solid #CBD5E1;
     padding: 1.5rem 1.75rem;
     width: 340px;
     display: flex;
@@ -72,7 +72,7 @@
 }
 
 .delete-popup__btn.cancel {
-    border: 1.5px solid var(--stroke-form-color);
+    border: 1.5px solid #CBD5E1;
     background: transparent;
     color: var(--dark-font-color);
 }

@@ -311,7 +311,7 @@ router.put('/:classroomId/send-request', async (req, res) => {
             idReceiver: classroom.teacherId,
             title: 'New join request',
             message: `A student requested to join ${classroom.name}`,
-            metadata: { classroomId: classroom._id }
+            metadata: { classroomId: classroom._id, link: `/classrooms/${classroom._id}` }
         });
 
         return res.status(200).json({ message: 'request sent' })
@@ -368,7 +368,7 @@ router.put('/:classroomId/accept/:studentId', async (req, res) => {
             idReceiver: studentId,
             title: 'Join request accepted',
             message: `You have been accepted into ${classroom.name}`,
-            metadata: { classroomId: classroom._id }
+            metadata: { classroomId: classroom._id, link: `/classrooms/${classroom._id}` }
         });
 
         await updateGamification("PARTICIPATE_CLASSROOM", studentId)
@@ -498,8 +498,8 @@ router.post('/:classroomId/posts', async (req, res) => {
                     title: `New post in ${classroom.name}`,
                     message: type === 'text'
                         ? content
-                        : `Teacher shared a new post of type ${type}: ${refTitle}`,
-                    metadata: { classroomId: classroom._id, postId: newPost._id }
+                        : `Teacher shared a new homework of type ${type}: ${refTitle}`,
+                    metadata: { classroomId: classroom._id, postId: newPost._id, link: `/classrooms/${classroom._id}` }
                 })
             })
         )

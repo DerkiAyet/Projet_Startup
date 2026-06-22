@@ -77,7 +77,10 @@ router.post('/:conversationId', async (req, res) => {
                             type: 'NEW_MESSAGE',
                             title: 'New message',
                             conversationId: room._id,
-                            message: enrichedMessage.content
+                            message: `New message from ${enrichedMessage.senderInfo.givenName}`,
+                            metadata: {
+                                link: '/chats'
+                            }
                         });
                     }
                 })

@@ -5,7 +5,7 @@ const XP_POINTS = {
     NEW_FOLLOWEE: 5,
     NEW_FOLLOWER: 10,
     ENROLL_COURSE: 15,
-    SOLVE_QUIZ: 20,
+    SOLVE_QUIZ: 20, 
     SEND_SOLUTION: 50,
     GET_GRADE: 30, //on bonus       
     DO_HOMEWORK: 50,

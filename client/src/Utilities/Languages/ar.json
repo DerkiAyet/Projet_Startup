@@ -44,7 +44,7 @@
     "settings": "الإعدادات"
   },
   "logout": "تسجيل الخروج",
-  "posts": {
+  "posts": { 
     "newPost": "منشور جديد",
     "postPublished": "تم نشر المنشور!",
     "follow": "متابعة",
@@ -82,7 +82,8 @@
     "comments": "تعليقات",
     "likes": "إعجابات",
     "discussion": "مناقشة",
-    "shareThought": "شارك فكرة أو اطرح سؤالاً..."
+    "shareThought": "شارك فكرة أو اطرح سؤالاً...",
+    "search": "ابحث عن أي مستخدم..."
   },
   "createPost": {
     "createNewPost": "إنشاء منشور جديد",

@@ -92,4 +92,15 @@ async function decrementLike(postId) {
     await redis.expire(`likes:${postId}`, 3600);
 }
 
-module.exports = { resolveUser, resolveUserInterests, getLikesCount, incrementLike, decrementLike };
+const deleteByPattern = async ( pattern) => {
+    let cursor = "0";
+    do {
+        const [nextCursor, keys] = await redis.scan(cursor, "MATCH", pattern, "COUNT", 100);
+        cursor = nextCursor;
+        if (keys.length > 0) {
+            await redis.del(...keys);
+        }
+    } while (cursor !== "0");
+};
+
+module.exports = { resolveUser, resolveUserInterests, getLikesCount, incrementLike, decrementLike, deleteByPattern };

@@ -4,7 +4,7 @@ const router = express.Router()
 const ResourceModel = require('../models/Resources')
 const CommentModel = require('../models/Comments')
 const multer = require('multer')
-const { resolveUser, resolveCategory, resolveField, resolveUserInterests, resolveOtherUser } = require('../helpers/utils')
+const { resolveUser, resolveCategory, resolveField, resolveUserInterests, resolveOtherUser, deleteByPattern } = require('../helpers/utils')
 const redis = require('../config/redis.config')
 const path = require('path')
 
@@ -77,6 +77,7 @@ router.post('/', upload.fields([
         })
 
         await redis.del(`myResources:${studentId}`)
+        await deleteByPattern("recommendedResources:*")
         return res.status(201).json(newResource)
     } catch (error) {
         console.error("Error occured while creating the resource: ", error.message)

@@ -187,7 +187,6 @@ export const CommentLine = ({ setPosts, postId, commentId, commentTxt, commentUs
                     )}
                 </span>
 
-                {/* ── Like + View replies row ── */}
                 <div className="comment-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '6px' }}>
                     {commentReplies.length > 0 && (
                         <span
@@ -208,7 +207,6 @@ export const CommentLine = ({ setPosts, postId, commentId, commentTxt, commentUs
                     </span>
                 </div>
 
-                {/* ── Replies ── */}
                 {showReplies && (
                     <div className="replies-container" style={{ marginTop: '10px', paddingLeft: '12px', borderLeft: '2px solid var(--color-border-tertiary)', width: "100%" }}>
                         {commentReplies.map((reply) => (
@@ -247,7 +245,6 @@ export const CommentLine = ({ setPosts, postId, commentId, commentTxt, commentUs
                 }
             </div>
 
-            {/* ── Heart icon (right side) ── */}
             {
                 isLiked ?
                     <FullHeartIcon className="comment-icon" style={{ flexShrink: 0 }} onClick={() => toggleLike(commentBody._id, (nowLiked) => setIsLiked(nowLiked))} /> :
@@ -257,7 +254,6 @@ export const CommentLine = ({ setPosts, postId, commentId, commentTxt, commentUs
     );
 };
 
-// ─── PostPage ─────────────────────────────────────────────────────────────────
 
 function PostPage({selectedPost, visible, onClose, changePostComments, changeCommentReplies, setPosts, followees, setFollowees}) {
 
@@ -287,7 +283,6 @@ function PostPage({selectedPost, visible, onClose, changePostComments, changeCom
         return () => document.removeEventListener('mousedown', handleShowOptions);
     }, []);
 
-    // ── Add Comment ─────────────────────────────────────────────────────────
 
     const onSubmit = async (e) => {
 
@@ -341,8 +336,6 @@ function PostPage({selectedPost, visible, onClose, changePostComments, changeCom
         }
     };
 
-    // ── Like ────────────────────────────────────────────────────────────────
-
     const [isLiked, setIsLiked] = useState(
         post.likes.some((l) => l.userId === userAuth.userId) // the .find retuurns object while .some return true or false
     );
@@ -377,9 +370,6 @@ function PostPage({selectedPost, visible, onClose, changePostComments, changeCom
         changeCommentReplies?.(reply, commentId)
     };
 
-    // ── Emoji ───────────────────────────────────────────────────────────────
-
-    // EmojiPicker kept as-is — just wire it up without axios side-effects
     const addEmoji = (emojiObject) => {
         setCommentBody({ ...commentBody, commentText: commentBody.commentText + emojiObject.emoji });
     };
@@ -446,7 +436,6 @@ function PostPage({selectedPost, visible, onClose, changePostComments, changeCom
     return (
         <div className='post-page-overlay'>
             <div className="post-page-container" ref={postPageRef}>
-                {/* Post image */}
                 <div className="post-img-container">
                     {!post.mediaUrl ? (
                         <div style={{
@@ -487,7 +476,6 @@ function PostPage({selectedPost, visible, onClose, changePostComments, changeCom
                     )}
                 </div>
                 <div className="post-comments-section">
-                    {/* Owner line */}
                     <div className="post-owner-line">
                         <div className="post-owner-infos">
                             <div className="post-owner-img">
@@ -517,7 +505,6 @@ function PostPage({selectedPost, visible, onClose, changePostComments, changeCom
                         <CloseIcon onClick={onClose} style={{ cursor: 'pointer' }} />
 
                     </div>
-                    {/* Comments list */}
                     <div className="post-comments-container">
                         <CommentLine
                             postId={post._id}
@@ -546,7 +533,6 @@ function PostPage({selectedPost, visible, onClose, changePostComments, changeCom
                             />
                         ))}
                     </div>
-                    {/* Icons */}
                     <div className="icons-container">
                         <div className="icons-line">
                             <div className="icons-first-line">
@@ -571,7 +557,6 @@ function PostPage({selectedPost, visible, onClose, changePostComments, changeCom
                         </span>
 
                     </div>
-                    {/* Comment input */}
                     <div className="comment-input">
                         <form method="POST" className="add-comment-form" onSubmit={onSubmit}>
 

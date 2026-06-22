@@ -2,15 +2,12 @@ import React, { useState, useRef, useEffect } from "react";
 import "../Styles/CourseDisplay.css";
 import '../../Home/Styles/PostPage.css'
 import { useParams, useSearchParams } from "react-router-dom";
-// import ReactStars from "react-rating-stars-component";
 import { ReactComponent as TargetIcon } from '../../../Assets/icons/CourseIcons/target-icon.svg'
 import { ReactComponent as TimerIcon } from '../../../Assets/icons/CourseIcons/timer-icon.svg';
 import { ReactComponent as DoneIcon } from '../../../Assets/icons/CourseIcons/done-icon.svg'
 import { ReactComponent as LessonIcon } from '../../../Assets/icons/CourseIcons/lessons-course.svg';
-// import { ReactComponent as FullStar } from '../../../Assets/icons/CourseIcons/full-star.svg';
 import { ReactComponent as FullHeartIcon } from '../../../Assets/icons/TimelineIcons/full-heart.svg'
 import { ReactComponent as LikeIcon } from '../../../Assets/icons/TimelineIcons/like-post.svg'
-// import { ReactComponent as SharIcon } from '../../../Assets/icons/TimelineIcons/share-post.svg';
 import HeaderContent from "../Components/HeaderContent";
 import { CourseView } from "../Components/CourseView";
 import TipView from "../Components/TipView";
@@ -23,6 +20,9 @@ import QuizSolve from "../../Student/Components/QuizSolve";
 import QuizViewer from "../Components/QuizViewer";
 import RecommendContent from "../../Parent/Components/RecommendContent";
 import ToastMessage from '../../../Partials/Components/ToastMessage';
+import { HideItem } from "../../Admin/Components/HideItem";
+import { ReportItem } from "../../../Shared/Components/ReportItem";
+import { SendWarning } from "../../Admin/Components/SendWarning";
 
 axios.defaults.withCredentials = true
 
@@ -213,7 +213,6 @@ export const CommentLine = ({ courseId, commentId, commentTxt, commentUserName, 
                     )}
                 </span>
 
-                {/* ── Like + View replies row ── */}
                 <div className="comment-actions" style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '6px' }}>
                     {commentReplies.length > 0 && (
                         <span
@@ -234,7 +233,6 @@ export const CommentLine = ({ courseId, commentId, commentTxt, commentUserName, 
                     </span>
                 </div>
 
-                {/* ── Replies ── */}
                 {showReplies && (
                     <div className="replies-container" style={{ marginTop: '10px', paddingLeft: '12px', borderLeft: '2px solid var(--color-border-tertiary)', width: "100%" }}>
                         {commentReplies.map((reply) => (
@@ -272,7 +270,6 @@ export const CommentLine = ({ courseId, commentId, commentTxt, commentUserName, 
                 }
             </div>
 
-            {/* ── Heart icon (right side) ── */}
             {
                 isLiked ?
                     <FullHeartIcon className="comment-icon" style={{ flexShrink: 0 }} onClick={() => toggleLike(commentBody._id, (nowLiked) => setIsLiked(nowLiked))} /> :
@@ -290,6 +287,7 @@ export default function CourseDisplay() {
     const [searchParams] = useSearchParams();
 
     const type = searchParams.get("type");
+    const reportId = searchParams.get("reportId") // for the admin
     // "course" | "assignment" | "tip"
 
     const [topic, setTopic] = useState(null)
@@ -476,18 +474,36 @@ export default function CourseDisplay() {
         setToast({ visible: true, message, subMessage });
     };
 
+    const [hideActionOpen, setHideActionOpen] = useState(false)
+    const [sendWarningOpen, setSendWarningOpen] = useState(false)
+
+    const [reportClicked, setReportClicked] = useState({
+        visible: false,
+        data: {
+            type: "content",
+            refId: id,
+            refType: type
+        }
+    })
+
+    const handleReport = () => setReportClicked({ ...reportClicked, visible: true })
+
     return (
         <div className="course-display-container">
             <HeaderContent
+                contentId={id}
                 title={content?.title}
                 creatorName={`${topic?.teacher.givenName} ${topic?.teacher.familyName}`}
+                creatorUserName={topic?.teacher?.userName}
                 commentCount={content?.commentsCount}
                 creationDate={dateOnly}
                 saveCount={9}
                 ratingAvg={content?.avgRating}
+                onHide={() => setHideActionOpen(true)}
+                onReport={handleReport}
+                onSendWarning={() => setSendWarningOpen(true)}
             />
             <div className="cd-page">
-                {/* ── Main area ── */}
                 <div className="cd-main">
 
                     {type === "course" && topic?.course?.lessons && (
@@ -516,14 +532,12 @@ export default function CourseDisplay() {
                         </div>
                     }
 
-                    {/* Comments */}
                     <div className="cd-comments">
                         <h3 className="cd-comments-title">
                             Discussion
                             <span className="cd-comments-count">{comments?.length}</span>
                         </h3>
 
-                        {/* Input */}
                         <div className="cd-comment-input-row">
                             <div className="cd-comment-avatar" style={{ background: "#EC489922", color: "#EC4899" }}>ME</div>
                             <div className="cd-comment-input-wrap">
@@ -543,7 +557,6 @@ export default function CourseDisplay() {
                             </div>
                         </div>
 
-                        {/* Thread */}
                         <div className="cd-comment-list">
                             <div className="cd-comment-list course-comments-container">
                                 {comments?.map((comment) => (
@@ -568,10 +581,8 @@ export default function CourseDisplay() {
                     </div>
                 </div>
 
-                {/* ── Sidebar ── */} 
                 <aside className="cd-sidebar">
 
-                    {/* Course Details */}
                     <div className="cd-sidebar-card">
                         <div className="cd-sidebar-card-header">
                             <h4 className="cd-sidebar-card-title" style={{ textTransform: "capitalize" }}>{type} Details</h4>
@@ -590,7 +601,6 @@ export default function CourseDisplay() {
                             </div>
                         </div>
 
-                        {/* Progress */}
                         {
                             userAuth.role === "student" && type === "course" &&
                             <div className="cd-progress-section">
@@ -650,7 +660,6 @@ export default function CourseDisplay() {
                         </div>
                     </div>
 
-                    {/* Lesson list */}
                     {
                         type === "course" &&
                         <div className="cd-sidebar-card">
@@ -676,7 +685,6 @@ export default function CourseDisplay() {
                         </div>
                     }
 
-                    {/* Recommendations */}
                     <div className="cd-sidebar-card">
                         <h4 className="cd-sidebar-card-title">You may also like</h4>
                         <div className="cd-rec-list">
@@ -736,6 +744,35 @@ export default function CourseDisplay() {
                 subMessage={toast.subMessage}
                 onClose={() => setToast(t => ({ ...t, visible: false }))}
             />
+
+            {
+                reportClicked.visible &&
+                <ReportItem
+                    data={reportClicked.data}
+                    onClose={() => setReportClicked({ ...reportClicked, visible: false })}
+                />
+            }
+
+            {
+                hideActionOpen &&
+                <HideItem
+                    onClose={() => setHideActionOpen(false)}
+                    type={"content"}
+                    targetType={type}
+                    targetId={topic?.teacher?.userId}
+                    refId={id}
+                    reportId={reportId}
+                />
+            }
+
+            {
+                sendWarningOpen &&
+                <SendWarning
+                    onClose={() => setSendWarningOpen(false)}
+                    targetId={topic?.teacher?.userId}
+                    reportId={reportId}
+                />
+            }
         </div>
     );
 }

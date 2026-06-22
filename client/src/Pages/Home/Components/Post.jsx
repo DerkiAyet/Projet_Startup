@@ -7,7 +7,6 @@ import { ReactComponent as CommentIcon } from '../../../Assets/icons/TimelineIco
 import { ReactComponent as ShareIcon } from '../../../Assets/icons/TimelineIcons/share-post.svg'
 import { ReactComponent as FullHeartIcon } from '../../../Assets/icons/TimelineIcons/full-heart.svg'
 import { AppContext } from '../../../App'
-import { TimeLineContext } from '../Pages/PostsFeed'
 import axios from 'axios'
 import { useTranslation } from 'react-i18next'
 import { ReportItem } from '../../../Shared/Components/ReportItem'
@@ -183,7 +182,7 @@ export const PostCard = ({ postText = "", postMedia = "", postUserName = "", med
             type: "post",
             refId: post._id
         }
-    })
+    }) 
 
     const handleReport = () => setReportClicked({ ...reportClicked, visible: true })
 
@@ -193,11 +192,11 @@ export const PostCard = ({ postText = "", postMedia = "", postUserName = "", med
             <div className="post-card">
                 <div className="post-owner-infos">
                     <div className="owner-infos">
-                        <img className='post-user-img' src={defaultPicture} alt="user profile" />
+                        <img className='post-user-img' src={post.user.userImg ? `${process.env.REACT_APP_API_URL_GATEWAY}/auth/uploads/${post.user.userImg}` : defaultPicture} alt="user profile" />
                         <div className="user-credentials">
                             <h5>{post.user.userName}</h5>
                             <div className="coordinates">
-                                <span> {post.user.role} </span>
+                                <span style={{textTransform: "capitalize"}}> {post.user.role} </span>
                                 <svg width="11" height="11" viewBox="0 0 11 11" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M5.54574 6.00416C5.79887 6.00416 6.00407 5.79896 6.00407 5.54583C6.00407 5.2927 5.79887 5.08749 5.54574 5.08749C5.29261 5.08749 5.0874 5.2927 5.0874 5.54583C5.0874 5.79896 5.29261 6.00416 5.54574 6.00416Z" stroke="black" stroke-opacity="0.5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                                 </svg>

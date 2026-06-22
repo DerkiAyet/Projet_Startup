@@ -339,7 +339,7 @@ function Missions() {
                                                 <EditIcon />
                                                 Update
                                             </button>
-                                            <button
+                                            {/* <button
                                                 onClick={() => {
                                                     setIdMissionToDelete(mission._id)
                                                     setConfirmDelete(true)
@@ -347,7 +347,7 @@ function Missions() {
                                             >
                                                 <DeleteIcon />
                                                 Delete
-                                            </button>
+                                            </button> */}
                                         </div>
                                     </div>
                                 ))

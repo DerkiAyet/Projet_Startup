@@ -13,7 +13,7 @@ const CHUNK_SIZE = 6 * 1024 * 1024; // 6MB chunk size for streaming uploads to C
 const streamifier = require('streamifier');
 const fs = require('fs');
 const path = require('path');
-const { resolveUser, resolveUserInterests, resolveCategory, resolveField, resolveOtherUser } = require('../helpers/utils')
+const { resolveUser, resolveUserInterests, resolveCategory, resolveField, resolveOtherUser, deleteByPattern } = require('../helpers/utils')
 const redis = require('../config/redis.config')
 
 const diskStorage = multer.diskStorage({
@@ -157,6 +157,7 @@ router.post('/', upload.single('thumbnail'), async (req, res) => {
         });
 
         await redis.del(`teacherCourses:${teacherId}`)
+        await deleteByPattern("recommendedCourses:*")
         res.status(201).json({ message: "Course created successfully", course: newCourse });
 
     } catch (error) {

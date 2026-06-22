@@ -1,14 +1,33 @@
 const express = require('express')
 const router = express.Router()
-const { Reports, Warnings } = require('../models')
+const { Reports, Warnings, ContentModerationAction } = require('../models')
+const { resolveUser } = require("../helpers/utils")
+const redis = require("../config_server/redis.config")
+const { publishNotification } = require("../config_server/kafka/producer")
 
 router.get('/', async (req, res) => {
     const userRole = req.headers['x-user-role']
     if (userRole !== "admin") return res.status(403).json({ error: "Action Forbidden" })
 
     try {
+        const cachedKey = "reports"
+        const cached = await redis.get(cachedKey)
+        if (cached) return res.status(200).json(JSON.parse(cached))
+
         const reports = await Reports.findAll()
-        return res.status(200).json(reports)
+        const enrichedReports = await Promise.all(
+            reports.map(async (r) => {
+                const userResponse = await resolveUser(r.userId)
+
+                return {
+                    ...r.toJSON(),
+                    reportedBy: userResponse
+                }
+            })
+        )
+
+        await redis.setex(cachedKey, 180, JSON.stringify(enrichedReports))
+        return res.status(200).json(enrichedReports)
     } catch (error) {
         console.log("error while fetching the reports: ", error.message)
         return res.status(500).json({ error: "Internal server error" })
@@ -37,6 +56,8 @@ router.post('/', async (req, res) => {
 
     try {
         const report = await Reports.create({ userId, about, refId, refType, message })
+
+        await redis.del("reports")
         return res.status(201).json(report)
     } catch (error) {
         return res.status(500).json({ error: "Internal server error" })
@@ -78,7 +99,7 @@ router.delete('/:id', async (req, res) => {
 router.get('/admin/stats', async (req, res) => {
     try {
         const userRole = req.headers['x-user-role']
-        if (userRole !== "admin") 
+        if (userRole !== "admin")
             return res.status(403).json({ error: "Action Forbidden" })
 
         const allReports = await Reports.findAll()
@@ -133,8 +154,21 @@ router.post('/:reportId/warning', async (req, res) => {
         // mark the report as processed at the same time
         await report.update({ processedByAdmin: adminId })
 
+        await publishNotification('SYSTEM', {
+            idSender: adminId,
+            idReceiver: targetId,
+            title: `Moderation notice`,
+            message: `You have received a ${type ?? 'warning'} from an administrator. Reason: ${message}`,
+            metadata: {
+                reportId: report.id,
+                targetId,
+                moderationType: type ?? 'warning'
+            }
+        });
+
         return res.status(201).json(warning)
     } catch (error) {
+        console.log("error :", error.message)
         return res.status(500).json({ error: "Internal server error" })
     }
 })
@@ -156,6 +190,53 @@ router.get('/warnings/:targetId', async (req, res) => {
         })
         return res.status(200).json(warnings)
     } catch (error) {
+        return res.status(500).json({ error: "Internal server error" })
+    }
+})
+
+//--------content moderation----------
+
+router.post('/:reportId/moderate-content', async (req, res) => {
+    const userRole = req.headers['x-user-role']
+    if (userRole !== "admin") return res.status(403).json({ error: "Action Forbidden" })
+    const adminId = Number(req.headers['x-user-id'])
+
+    const { reason, targetType, targetId, action } = req.body || {}
+    if (!reason || !targetId) {
+        return res.status(400).json({ error: "Missing required fields: message or targetId" })
+    }
+
+    try {
+        const report = await Reports.findByPk(req.params.reportId)
+        if (!report) return res.status(404).json({ error: "Report not found" })
+
+        const moderateContent = await ContentModerationAction.create({
+            reportId: report.id,
+            targetId,
+            adminId,
+            reason,
+            targetType,
+            action
+        })
+
+        await report.update({ processedByAdmin: adminId })
+
+        await publishNotification('SYSTEM', {
+            idSender: adminId,
+            idReceiver: targetId,
+            title: `Moderation action on your content`,
+            message: `Your ${targetType} has been ${action} by an administrator. Reason: ${reason}`,
+            metadata: {
+                reportId: report.id,
+                targetId,
+                targetType: targetType,
+                action
+            }
+        });
+
+        return res.status(201).json(moderateContent)
+    } catch (error) {
+        console.log("error: ", error.message)
         return res.status(500).json({ error: "Internal server error" })
     }
 })

@@ -1,0 +1,30 @@
+.admin-dropdown {
+    position: absolute;
+    width: 160px;
+    height: auto;
+    top: 100%;
+    left: 100%;
+    z-index: 20;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    background-color: #F9FAFB;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+.admin-dropdown button {
+    padding: 10px 12px;
+    background: transparent;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    font-size: 0.9rem;
+    text-align: center;
+    border-bottom: 1px solid #D9E1E7;
+    font-family: "Plus Jakarta Sans", sans-serif;
+    font-size: 1rem;
+}
+
+.admin-dropdown button:hover {
+    background: #f3f4f6;
+}

@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const OnlineCourseModel = require('../models/OnlineCourses')
-const { resolveCategory, resolveField, resolveUser, resolveUserInterests } = require('../helpers/utils')
+const { resolveCategory, resolveField, resolveUser, resolveUserInterests, deleteByPattern } = require('../helpers/utils')
 const redis = require('../config/redis.config')
 const multer = require('multer')
 
@@ -334,6 +334,7 @@ router.post('/', upload.single('thumbnail'), async (req, res) => {
         })
 
         await redis.del(`teacherOnlineCourses:${teacherId}`)
+        await deleteByPattern("recommendedOnlineCourses:*")
         return res.status(201).json(newCourse)
     } catch (error) {
         console.log("Error while creating the course", error.message)

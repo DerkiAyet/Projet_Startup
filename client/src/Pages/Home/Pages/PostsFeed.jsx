@@ -142,7 +142,7 @@ function PostsFeed() {
                 <div className="new-post-btn-wrapper">
                     <button className='new-post-btn' onClick={() => setCreatePostClicked(true)}>
                         <NewPost />
-                        New Post
+                        {t('posts.newPost')}
                         <span className="stars">
                             <span></span><span></span><span></span><span></span><span></span><span></span>
                         </span>

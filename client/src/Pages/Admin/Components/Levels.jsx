@@ -84,9 +84,9 @@ function Subjects() {
                       <button className='option-btn'>
                         <EditIcon onClick={(e) => { e.stopPropagation(); console.log('edit') }} />
                       </button>
-                      <button className='option-btn' onClick={(e) => { e.stopPropagation(); setLevelIdToDelete(level._id) }}>
+                      {/* <button className='option-btn' onClick={(e) => { e.stopPropagation(); setLevelIdToDelete(level._id) }}>
                         <DeleteIcon />
-                      </button>
+                      </button> */}
                     </div>
                   </div>
                 ))

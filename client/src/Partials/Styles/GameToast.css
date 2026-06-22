@@ -98,7 +98,7 @@
     width: 100%;
     background: linear-gradient(90deg, #EC4899, #8B5CF6);
     transform-origin: left;
-    animation: toastProgress 8s linear forwards;
+    animation: toastProgress 10s linear forwards;
     border-bottom-left-radius: 10px;
     border-bottom-right-radius: 10px;
 }

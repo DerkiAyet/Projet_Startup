@@ -43,5 +43,13 @@ module.exports = (sequelize, DataTypes) => {
         });
     }
 
+    Reports.associate = (models) => {
+        Reports.hasOne(models.ContentModerationAction, {
+            foreignKey: 'reportId',
+            onDelete: 'CASCADE',
+            onUpdate: 'CASCADE'
+        });
+    }
+
     return Reports
 }

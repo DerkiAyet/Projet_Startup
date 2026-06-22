@@ -79,9 +79,9 @@ function Subjects() {
                                                 <button className='option-btn' onClick={(e) => { e.stopPropagation() }}>
                                                     <EditIcon />
                                                 </button>
-                                                <button className='option-btn' onClick={(e) => { e.stopPropagation(); setSubjectIdToDelete(cat.idSubject) }}>
+                                                {/* <button className='option-btn' onClick={(e) => { e.stopPropagation(); setSubjectIdToDelete(cat.idSubject) }}>
                                                     <DeleteIcon />
-                                                </button>
+                                                </button> */}
                                             </div>
                                         </div>
                                     ))

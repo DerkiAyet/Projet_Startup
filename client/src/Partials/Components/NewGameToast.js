@@ -50,8 +50,8 @@ function NewGameToast({ onClose, visible, level, nextLevelXp }) {
         if (!visible) return;
         setClosing(false) // ← reset on every new toast
 
-        const exitTimer = setTimeout(() => setClosing(true), 7500);
-        const closeTimer = setTimeout(onClose, 8000);
+        const exitTimer = setTimeout(() => setClosing(true), 9500);
+        const closeTimer = setTimeout(onClose, 10000);
 
         return () => {
             clearTimeout(exitTimer);

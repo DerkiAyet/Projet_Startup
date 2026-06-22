@@ -52,8 +52,8 @@ function NewAchievementToast({ onClose, visible, mission }) {
         if (!visible) return;
         setClosing(false) // ← reset on every new toast
 
-        const exitTimer = setTimeout(() => setClosing(true), 7500);
-        const closeTimer = setTimeout(onClose, 8000);
+        const exitTimer = setTimeout(() => setClosing(true), 95000);
+        const closeTimer = setTimeout(onClose, 10000);
 
         return () => {
             clearTimeout(exitTimer);

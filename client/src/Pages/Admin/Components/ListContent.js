@@ -3,7 +3,7 @@ import "../Styles/ListUsers.css";
 import { useNavigate } from "react-router-dom";
 
 const COLORS = [
-    "#378ADD", "#7F77DD", "#1D9E75", "#BA7517",
+    "#378ADD", "#7F77DD", "#1D9E75", "#BA7517", 
     "#D85A30", "#C2487E", "#2AADBB", "#8B5CF6",
 ];
 

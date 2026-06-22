@@ -7,6 +7,7 @@
     width: 100%;
     height: calc(100vh - 55px);
     position: relative;
+    font-family: 'DM Sans', 'Segoe UI', sans-serif;
 }
 
 .reports-wrapper {
@@ -14,4 +15,29 @@
     height: 100%;
     display: flex;
     flex-direction: column;
+    gap: 12px;
+    padding: 1rem 1.5rem;
+}
+
+
+.reports-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.reports-title {
+    font-size: 1.6rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin: 0 0 2px;
+    color: var(--up-text);
+}
+
+.reports-subtitle {
+    font-size: 0.85rem;
+    color: var(--up-text-muted);
+    margin: 0;
 }

@@ -4,7 +4,7 @@ import "../Styles/Toast.css"
 function ToastMessage({ message, subMessage, visible, onClose }) {
   useEffect(() => {
     if (!visible) return;
-    const timer = setTimeout(onClose, 4000);
+    const timer = setTimeout(onClose, 7000);
     return () => clearTimeout(timer);
   }, [visible]); 
 

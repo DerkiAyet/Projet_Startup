@@ -24,6 +24,8 @@ import HeaderSession from '../Components/HeaderSession'
 import { useSocket } from "../../../Utilities/config/useSocket"
 import { AppContext } from '../../../App'
 import startChat from '../../../Assets/images/chat.png'
+import SubmitSheetConfirm from '../Components/SubmitSheetConfirm'
+import SubmitConsensusAnswer from '../Components/SubmitConsensusAnswer'
 
 
 // ─── Static data ────────────────────────────────────────────
@@ -65,7 +67,6 @@ function CollaborativeSession() {
     const socket = useSocket()
     const { userAuth } = useContext(AppContext)
 
-    // ── State ────────────────────────────────────────────────
     const [assignmentData, setAssignmentData] = useState({})
     const [classroomData, setClassroomData] = useState({})
     const [sessionData, setSessionData] = useState({})
@@ -89,7 +90,6 @@ function CollaborativeSession() {
     const triggerToast = (message, subMessage = 'Just now') =>
         setToast({ visible: true, message, subMessage })
 
-    // ── Socket join/leave ────────────────────────────────────
     useEffect(() => {
         if (!socket || !classroomId) return
         socket.emit('join_classroom', { classroomId })
@@ -100,7 +100,7 @@ function CollaborativeSession() {
         }
     }, [classroomId, sessionId, socket])
 
-    // ── Initial data fetch ───────────────────────────────────
+    // Intial fetch data
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true)
@@ -114,7 +114,6 @@ function CollaborativeSession() {
                 setClassroomData(classRes.data)
                 setTeacherInfo(classRes.data.creator)
 
-                // Session response varies by phase (see backend)
                 const rawSession = sessionRes.data?.session ?? sessionRes.data
                 setSessionData(rawSession)
                 const phase = rawSession.phase
@@ -125,92 +124,30 @@ function CollaborativeSession() {
 
                 const assignmentId = rawSession.assignmentId
                 if (assignmentId) {
-                    try {
-                        const assignRes = await axios.get(
-                            `${process.env.REACT_APP_API_URL_GATEWAY}/content/assignments/${assignmentId}`
-                        )
-                        const assignment = assignRes.data.assignment
-                        setAssignmentData(assignment)
-                        setStatus(assignRes.data.status)
-                        const exs = assignment.exercises || []
-                        setExercises(exs)
+                    const assignRes = await axios.get(
+                        `${process.env.REACT_APP_API_URL_GATEWAY}/content/assignments/${assignmentId}`
+                    )
+                    const assignment = assignRes.data.assignment
+                    setAssignmentData(assignment)
+                    setStatus(assignRes.data.status)
+                    const exs = assignment.exercises || []
+                    setExercises(exs)
 
-                        // Build empty answer sheets
-                        const emptySheets = exs.map(ex => ({
-                            sessionId,
-                            studentId: userAuth.userId,
-                            exerciseId: ex._id,
-                            exerciseType: ex.exerciseType || "text",
-                            answer: "",
-                            mcqAnswers: (ex.questions || []).map(q => ({ questionId: q._id, selected: [] })),
-                            localFile: null,
-                            fileUrl: null,
-                        }))
-
-                        // If phase >= 2 load sheets
-                        if (phase >= 2) {
-                            try {
-                                const sheetsRes = await axios.get(
-                                    `${process.env.REACT_APP_API_URL_GATEWAY}/classrooms/sessions/${sessionId}/sheets`
-                                )
-                                setStudentsSheets(sheetsRes.data)
-                                // merge my own answers in
-                                const myAnswers = sheetsRes.data
-                                    .filter(s => String(s.studentId) === String(userAuth.userId))
-                                if (myAnswers.length) {
-                                    const merged = emptySheets.map(es => {
-                                        const found = myAnswers.find(s => String(s.exerciseId) === String(es.exerciseId))
-                                        return found ? { ...es, answer: found.answer, mcqAnswers: found.mcqAnswers ?? es.mcqAnswers } : es
-                                    })
-                                    setMySheets(merged)
-                                } else {
-                                    setMySheets(emptySheets)
-                                }
-                            } catch {
-                                setMySheets(emptySheets)
-                            }
-                        } else {
-                            setMySheets(emptySheets)
-                        }
-
-                        // Load consensus for phase 3
-                        if (phase >= 3) {
-                            try {
-                                const consensusRes = await axios.get(
-                                    `${process.env.REACT_APP_API_URL_GATEWAY}/classrooms/sessions/${sessionId}/consensus`
-                                )
-                                const existingConsensus = consensusRes.data
-
-                                setConsensusArea(
-                                    exs.map(ex => {
-                                        const found = existingConsensus.find(c => c.exerciseId === ex._id)
-                                        return found ?? {
-                                            sessionId,
-                                            exerciseId: ex._id,
-                                            exerciseType: ex.exerciseType || "text",
-                                            text: "",
-                                            isFinal: false,
-                                            lockedBy: null,
-                                        }
-                                    })
-                                )
-                            } catch {
-                                setConsensusArea(exs.map(ex => ({
-                                    sessionId,
-                                    exerciseId: ex._id,
-                                    exerciseType: ex.exerciseType || "text",
-                                    text: "",
-                                    isFinal: false,
-                                    lockedBy: null,
-                                })))
-                            }
-                        }
-                    } catch (err) {
-                        console.error("Error fetching assignment:", err)
-                    }
+                    // Always build empty sheets as baseline
+                    const emptySheets = exs.map(ex => ({
+                        sessionId,
+                        studentId: userAuth.userId,
+                        exerciseId: ex._id,
+                        exerciseType: ex.exerciseType || "text",
+                        answer: "",
+                        mcqAnswers: (ex.questions || []).map(q => ({ questionId: q._id, selected: [] })),
+                        localFile: null,
+                        fileUrl: null,
+                    }))
+                    setMySheets(emptySheets)
                 }
             } catch (err) {
-                console.error("Error fetching session data:", err)
+                console.error("Error fetching initial data:", err)
             } finally {
                 setLoading(false)
             }
@@ -218,10 +155,80 @@ function CollaborativeSession() {
         fetchData()
     }, [classroomId, sessionId])
 
+
+    // for phase 2
+    useEffect(() => {
+        if (currentPhase < 2 || !exercises.length) return
+
+        const fetchSheets = async () => {
+            try {
+                const sheetsRes = await axios.get(
+                    `${process.env.REACT_APP_API_URL_GATEWAY}/classrooms/sessions/${sessionId}/sheets`
+                )
+                setStudentsSheets(sheetsRes.data)
+
+                // Merge my own answers into mySheets
+                const myAnswers = sheetsRes.data.filter(
+                    s => String(s.studentId) === String(userAuth.userId)
+                )
+                if (myAnswers.length) {
+                    setMySheets(prev => prev.map(es => {
+                        const found = myAnswers.find(s => String(s.exerciseId) === String(es.exerciseId))
+                        return found
+                            ? { ...es, answer: found.answer, mcqAnswers: found.mcqAnswers ?? es.mcqAnswers }
+                            : es
+                    }))
+                }
+            } catch (err) {
+                console.error("Error fetching sheets:", err)
+            }
+        }
+        fetchSheets()
+    }, [currentPhase, exercises.length, sessionId])
+
+
+    // ── Effect 3: runs when phase reaches 3 — initialize consensus area ──
+    useEffect(() => {
+        if (currentPhase < 3 || !exercises.length) return
+
+        const fetchConsensus = async () => {
+            try {
+                const consensusRes = await axios.get(
+                    `${process.env.REACT_APP_API_URL_GATEWAY}/classrooms/sessions/${sessionId}/consensus`
+                )
+                const existing = consensusRes.data
+                setConsensusArea(
+                    exercises.map(ex => {
+                        const found = existing.find(c => c.exerciseId === ex._id)
+                        return found ?? {
+                            sessionId,
+                            exerciseId: ex._id,
+                            exerciseType: ex.exerciseType || "text",
+                            text: "",
+                            isFinal: false,
+                            lockedBy: null,
+                        }
+                    })
+                )
+            } catch {
+                setConsensusArea(exercises.map(ex => ({
+                    sessionId,
+                    exerciseId: ex._id,
+                    exerciseType: ex.exerciseType || "text",
+                    text: "",
+                    isFinal: false,
+                    lockedBy: null,
+                })))
+            }
+        }
+        fetchConsensus()
+    }, [currentPhase, exercises.length, sessionId])
+
+
     const panelOpenRef = useRef(panelOpen)
     useEffect(() => { panelOpenRef.current = panelOpen }, [panelOpen]) // for the open panel issue when message is sent
 
-    // ── Socket listeners ─────────────────────────────────────
+    //  Socket listeners
     useEffect(() => {
         if (!socket) return
 
@@ -268,10 +275,10 @@ function CollaborativeSession() {
             triggerToast("Area Unlocked", "Consensus area is free to lock")
         })
 
-        socket.on('consensus:finalized', ({ sessionId: sid, exerciseId, finalAnswer }) => {
+        socket.on('consensus:finalized', ({ sessionId: sid, exerciseId, consensusId, finalAnswer }) => {
             if (sid !== sessionId) return
             setConsensusArea(prev => prev.map(c =>
-                String(c.exerciseId) === String(exerciseId) ? { ...c, text: finalAnswer, isFinal: true, lockedBy: null } : c
+                String(c.exerciseId) === String(exerciseId) ? { ...c, _id: consensusId, text: finalAnswer, isFinal: true, lockedBy: null } : c
             ))
         })
 
@@ -298,7 +305,6 @@ function CollaborativeSession() {
         }
     }, [socket, sessionId, userAuth.userId])
 
-    // ── Derived ──────────────────────────────────────────────
     const currentExercise = exercises[currentExerciseIndex] || {}
     const currentMySheet = mySheets[currentExerciseIndex] || {}
     const currentConsensus = consensusArea.find(c => String(c.exerciseId) === String(currentExercise._id)) || {}
@@ -309,19 +315,12 @@ function CollaborativeSession() {
         String(currentConsensus.lockedBy.id ?? currentConsensus.lockedBy) === String(userAuth.userId)
     const lockedByOther = currentConsensus.lockedBy && !lockedByMe
 
-    // ── Answer helpers ───────────────────────────────────────
     const updateMySheet = (field, value) => {
         setMySheets(prev => {
             const next = [...prev]
             next[currentExerciseIndex] = { ...next[currentExerciseIndex], [field]: value }
             return next
         })
-    }
-
-    const updateConsensusText = (text) => {
-        setConsensusArea(prev => prev.map(c =>
-            String(c.exerciseId) === String(currentExercise._id) ? { ...c, text } : c
-        ))
     }
 
     const toggleMCQOption = (questionId, optionText, allowMultiple) => {
@@ -350,7 +349,6 @@ function CollaborativeSession() {
         if (index >= 0 && index < exercises.length) setCurrentExerciseIndex(index)
     }
 
-    // ── Progress ─────────────────────────────────────────────
     const progress = useMemo(() => {
         if (!mySheets.length) return 0
         const solved = mySheets.filter(p => {
@@ -361,7 +359,6 @@ function CollaborativeSession() {
         return Math.round((solved / mySheets.length) * 100)
     }, [mySheets])
 
-    // ── API actions ──────────────────────────────────────────
     const handleSaveSheet = async () => {
         console.log(currentExercise._id)
         try {
@@ -420,11 +417,22 @@ function CollaborativeSession() {
         }
     }
 
-    const saveConsensus = async () => {
+    const consensusTextRef = useRef({})
+
+    // we use ref for the delay problem in consensus:
+    const updateConsensusText = (text) => {
+        consensusTextRef.current[currentExercise._id] = text  // ← keep ref in sync
+        setConsensusArea(prev => prev.map(c =>
+            String(c.exerciseId) === String(currentExercise._id) ? { ...c, text } : c
+        ))
+    }
+
+    const saveConsensus = async (latestText) => {
+        const text = latestText ?? currentConsensus.text
         try {
             await axios.put(
                 `${process.env.REACT_APP_API_URL_GATEWAY}/classrooms/sessions/${sessionId}/consensus/${currentExercise._id}`,
-                { text: currentConsensus.text },
+                { text },
                 { headers: { "Content-Type": "application/json" } }
             )
             triggerToast("Consensus Saved", "Draft saved successfully")
@@ -433,11 +441,12 @@ function CollaborativeSession() {
         }
     }
 
-    const finalizeConsensus = async () => {
+    const finalizeConsensus = async (latestText) => {
+        const text = latestText ?? currentConsensus.text
         try {
             await axios.put(
                 `${process.env.REACT_APP_API_URL_GATEWAY}/classrooms/sessions/${sessionId}/consensus/${currentExercise._id}/finalize`,
-                { text: currentConsensus.text },
+                { text },
                 { headers: { "Content-Type": "application/json" } }
             )
             triggerToast("Final Answer Submitted", "Your group's answer has been sent to the teacher")
@@ -498,7 +507,6 @@ function CollaborativeSession() {
                 phase={currentPhase}
             />
 
-            {/* Phase banner */}
             <div className="cs-phase-banner" style={{ background: phaseMeta.bg, borderColor: phaseMeta.color + '40' }}>
                 <span className="cs-phase-icon"><phaseMeta.icon /></span>
                 <span className="cs-phase-label" style={{ color: phaseMeta.color }}>{phaseMeta.label}</span>
@@ -514,7 +522,6 @@ function CollaborativeSession() {
             </div>
 
             <div className="as-main">
-                {/* ── LEFT: exercise area ──────────────────── */}
                 <div className="solution-sheet left-side">
                     <div className="lesson-editor-container">
 
@@ -544,7 +551,6 @@ function CollaborativeSession() {
                             </button>
                         </div>
 
-                        {/* Points + type badge */}
                         <div className="cs-exercise-meta">
                             <span className="cs-meta-label">Points</span>
                             <div className="points-box">
@@ -558,7 +564,6 @@ function CollaborativeSession() {
                             </div>
                         </div>
 
-                        {/* ── Exercise statement ─────────────────── */}
                         <ExerciseStatement
                             exercise={currentExercise}
                             exerciseIndex={currentExerciseIndex}
@@ -568,9 +573,6 @@ function CollaborativeSession() {
                             toggleMCQOption={toggleMCQOption}
                         />
 
-                        {/* ══════════════════════════════════════════
-                            PHASE 1 — Individual answer area
-                        ══════════════════════════════════════════ */}
                         {currentPhase === 1 && !isTeacher && (
                             <Phase1AnswerArea
                                 exercise={currentExercise}
@@ -584,9 +586,15 @@ function CollaborativeSession() {
                             />
                         )}
 
-                        {/* ══════════════════════════════════════════
-                            PHASE 2 — All students' answers visible
-                        ══════════════════════════════════════════ */}
+                        {currentPhase === 1 && isTeacher && (
+                            <Phase1TeacherView
+                                exercise={currentExercise}
+                                studentsSheets={studentsSheets}
+                                userAuth={userAuth}
+                                onGradeSheet={(sheetId, name) => setGradeModal({ type: 'sheet', id: sheetId, name })}
+                            />
+                        )}
+
                         {currentPhase === 2 && (
                             <Phase2SheetsView
                                 exercise={currentExercise}
@@ -601,9 +609,6 @@ function CollaborativeSession() {
                             />
                         )}
 
-                        {/* ══════════════════════════════════════════
-                            PHASE 3 — Consensus writing
-                        ══════════════════════════════════════════ */}
                         {currentPhase === 3 && (
                             <Phase3ConsensusArea
                                 exercise={currentExercise}
@@ -635,7 +640,6 @@ function CollaborativeSession() {
                             />
                         )}
 
-                        {/* ── Progress dots ──────────────────────── */}
                         <div className="lesson-editor-actions">
                             <div className="lesson-editor-actions-right">
                                 <span className="lesson-dots">
@@ -652,9 +656,7 @@ function CollaborativeSession() {
                     </div>
                 </div>
 
-                {/* ── RIGHT: sidebar ───────────────────────── */}
                 <aside className="cd-sidebar">
-                    {/* Assignment details */}
                     <div className="cd-sidebar-card">
                         <div className="cd-sidebar-card-header">
                             <h4 className="cd-sidebar-card-title">Assignment Details</h4>
@@ -710,7 +712,6 @@ function CollaborativeSession() {
                         </div>
                     </div>
 
-                    {/* Exercise list */}
                     <div className="cd-sidebar-card">
                         <h4 className="cd-sidebar-card-title">Exercises</h4>
                         <div className="cd-lesson-list">
@@ -727,7 +728,6 @@ function CollaborativeSession() {
                         </div>
                     </div>
 
-                    {/* Phase 2: open chat button */}
                     {currentPhase >= 2 && (
                         <button
                             className="cs-open-chat-btn"
@@ -741,7 +741,6 @@ function CollaborativeSession() {
                         </button>
                     )}
 
-                    {/* Recommendations */}
                     <div className="cd-sidebar-card">
                         <h4 className="cd-sidebar-card-title">You may also like</h4>
                         <div className="cd-rec-list">
@@ -762,7 +761,6 @@ function CollaborativeSession() {
                     </div>
                 </aside>
 
-                {/* Tool buttons */}
                 <div className="tool-btns-wrapper">
                     <button onClick={() => setShowCodePanel(true)}>
                         <CodeIcon className="tool-icon" />
@@ -773,15 +771,11 @@ function CollaborativeSession() {
                 </div>
             </div>
 
-            {/* Modals & overlays */}
             {showModal && (
-                <SubmitAssignmentConfirm
+                <SubmitSheetConfirm
                     isOpen={showModal}
                     onClose={() => setShowModal(false)}
                     onConfirm={handleSubmitSheet}
-                    assignmentData={assignmentData}
-                    exercises={exercises}
-                    problemsSolved={mySheets}
                 />
             )}
             {submittedWithSuccess && (
@@ -810,17 +804,11 @@ function CollaborativeSession() {
     )
 }
 
-// ─────────────────────────────────────────────────────────────
-// SUB-COMPONENTS
-// ─────────────────────────────────────────────────────────────
-
-/** Renders the exercise statement (read-only) */
 function ExerciseStatement({ exercise, exerciseIndex, mySheet, status, currentPhase, toggleMCQOption }) {
     if (!exercise._id) return null
 
     return (
         <div className="exercise-statement-box">
-            {/* TEXT */}
             {(exercise.exerciseType === "text" || !exercise.exerciseType) && (
                 <div className="as-exercise-card">
                     <div className="as-page-number">Exercise {exerciseIndex + 1}</div>
@@ -828,7 +816,6 @@ function ExerciseStatement({ exercise, exerciseIndex, mySheet, status, currentPh
                 </div>
             )}
 
-            {/* FILE */}
             {exercise.exerciseType === "file" && (
                 <div className="as-exercise-card">
                     <div className="as-page-number">Exercise {exerciseIndex + 1}</div>
@@ -852,7 +839,6 @@ function ExerciseStatement({ exercise, exerciseIndex, mySheet, status, currentPh
                 </div>
             )}
 
-            {/* MCQ — statement only (options handled per-phase) */}
             {exercise.exerciseType === "mcq" && (
                 <div className="as-exercise-card">
                     <div className="as-page-number">Exercise {exerciseIndex + 1} — MCQ</div>
@@ -863,7 +849,6 @@ function ExerciseStatement({ exercise, exerciseIndex, mySheet, status, currentPh
     )
 }
 
-/** Phase 1 — student writes their own answer */
 function Phase1AnswerArea({ exercise, exerciseIndex, mySheet, status, updateMySheet, toggleMCQOption, onSave, onSubmit }) {
     const isGraded = status === "graded"
 
@@ -874,10 +859,8 @@ function Phase1AnswerArea({ exercise, exerciseIndex, mySheet, status, updateMySh
                 Your Answer — Phase 1
             </div>
 
-            {/* TEXT / FILE type */}
             {(exercise.exerciseType === "text" || exercise.exerciseType === "file" || !exercise.exerciseType) && !isGraded && (
                 <>
-                    {/* File upload */}
                     <FileUploadSlot
                         mySheet={mySheet}
                         updateMySheet={updateMySheet}
@@ -885,7 +868,6 @@ function Phase1AnswerArea({ exercise, exerciseIndex, mySheet, status, updateMySh
                         accentBg={exercise.exerciseType === "file" ? "#ECFDF5" : "#FDF2F8"}
                     />
 
-                    {/* Rich text editor */}
                     <JoditEditor
                         key={`p1-${exerciseIndex}`}
                         value={mySheet?.answer || ""}
@@ -895,7 +877,6 @@ function Phase1AnswerArea({ exercise, exerciseIndex, mySheet, status, updateMySh
                 </>
             )}
 
-            {/* MCQ type */}
             {exercise.exerciseType === "mcq" && !isGraded && (
                 <MCQAnswerBlock
                     exercise={exercise}
@@ -905,7 +886,6 @@ function Phase1AnswerArea({ exercise, exerciseIndex, mySheet, status, updateMySh
                 />
             )}
 
-            {/* If graded, show teacher's remark */}
             {isGraded && (
                 <div className="as-exercise-card" style={{ border: "1.5px solid #EC489980", background: "#FDF2F8" }}>
                     <div className="as-page-number">Teacher's Remark</div>
@@ -913,7 +893,6 @@ function Phase1AnswerArea({ exercise, exerciseIndex, mySheet, status, updateMySh
                 </div>
             )}
 
-            {/* Action buttons */}
             {!isGraded && (
                 <div className="cs-action-row">
                     <button className="cs-btn cs-btn--ghost" onClick={onSave}>
@@ -928,7 +907,70 @@ function Phase1AnswerArea({ exercise, exerciseIndex, mySheet, status, updateMySh
     )
 }
 
-/** Phase 2 — see all students' answers + own answer still editable */
+function Phase1TeacherView({ exercise, studentsSheets, userAuth, onGradeSheet }) {
+    const exerciseSheets = studentsSheets.filter(
+        s => String(s.exerciseId) === String(exercise._id) && s.submittedAt
+    )
+
+    return (
+        <div className="cs-answer-area">
+            <div className="cs-section-label">
+                <span className="cs-section-dot cs-dot-yellow" />
+                Student Submissions — Phase 1
+                <span style={{ marginLeft: "auto", fontSize: "0.78rem", color: "#8E8E8E" }}>
+                    {exerciseSheets.length} submitted
+                </span>
+            </div>
+
+            {exerciseSheets.length === 0 ? (
+                <div className="cs-empty-state">
+                    <span>No submissions yet. Waiting for students…</span>
+                </div>
+            ) : (
+                <div className="cs-sheets-list">
+                    {exerciseSheets.map((sheet, i) => {
+                        const name = sheet.student
+                            ? `${sheet.student.givenName} ${sheet.student.familyName}`
+                            : `Student ${i + 1}`
+                        return (
+                            <div key={sheet._id || i} className="cs-sheet-card">
+                                <div className="cs-sheet-header">
+                                    <Avatar name={name} pic={sheet.student?.userImg} size="32px" />
+                                    <span className="cs-sheet-name">{name}</span>
+                                    <span className="cs-sheet-time">
+                                        {sheet.submittedAt
+                                            ? new Date(sheet.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                            : ''}
+                                    </span>
+                                    {sheet.grade != null && (
+                                        <span className="cs-grade-badge">{sheet.grade} pts</span>
+                                    )}
+                                    <button
+                                        className="cs-btn cs-btn--ghost cs-btn--sm"
+                                        onClick={() => onGradeSheet(sheet._id, name)}
+                                    >
+                                        <i className="ri-quill-pen-line" />
+                                        {sheet.grade != null ? 'Edit Grade' : 'Grade'}
+                                    </button>
+                                </div>
+                                <div
+                                    className="cs-sheet-content as-page-content"
+                                    dangerouslySetInnerHTML={{ __html: sheet.answer || '<em>No text answer</em>' }}
+                                />
+                                {sheet.teacherRemark && (
+                                    <div className="cs-remark-preview">
+                                        <i className="ri-feedback-line" /> {sheet.teacherRemark}
+                                    </div>
+                                )}
+                            </div>
+                        )
+                    })}
+                </div>
+            )}
+        </div>
+    )
+}
+
 function Phase2SheetsView({ exercise, studentsSheets, mySheet, updateMySheet, onSave, onSubmit, isTeacher, userAuth, onGradeSheet }) {
     const exerciseSheets = studentsSheets.filter(
         s => String(s.exerciseId) === String(exercise._id) && s.submittedAt
@@ -936,7 +978,6 @@ function Phase2SheetsView({ exercise, studentsSheets, mySheet, updateMySheet, on
 
     return (
         <div className="cs-answer-area">
-            {/* My answer (editable if not yet submitted) */}
             {!isTeacher && (
                 <div className="cs-subsection">
                     <div className="cs-section-label">
@@ -968,7 +1009,6 @@ function Phase2SheetsView({ exercise, studentsSheets, mySheet, updateMySheet, on
                 </div>
             )}
 
-            {/* All submitted sheets */}
             <div className="cs-subsection">
                 <div className="cs-section-label">
                     <span className="cs-section-dot cs-dot-blue" />
@@ -1028,7 +1068,6 @@ function Phase2SheetsView({ exercise, studentsSheets, mySheet, updateMySheet, on
     )
 }
 
-/** Phase 3 — consensus writing block */
 function Phase3ConsensusArea({
     exercise, exerciseIndex, consensus, studentsSheets,
     isTeacher, lockedByMe, lockedByOther,
@@ -1038,17 +1077,30 @@ function Phase3ConsensusArea({
         s => String(s.exerciseId) === String(exercise._id) && s.submittedAt
     )
 
-    useEffect(() => {
-        if (!lockedByMe) return
-        const interval = setInterval(() => {
-            onSave()
-        }, 10000)
-        return () => clearInterval(interval)
-    }, [lockedByMe, onSave])
+    const joditRef = useRef(null)
+
+    const getLatestText = () => {
+        try {
+            return joditRef.current?.value ?? consensus.text
+        } catch { //for the case of other students who arent having the consensus locked eventually the jodit doesn't exists
+            return consensus.text
+        }
+    }
+
+    const [showModalConsensus, setShowModalConsensus] = useState(false)
+
+    // useEffect(() => {
+    //     if (!lockedByMe) return
+    //     const interval = setInterval(() => {
+    //         const latest = getLatestText()
+    //         updateConsensusText(latest)
+    //         onSave(latest)
+    //     }, 10000)
+    //     return () => clearInterval(interval)
+    // }, [lockedByMe, onSave
 
     return (
         <div className="cs-answer-area">
-            {/* Reference: individual answers (collapsible) */}
             <details className="cs-reference-details">
                 <summary className="cs-reference-summary">
                     <span className="cs-section-dot cs-dot-blue" />
@@ -1075,7 +1127,6 @@ function Phase3ConsensusArea({
                 </div>
             </details>
 
-            {/* Consensus editor */}
             <div className="cs-consensus-block">
                 <div className="cs-section-label">
                     <span className="cs-section-dot cs-dot-green" />
@@ -1083,9 +1134,14 @@ function Phase3ConsensusArea({
                     {consensus.isFinal && (
                         <span className="cs-final-badge">✓ Final</span>
                     )}
+                    {/* -----timer----- */}
+                    {lockedByMe && (
+                        <div style={{ display: "flex", gap: "0.4rem", marginLeft: "auto" }}>
+                            <span style={{ fontSize: "0.82rem", textTransform: "none" }}>You have 10 min to write your answer</span>
+                        </div>
+                    )}
                 </div>
 
-                {/* Lock status bar */}
                 {!consensus.isFinal && (
                     <div className={`cs-lock-bar ${lockedByMe ? 'cs-lock-bar--mine' : lockedByOther ? 'cs-lock-bar--other' : 'cs-lock-bar--free'}`}>
                         {lockedByMe && (
@@ -1117,9 +1173,9 @@ function Phase3ConsensusArea({
                     </div>
                 )}
 
-                {/* Editor */}
                 {!consensus.isFinal ? (
                     <JoditEditor
+                        ref={joditRef}
                         key={`consensus-${exercise._id}`}
                         value={consensus.text || ""}
                         onBlur={(val) => {
@@ -1138,13 +1194,21 @@ function Phase3ConsensusArea({
                     </div>
                 )}
 
-                {/* Actions */}
                 {!consensus.isFinal && lockedByMe && (
                     <div className="cs-action-row">
-                        <button className="cs-btn cs-btn--ghost" onClick={onSave}>
+                        <button className="cs-btn cs-btn--ghost"
+                            onClick={() => {
+                                const latest = getLatestText()
+                                updateConsensusText(latest)
+                                onSave(latest)
+                            }}>
                             <i className="ri-save-line" /> Save Draft
                         </button>
-                        <button className="cs-btn cs-btn--success" onClick={onFinalize}>
+                        <button className="cs-btn cs-btn--success"
+                            onClick={() => {
+                                setShowModalConsensus(true)
+                            }}
+                        >
                             <i className="ri-check-double-line" /> Submit Final Answer
                         </button>
                     </div>
@@ -1164,11 +1228,22 @@ function Phase3ConsensusArea({
                     </div>
                 )}
             </div>
+            {showModalConsensus && (
+                <SubmitConsensusAnswer
+                    isOpen={showModalConsensus}
+                    onClose={() => setShowModalConsensus(false)}
+                    onConfirm={() => {
+                        const latest = getLatestText()
+                        updateConsensusText(latest)
+                        onFinalize(latest)
+                        setShowModalConsensus(false)
+                    }}
+                />
+            )}
         </div>
     )
 }
 
-/** File upload slot (reused) */
 function FileUploadSlot({ mySheet, updateMySheet, accentColor = "#EC4899", accentBg = "#FDF2F8" }) {
     if (mySheet?.localFile || mySheet?.fileUrl) {
         return (
@@ -1197,7 +1272,6 @@ function FileUploadSlot({ mySheet, updateMySheet, accentColor = "#EC4899", accen
     )
 }
 
-/** MCQ answer block */
 function MCQAnswerBlock({ exercise, mySheet, toggleMCQOption, readonly }) {
     return (
         <div className="cs-mcq-block">
@@ -1305,9 +1379,6 @@ function GradeModal({ target, onClose, onConfirm }) {
     )
 }
 
-// ─────────────────────────────────────────────────────────────
-// MESSAGES PANEL
-// ─────────────────────────────────────────────────────────────
 const MessagesPanel = ({ messages, sessionId, messagesOpen, classroomName, author, onClose }) => {
     const { userAuth } = useContext(AppContext)
     const messagesEndRef = useRef(null)

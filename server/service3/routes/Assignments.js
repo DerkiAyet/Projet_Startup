@@ -8,7 +8,7 @@ const { discoverAuthService } = require('../config/discovery.service')
 const multer = require('multer')
 const QuizAttemptModel = require('../models/QuizAttempts')
 const { enrichContent } = require('./Courses')
-const { resolveCategory, resolveField, resolveUser, resolveUserInterests, resolveOtherUser } = require('../helpers/utils')
+const { resolveCategory, resolveField, resolveUser, resolveUserInterests, resolveOtherUser, deleteByPattern } = require('../helpers/utils')
 const redis = require('../config/redis.config')
 
 const storage = multer.diskStorage({
@@ -98,7 +98,9 @@ router.post('/', upload.fields([
 
         newAssignment.maxScore = newAssignment.calculateMaxScore();
         await newAssignment.save()
+
         await redis.del(`teacherAssigns:${teacherId}`)
+        await deleteByPattern("recommendedAssigns:*")
         res.status(201).json({ message: "assignment created successfully", assignment: newAssignment });
 
     } catch (error) {

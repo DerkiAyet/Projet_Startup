@@ -82,7 +82,8 @@
     "comments": "comments",
     "likes": "likes",
     "discussion": "Discussion",
-    "shareThought": "Share a thought or ask a question..."
+    "shareThought": "Share a thought or ask a question...",
+    "search": "Search for any user..."
   },
   "createPost": {
     "createNewPost": "Create New Post",

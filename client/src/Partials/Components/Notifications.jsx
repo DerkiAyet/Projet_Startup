@@ -247,64 +247,14 @@ export default function Notifications({ onClose }) {
                 <p>No notifications here</p>
               </div>
             ) : (
-              filtered.map((notif) => {
-                const config = TYPE_CONFIG[notif.type] ?? TYPE_CONFIG.SYSTEM;
-                const initials = getInitials(notif.user);
-                const avatarColor = getAvatarColor(notif.idSender ?? 0);
-
-                return (
-                  <div
-                    key={notif._id}
-                    className={`notif-item ${!notif.isRead ? "notif-item--unread" : ""} ${dismissing === notif._id ? "notif-item--dismissing" : ""}`}
-                    onClick={() => handleNotifClick(notif)}
-                  >
-                    <div className="notif-dot-col">
-                      {!notif.isRead && <span className="notif-unread-dot" />}
-                    </div>
-
-                    <div
-                      className="notif-avatar"
-                      style={{ background: avatarColor + "22", color: avatarColor }}
-                    >
-                      {notif.user?.userImg
-                        ? <img src={notif.user.userImg} alt={initials} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
-                        : initials
-                      }
-                    </div>
-
-                    <div className="notif-content">
-                      <p className="notif-text">
-                        {notif.user && notif.user !== "no sender" && (
-                          <span className="notif-name">
-                            {notif.user.givenName} {notif.user.familyName}{" "}
-                          </span>
-                        )}
-                        {notif.message}
-                      </p>
-                      <div className="notif-meta">
-                        <span
-                          className="notif-type-badge"
-                          style={{ color: config.color, background: config.bg }}
-                        >
-                          <span style={{ color: config.color }}>{config.icon}</span>
-                          {config.label}
-                        </span>
-                        <span className="notif-time">{timeAgo(notif.createdAt)}</span>
-                      </div>
-                    </div>
-
-                    <button
-                      className="notif-dismiss-btn"
-                      onClick={(e) => { e.stopPropagation(); dismiss(notif._id); }}
-                      title="Dismiss"
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-                      </svg>
-                    </button>
-                  </div>
-                );
-              })
+              filtered.map((notif) => (
+                <NotifItem
+                  key={notif._id}
+                  notif={notif}
+                  onDismiss={dismiss}
+                  onClick={handleNotifClick}
+                />
+              ))
             )}
           </div>
         </div>
@@ -312,3 +262,59 @@ export default function Notifications({ onClose }) {
     </div>
   );
 }
+
+const NotifItem = ({ notif, onDismiss, onClick }) => {
+  const [expanded, setExpanded] = useState(false);
+  const config = TYPE_CONFIG[notif.type] ?? TYPE_CONFIG.SYSTEM;
+  const initials = getInitials(notif.user);
+  const avatarColor = getAvatarColor(notif.idSender ?? 0);
+
+  return (
+    <div
+      key={notif._id}
+      className={`notif-item ${!notif.isRead ? "notif-item--unread" : ""}`}
+      onClick={() => {
+        onClick(notif);
+      }}
+    >
+      <div className="notif-dot-col">
+        {!notif.isRead && <span className="notif-unread-dot" />}
+      </div>
+
+      <div className="notif-avatar" style={{ background: avatarColor + "22", color: avatarColor }}>
+        {notif.user?.userImg
+          ? <img src={notif.user.userImg} alt={initials} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+          : initials
+        }
+      </div>
+
+      <div className="notif-content">
+        <p className={`notif-text ${!expanded ? "notif-text--clamped" : ""}`} onClick={(e) => {e.stopPropagation(); setExpanded((prev) => !prev);}}>
+          {notif.user && notif.user !== "no sender" && (
+            <span className="notif-name">
+              {notif.user.givenName} {notif.user.familyName}{" "}
+            </span>
+          )}
+          {notif.message}
+        </p>
+        <div className="notif-meta">
+          <span className="notif-type-badge" style={{ color: config.color, background: config.bg }}>
+            <span style={{ color: config.color }}>{config.icon}</span>
+            {config.label}
+          </span>
+          <span className="notif-time">{timeAgo(notif.createdAt)}</span>
+        </div>
+      </div>
+
+      <button
+        className="notif-dismiss-btn"
+        onClick={(e) => { e.stopPropagation(); onDismiss(notif._id); }}
+        title="Dismiss"
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+          <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+        </svg>
+      </button>
+    </div>
+  );
+};

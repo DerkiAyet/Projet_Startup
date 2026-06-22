@@ -1,18 +1,21 @@
-import React, { useContext } from 'react'
-import { Link } from 'react-router-dom';
+import React, { useContext, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom';
 import { ReactComponent as CalendarIcon } from '../../../Assets/icons/NavIcons/calendar.svg';
 import { ReactComponent as CommentIcon } from '../../../Assets/icons/TimelineIcons/comment-post.svg';
 import { ReactComponent as SaveIcon } from '../../../Assets/icons/TimelineIcons/bookmark.svg';
 import { ReactComponent as AuthorIcon } from '../../../Assets/icons/CourseIcons/profile-course.svg';
 import { ReactComponent as SharIcon } from '../../../Assets/icons/TimelineIcons/share-post.svg';
+import { ReactComponent as MenuIcon } from '../../../Assets/icons/CourseIcons/menu-dots.svg'
 import { AppContext } from '../../../App';
 
 
-function HeaderContent({ title, creatorName, creationDate, commentCount, saveCount, ratingAvg,  }) {
+function HeaderContent({ contentId, title, creatorName, creatorUserName, creationDate, commentCount, saveCount, ratingAvg, onHide, onSendWarning, onReport}) {
 
-    const {userAuth} = useContext(AppContext)
+    const { userAuth } = useContext(AppContext)
+    const [openMenu, setOpenMenu] = useState(false)
+    const navigate = useNavigate()
 
-    return ( 
+    return (
         <div className="cd-header">
             <div className="link-line">
                 {
@@ -21,7 +24,7 @@ function HeaderContent({ title, creatorName, creationDate, commentCount, saveCou
                     ) : (
                         <Link to="/courses">Courses</Link>
                     )
-                    } &gt; <span>{title}</span>
+                } &gt; <span>{title}</span>
             </div>
             <h1>
                 {title}
@@ -34,7 +37,7 @@ function HeaderContent({ title, creatorName, creationDate, commentCount, saveCou
                     </div>
                     <div className="feature-line">
                         <CalendarIcon className='cd-icon-header' />
-                        { creationDate }
+                        {creationDate}
                     </div>
                     <div className="feature-line">
                         <CommentIcon className='cd-icon-header' />
@@ -42,18 +45,71 @@ function HeaderContent({ title, creatorName, creationDate, commentCount, saveCou
                     </div>
                     <div className="feature-line">
                         <SaveIcon className='cd-icon-header' />
-                        { saveCount } saves
+                        {saveCount} saves
                     </div>
                     <div className="feature-line rating-stars">
-                        { ratingAvg } stars
+                        {ratingAvg} stars
                     </div>
                 </div>
                 <div className="options-header-right">
-                    <div className="option-box">
+                    <div className="option-box" style={{cursor: "pointer"}}>
                         <SaveIcon className="option-cd-icon" />
                     </div>
-                    <div className="option-box">
-                        <SharIcon className="option-cd-icon" />
+                    <div style={{ marginLeft: "auto", position: "relative" }}>
+                        <div className="option-box" style={{cursor: "pointer"}}>
+                            <MenuIcon
+                                className="option-cd-icon"
+                                onClick={() => setOpenMenu((prev) => !prev)}
+                            />
+                        </div>
+                        {
+                            openMenu && 
+                            <div className="admin-dropdown">
+                                <button
+                                    onClick={() => {
+                                        setOpenMenu(false);
+                                        navigate(`/users/${creatorUserName}/profile`)
+                                    }}
+                                >
+                                    About teacher
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        onReport?.();
+                                        setOpenMenu(false);
+                                    }}
+                                    style={{
+                                        color: "rgb(237, 73, 86)"
+                                    }}
+                                >
+                                    Report
+                                </button>
+                                {
+                                    userAuth.role === "admin" && (
+                                        <>
+                                            <button
+                                                onClick={() => {
+                                                    onHide?.();
+                                                    setOpenMenu(false);
+                                                }}
+                                            >
+                                                Hide
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    onSendWarning?.();
+                                                    setOpenMenu(false);
+                                                }}
+                                                style={{
+                                                    color: "rgb(237, 73, 86)"
+                                                }}
+                                            >
+                                                Send warning
+                                            </button></>
+                                    )
+                                }
+                            </div>
+                        }
                     </div>
                 </div>
             </div>

@@ -4,7 +4,7 @@ const TipModel = require('../models/Tips')
 const CommentModel = require('../models/Comments')
 const axios = require('axios')
 const multer = require('multer')
-const { resolveCategory, resolveField, resolveUser, resolveUserInterests, resolveOtherUser } = require('../helpers/utils')
+const { resolveCategory, resolveField, resolveUser, resolveUserInterests, resolveOtherUser, deleteByPattern } = require('../helpers/utils')
 const { enrichContent } = require('./Courses')
 const redis = require('../config/redis.config')
 
@@ -46,6 +46,7 @@ router.post('/', upload.single('thumbnail'), async (req, res) => {
         });
 
         await redis.del(`teacherTips:${teacherId}`)
+        await deleteByPattern("recommendedTips:*")
         res.status(201).json({ message: "Tip created successfully", tip: newTip });
     } catch (error) {
         console.error("Error creating tip:", error.message);

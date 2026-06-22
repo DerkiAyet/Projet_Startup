@@ -11,7 +11,7 @@
 .report-popup {
     background: #fff;
     border-radius: 18px;
-    border: 1.5px solid var(--stroke-form-color);
+    border: 1.5px solid #CBD5E1;
     padding: 1.75rem 2rem;
     width: 420px;
     display: flex;
@@ -72,7 +72,7 @@
 }
 
 .delete-popup__btn.cancel {
-    border: 1.5px solid var(--stroke-form-color);
+    border: 1.5px solid #CBD5E1;
     background: transparent;
     color: var(--dark-font-color);
 }
@@ -98,7 +98,7 @@
     width: 100%;
     min-height: 90px;
     border-radius: 12px;
-    border: 1.5px solid var(--stroke-form-color);
+    border: 1.5px solid #CBD5E1;
     padding: 0.75rem;
     font-size: 0.9rem;
     font-family: inherit;

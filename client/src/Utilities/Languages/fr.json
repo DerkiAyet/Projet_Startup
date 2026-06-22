@@ -82,7 +82,8 @@
     "comments": "commentaires",
     "likes": "j'aime",
     "discussion": "Discussion",
-    "shareThought": "Partagez une pensée ou posez une question..."
+    "shareThought": "Partagez une pensée ou posez une question...",
+    "search": "Rechercher n'importe quel utilisateur..."
   },
   "createPost": {
     "createNewPost": "Créer une nouvelle publication",

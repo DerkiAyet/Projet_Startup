@@ -225,7 +225,7 @@
 .postsfeed-wrapper .new-post-btn-wrapper {
     position: absolute;
     right: 2rem;
-    bottom: 2rem;
+    bottom: 2rem; 
     overflow: visible;
 }
 
@@ -434,6 +434,11 @@
     border-top-color: var(--light-pink-accent-color);
     border-radius: 50%;
     animation: spin 0.7s linear infinite;
+}
+
+.app-rtl .new-post-btn-wrapper{
+    right: auto;
+    left: 2rem;
 }
 
 @keyframes spin {
