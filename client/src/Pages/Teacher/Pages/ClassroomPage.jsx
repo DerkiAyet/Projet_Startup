@@ -579,7 +579,7 @@ const SessionsPanel = ({ sessions, idClassroom, author, addSession }) => {
                                 <div className="session-card-header">
                                     <div className="session-card-thumb">
                                         {session.refThumbnail
-                                            ? <img src={session.refThumbnail} alt={session.refTitle} />
+                                            ? <img src={fixMediaUrl(session.refThumbnail)} alt={session.refTitle} />
                                             : <div className="session-card-thumb-fallback">
                                                 <i className="ri-file-list-3-line" />
                                             </div>

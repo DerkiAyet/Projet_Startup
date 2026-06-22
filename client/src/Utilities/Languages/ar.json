@@ -44,7 +44,7 @@
     "settings": "الإعدادات"
   },
   "logout": "تسجيل الخروج",
-  "posts": { 
+  "posts": {
     "newPost": "منشور جديد",
     "postPublished": "تم نشر المنشور!",
     "follow": "متابعة",
@@ -217,6 +217,38 @@
     "search": "بحث...",
     "students": "طلاب",
     "comments": "تعليقات"
+  },
+  "settings": {
+    "switchAppearence": "تغيير المظهر",
+    "switchLanguage": "تغيير اللغة",
+    "darkMode": "الوضع الداكن",
+    "english": "الإنجليزية",
+    "french": "الفرنسية",
+    "arabic": "العربية",
+    "yourActivity": "نشاطك",
+    "confidentiality": "السرية",
+    "helpAndReport": "المساعدة والإبلاغ",
+    "about": "حول"
+  },
+  "notifications": {
+    "notifications": "الإشعارات",
+    "new": "جديد",
+    "new_plural": "جديدة",
+    "markAllAsRead": "تحديد الكل كمقروء",
+    "all": "الكل",
+    "unread": "غير مقروء",
+    "enrollment": "تسجيل",
+    "review": "مراجعة",
+    "comment": "تعليق",
+    "achievement": "إنجاز",
+    "noNotifications": "لا توجد إشعارات هنا",
+    "enrolledInYourCourse": "سجّل في دورتك",
+    "leftReviewOn": "ترك مراجعة على",
+    "commentedOn": "علّق على",
+    "completedYourCourse": "أكمل دورتك",
+    "askedQuestionIn": "طرح سؤالاً في",
+    "earnedCertificateFrom": "حصل على شهادة من",
+    "dismiss": "رفض"
   },
   "actions": {
     "save": "حفظ",

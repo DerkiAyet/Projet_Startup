@@ -74,13 +74,19 @@ function SearchPage() {
             try {
                 setLoading(true)
 
-                const courseRes = await axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/courses/recommended/me`)
+                const [courseRes, assignRes, tipRes, resourceRes] = await Promise.all([
+                    axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/courses/recommended/me`),
+                    axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/assignments/recommended/me`),
+                    axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/tips/recommended/me`),
+                    axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/resources/recommended/me`)
+                ])
+
                 setCourses(courseRes.data)
 
-                const assignRes = await axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/assignments/recommended/me`)
                 setAssignments(assignRes.data)
 
-                const resourceRes = await axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/resources/recommended/me`)
+                setTips(tipRes.data)
+
                 setResources(resourceRes.data)
 
             } catch (error) {
@@ -119,7 +125,11 @@ function SearchPage() {
                 `${process.env.REACT_APP_API_URL_GATEWAY}/content/courses/search?${params.toString()}`
             );
 
-            const [res] = await Promise.all([request, minDelay]);
+            const requestRes = axios.get(
+                `${process.env.REACT_APP_API_URL_GATEWAY}/content/resources/search?${params.toString()}`
+            );
+
+            const [res, resourceRes] = await Promise.all([request, requestRes, minDelay]);
             const data = res.data;
 
             const filtered = {
@@ -132,6 +142,7 @@ function SearchPage() {
             setCourses(filtered.courses);
             setAssignments(filtered.assignments);
             setTips(filtered.tips);
+            setResources(resourceRes.data)
 
         } catch (error) {
             console.error("Search failed:", error);
@@ -239,6 +250,7 @@ function SearchPage() {
                 <CoursesView
                     courses={courses}
                     assignments={assignments}
+                    tips={tips}
                     resources={resources}
                     setResourcePageOpen={setResourcePageOpen}
                     searched={searched}

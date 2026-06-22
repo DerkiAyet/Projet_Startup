@@ -1,3 +1,7 @@
+:root{
+    --light-pink-accent-color: #F29DB6;
+}
+
 /* ── XP Bar Card ── */
 .ms-xp-bar-card {
     background: var(--ms-surface);

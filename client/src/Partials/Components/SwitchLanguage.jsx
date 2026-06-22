@@ -15,7 +15,7 @@ export const SwitchLanguage = ({langRef, hideLangBox}) => {
     const { setLang, setIsRtl, lang } = useContext(AppContext)
 
     const { t , i18n } = useTranslation();
-
+ 
     const changeLanguage = (lang, dir) => {
         i18n.changeLanguage(lang);
         setLang(lang);

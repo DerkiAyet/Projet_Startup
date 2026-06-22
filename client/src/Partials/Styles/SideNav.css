@@ -478,7 +478,7 @@
 }
 
 .switch-toggle.checked .slider:before {
-    transform: translateX(12px);
+    transform: translateX(12px); 
     background-color: var(--toggle-handle-dark);
 }
 

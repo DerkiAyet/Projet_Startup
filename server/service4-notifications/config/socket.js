@@ -93,7 +93,7 @@ function setupWebSocket(server) {
 
     socket.on('leave_classroom', ({ classroomId }) => {
       socket.leave(`classroom:${classroomId}`);
-    });
+    }); // exactement hada li nsst7a9eh, tma 5ssni ghi join_session w leave session
 
     // ── Collaborative session (assignment) ───────────────────────
 
@@ -106,25 +106,21 @@ function setupWebSocket(server) {
       socket.leave(`session:${sessionId}`);
     });
 
-    // Phase change — teacher triggers this
     socket.on('session:phase_change', ({ sessionId, phase }) => {
-      // broadcast to everyone in the session including sender
       io.to(`session:${sessionId}`).emit('session:phase_updated', {
         sessionId,
         phase
       });
-    });
+    });// hadou kima darou ma yjouch hna, ana fhamti kanet m3a9ssa sara7a
 
-    // Consensus lock — student claims the edit lock
     socket.on('consensus:lock', ({ sessionId, exerciseId, userId }) => {
       io.to(`session:${sessionId}`).emit('consensus:locked', {
         sessionId,
         exerciseId,
         lockedBy: userId
       });
-    });
+    });  // hadou kima darou ma yjouch hna, ana fhamti kanet m3a9ssa sara7a
 
-    // Consensus typing — broadcast text as student types
     socket.on('consensus:typing', ({ sessionId, exerciseId, text, userId }) => {
       socket.to(`session:${sessionId}`).emit('consensus:updated', {
         sessionId,
@@ -132,9 +128,8 @@ function setupWebSocket(server) {
         text,
         updatedBy: userId
       });
-    });
+    }); //wla hada
 
-    // Consensus unlock — student leaves the field
     socket.on('consensus:unlock', ({ sessionId, exerciseId }) => {
       io.to(`session:${sessionId}`).emit('consensus:unlocked', {
         sessionId,
@@ -148,7 +143,7 @@ function setupWebSocket(server) {
         sessionId,
         userId
       });
-    });
+    }); // hadou kima darou ma yjouch hna, ana fhamti kanet m3a9ssa sara7a... m3lich n5alihm souvenir
 
     // for the gamification service:
      socket.on('join_game', ({ userId }) => {

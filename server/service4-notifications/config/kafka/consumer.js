@@ -45,7 +45,7 @@ const startConsumer = async (handleCreateNotification, getIO) => {
                 } catch (err) {
                     console.error('[Kafka] Failed to process notification event:', err.message);
                 }
-            }
+            } 
 
             if (topic === 'socket.events') {
                 try {

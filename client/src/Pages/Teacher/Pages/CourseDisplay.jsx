@@ -294,19 +294,28 @@ export default function CourseDisplay() {
     const [content, setContent] = useState(null)
     const [comments, setComments] = useState(topic?.comments);
     const [teacherId, setTeacherId] = useState(null)
+    const [loading, setLoading] = useState(false)
 
     useEffect(() => {
-        const link = type === "course" ? `${process.env.REACT_APP_API_URL_GATEWAY}/content/courses` : type === "assignment" ? `${process.env.REACT_APP_API_URL_GATEWAY}/content/assignments` : `${process.env.REACT_APP_API_URL_GATEWAY}/content/tips`;
-        axios.get(`${link}/${id}`)
-            .then((res) => {
+        const fetchData = async () => {
+            setLoading(true)
+            try {
+                const link = type === "course" ? `${process.env.REACT_APP_API_URL_GATEWAY}/content/courses` : type === "assignment" ? `${process.env.REACT_APP_API_URL_GATEWAY}/content/assignments` : `${process.env.REACT_APP_API_URL_GATEWAY}/content/tips`;
+                const res = await axios.get(`${link}/${id}`)
+
                 setTopic(res.data);
-                const content = res.data.course ?? res.data.assignment ?? res.data.topic
+                const content = res.data.course ?? res.data.assignment ?? res.data.tip
                 setComments(res.data.comments)
                 setContent(content)
                 setTeacherId(res.data.teacher.userId)
-                console.log(res.data)
-            })
-            .catch((err) => console.error(err.response.data))
+
+            } catch (error) {
+                console.error(error.response?.data)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchData();
     }, [id, type])
 
     const [currentLessonIdx, setCurrentLessonIdx] = useState(0);
@@ -488,6 +497,16 @@ export default function CourseDisplay() {
 
     const handleReport = () => setReportClicked({ ...reportClicked, visible: true })
 
+    if (loading) {
+        return (
+            <div className="search-loading">
+                <div className="loading-spinner" />
+                <span>Fetching Data...</span>
+            </div>
+
+        )
+    }
+
     return (
         <div className="course-display-container">
             <HeaderContent
@@ -520,7 +539,7 @@ export default function CourseDisplay() {
                             openQuizViewer={() => setOpenViewer(true)}
                         />
                     )}
-                    {type === "tip" && topic?.content && <TipView content={topic.content} />}
+                    {type === "tip" && topic?.tip && <TipView content={topic.tip?.content} />}
                     {type === "assignment" &&
                         <AssignementView PROBLEMATIQUES={topic?.assignment?.exercises || []} viewerRef={viewerRef} assignmentId={topic?.assignment?._id} />
                     }

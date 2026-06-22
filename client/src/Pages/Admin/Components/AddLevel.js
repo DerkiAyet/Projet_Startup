@@ -52,10 +52,6 @@ const AddLevel = ({ onClose, levelAdded }) => {
                 newErrors.coverImg = ("upload a thumbnail");
             }
 
-            if (!payload.xpRequired.trim()) {
-                newErrors.xpRequired = ("select an xpRequired");
-            }
-
             if (Object.keys(newErrors).length > 0) {
                 setErrors(newErrors);
                 return;

@@ -97,17 +97,21 @@ export const CourseDetailPanel = ({ course, onClose, typeView }) => {
                     </ul>
                 </div>}
 
-                <div className="detail-tags">
-                    {course.tags.map((tag, i) => (
-                        <span key={i} className="tag-pill">#{tag}</span>
-                    ))}
-                </div>
+                {
+                    typeView !== "Tips" &&
+                    <div className="detail-tags">
+                        {course.tags.map((tag, i) => (
+                            <span key={i} className="tag-pill">#{tag}</span>
+                        ))}
+                    </div>
+                }
 
-                {(userRole === "teacher") ? (
-                    typeView === "Courses" ? <Link className="enroll-btn" to={`/courses/${course._id}?type=course`}>Go to Course</Link> : <Link className="enroll-btn" to={`/courses/${course._id}?type=assignment`}>Go To Assignment</Link>
-                ) : (
-                    typeView === "Courses" ? <button className="enroll-btn">Enroll Now</button> : <button className="enroll-btn">Solve Now</button>
-                )}
+                {
+                    typeView === "Courses" ?
+                        <Link className="enroll-btn" to={`/courses/${course._id}?type=course`}>Go to Course</Link> :
+                        typeView === "Assignments" ? <Link className="enroll-btn" to={`/courses/${course._id}?type=assignment`}>Go To Assignment</Link> :
+                            <Link className="enroll-btn" to={`/courses/${course._id}?type=tip`}>Go To Tip</Link>
+                }
 
             </div>
         </div>
@@ -128,7 +132,8 @@ export const CourseCard = ({ course, onClick, isSelected, typeView }) => {
                     <div className="level-box">
                         <ChartIcon />
                         {course.level}
-                    </div>}
+                    </div>
+                }
                 <MenuIcon className="menu-card-icon" />
             </div>
             <div className="course-infos-box">
@@ -137,15 +142,18 @@ export const CourseCard = ({ course, onClick, isSelected, typeView }) => {
                 <div className="course-features">
                     <div className="flex-left">
                         <div className="flex-line" style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                            <PeopleIcon /> {typeView === "Courses" ? `${course.enrollCount}+` : typeView === "Assignments" ? `${course.solveCount}+` : `${course.views}+`}
+                            <PeopleIcon /> {typeView === "Courses" ? `${course.enrollCount}+` : typeView === "Assignments" ? `${course.solveCount}+` : `+`}
                         </div>
                         <div className="flex-line" style={{ display: "flex", alignItems: "center", gap: "5px" }}>
                             <CommentIcon /> {course.commentsCount}+
                         </div>
                     </div>
-                    <div className="flex-line" style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-                        <LessonIcon /> {typeView === "Courses" ? `${course.lessons.length}` : `${course.exercises.length}`}
-                    </div>
+                    {
+                        typeView !== "Tips" &&
+                        <div className="flex-line" style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+                            <LessonIcon /> {typeView === "Courses" ? `${course.lessons.length}` : `${course.exercises.length}`}
+                        </div>
+                    }
                 </div>
             </div>
         </div>
@@ -201,11 +209,13 @@ export const CourseCardLine = ({ course, typeView }) => {
                     <div className="expanded-left">
                         <StarRating rating={avg} />
                         <p className="detail-description">{course.description}</p>
-                        <div className="detail-tags">
-                            {course.tags.map((tag, i) => (
-                                <span key={i} className="tag-pill">#{tag}</span>
-                            ))}
-                        </div>
+                        {typeView !== "Tips" &&
+                            <div className="detail-tags">
+                                {course.tags.map((tag, i) => (
+                                    <span key={i} className="tag-pill">#{tag}</span>
+                                ))}
+                            </div>
+                        }
                     </div>
                     <div className="expanded-right">
                         <div className="detail-lessons">
@@ -219,11 +229,13 @@ export const CourseCardLine = ({ course, typeView }) => {
                                 ))}
                             </ul>}
                         </div>
-                        {(userRole === "teacher") ? (
-                            typeView === "Courses" ? <Link className="enroll-btn" to={`/courses/${course._id}?type=course`}>Go to Course</Link> : <Link className="enroll-btn" to={`/courses/${course._id}?type=assignment`}>Go To Assignment</Link>
-                        ) : (
-                            typeView === "Courses" ? <button className="enroll-btn">Enroll Now</button> : <button className="enroll-btn">Solve Now</button>
-                        )}
+
+                        {
+                            typeView === "Courses" ?
+                                <Link className="enroll-btn" to={`/courses/${course._id}?type=course`}>Go to Course</Link> :
+                                typeView === "Assignments" ? <Link className="enroll-btn" to={`/courses/${course._id}?type=assignment`}>Go To Assignment</Link> :
+                                    <Link className="enroll-btn" to={`/courses/${course._id}?type=tip`}>Go To Tip</Link>
+                        }
                     </div>
                 </div>
             )}
@@ -241,6 +253,7 @@ function Courses() {
 
     const [courses, setCourses] = useState([]);
     const [assignments, setAssignments] = useState([]);
+    const [tips, setTips] = useState([])
     const [loading, setLoading] = useState(false)
 
     useEffect(() => {
@@ -253,6 +266,9 @@ function Courses() {
 
                 const assignsRes = await axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/assignments/teacher-assigns`)
                 setAssignments(assignsRes.data);
+
+                const tipsRes = await axios.get(`${process.env.REACT_APP_API_URL_GATEWAY}/content/tips/teacher-tips`)
+                setTips(tipsRes.data);
             } catch (error) {
                 console.error("Error while fetching:", error)
             } finally {
@@ -274,10 +290,14 @@ function Courses() {
         a?.title?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    const filteredTips = tips.filter(t =>
+        t?.title?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
     const [toolsClicked, setToolsClicked] = useState(false)
 
     const navigate = useNavigate()
- 
+
     return (
         <div className='courses-container' onClick={() => viewClicked && setViewClicked(false)}>
             <div className="courses-wrapper">
@@ -345,7 +365,7 @@ function Courses() {
                     </div>
                 </div>
 
-                { loading && (
+                {loading && (
                     <div className="search-loading">
                         <div className="loading-spinner" />
                         <span>Fetching Data…</span>
@@ -354,6 +374,7 @@ function Courses() {
 
                 {currentCategory === "Courses" && <ViewCourses viewMode={viewMode} courses={filteredCourses} />}
                 {currentCategory === "Assignments" && <ViewAssignments viewMode={viewMode} assignments={filteredAssignments} />}
+                {currentCategory === "Tips" && <ViewTips viewMode={viewMode} tips={filteredTips} />}
 
             </div>
         </div>
@@ -436,6 +457,47 @@ export const ViewAssignments = ({ viewMode, assignments }) => {
                 <div className="courses-row-container">
                     {assignments.map((course) => (
                         <CourseCardLine key={course._id} course={course} typeView={"Assignments"} />
+                    ))}
+                </div>
+            )}
+        </>
+    )
+}
+
+export const ViewTips = ({ viewMode, tips }) => {
+    const [selectedCourse, setSelectedCourse] = useState(null)
+
+    const handleCardClick = (course) => {
+        setSelectedCourse((prev) => (prev?._id === course._id ? null : course))
+    }
+
+    return (
+        <>
+            {viewMode === "grid" ? (
+                <div className={`courses-grid-wrapper ${selectedCourse ? 'has-panel' : ''}`}>
+                    <div className="courses-grid-container">
+                        {tips.map((tip) => (
+                            <CourseCard
+                                key={tip._id}
+                                course={tip}
+                                onClick={handleCardClick}
+                                isSelected={selectedCourse?._id === tip._id}
+                                typeView={"Tips"}
+                            />
+                        ))}
+                    </div>
+                    {selectedCourse && (
+                        <CourseDetailPanel
+                            course={selectedCourse}
+                            onClose={() => setSelectedCourse(null)}
+                            typeView={"Tips"}
+                        />
+                    )}
+                </div>
+            ) : (
+                <div className="courses-row-container">
+                    {tips.map((tip) => (
+                        <CourseCardLine key={tip._id} course={tip} typeView={"Tips"} />
                     ))}
                 </div>
             )}

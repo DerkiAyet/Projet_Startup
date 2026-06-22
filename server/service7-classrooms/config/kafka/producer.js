@@ -32,7 +32,7 @@ const publishNotification = async (type, payload) => {
 
 const emitToRoom = async (room, event, data) => {
     await producer.send({
-        topic: 'socket.events',
+        topic: 'socket.events', 
         messages: [{
             value: JSON.stringify({ room, event, data })
         }]

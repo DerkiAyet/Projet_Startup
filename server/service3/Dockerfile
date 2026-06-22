@@ -4,4 +4,4 @@ COPY package*.json ./
 RUN npm install --omit=dev
 COPY . .
 EXPOSE 7002
-CMD ["npm", "run", "start:prod"]
+CMD mkdir -p /app/uploads/images /app/uploads/solutions /app/uploads/files /app/uploads/attachments && npm run start:prod

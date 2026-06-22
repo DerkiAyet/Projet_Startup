@@ -4,6 +4,7 @@ import { ReactComponent as CloseIcon } from '../../../Assets/icons/TimelineIcons
 import { motion, AnimatePresence } from "framer-motion"
 import axios from 'axios'
 import { useParams } from 'react-router-dom'
+import { fixMediaUrl } from '../../../Utilities/utils/fixMedia'
 
 
 const AssignmentPopup = ({ items, loading, onSelect, onClose }) => (
@@ -31,7 +32,7 @@ const AssignmentPopup = ({ items, loading, onSelect, onClose }) => (
                     <div key={item._id} className="session-popup-item" onClick={() => onSelect(item)}>
                         <div className="session-popup-thumb">
                             {item.thumbnail
-                                ? <img src={item.thumbnail} alt={item.title} />
+                                ? <img src={fixMediaUrl(item.thumbnail)} alt={item.title} />
                                 : <div className="session-popup-thumb-fallback">{item.title?.charAt(0)}</div>
                             }
                         </div>
@@ -177,7 +178,7 @@ export const AddSessionForm = ({ onClose }) => {
                                 {payload.assignmentId ? (
                                     <div className="session-selected-ref">
                                         {payload.refThumbnail && (
-                                            <img src={payload.refThumbnail} alt="" className="session-ref-thumb" />
+                                            <img src={fixMediaUrl(payload.refThumbnail)} alt="" className="session-ref-thumb" />
                                         )}
                                         <div className="session-ref-info">
                                             <span className="session-ref-title">{payload.refTitle}</span>

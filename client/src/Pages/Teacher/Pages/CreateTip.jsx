@@ -88,10 +88,6 @@ function CreateTip() {
             newErrors.description = "Please enter the course description.";
         }
 
-        if (!tipData.level.trim()) {
-            newErrors.level = "Please enter the level content.";
-        }
-
         // If there are errors → show UI errors, stop function
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
@@ -106,6 +102,7 @@ function CreateTip() {
     }
 
     const [showSuccessPopup, setShowSuccessPopup] = useState(false)
+    const [idPublishedTip, setIdPublishedTip] = useState(0)
 
 
     const handlePublish = async () => {
@@ -120,8 +117,8 @@ function CreateTip() {
             formData.append("content", JSON.stringify(tipData.content));
 
 
-            await axios.post(`${process.env.REACT_APP_API_URL_GATEWAY}/content/tips`, formData)
-
+            const res = await axios.post(`${process.env.REACT_APP_API_URL_GATEWAY}/content/tips`, formData)
+            setIdPublishedTip(res.data.tip._id)
             setShowSuccessPopup(true)
         } catch (err) {
             console.error(err)
@@ -299,42 +296,13 @@ function CreateTip() {
                                                 <path d="M4.99929 4.18863L8.77899 0.220677C8.91347 0.0793351 9.09533 0 9.28493 0C9.47453 0 9.65649 0.0793351 9.79097 0.220677C9.85721 0.290046 9.90976 0.372607 9.94565 0.463596C9.98153 0.554585 10 0.652194 10 0.750779C10 0.849365 9.98153 0.946974 9.94565 1.03796C9.90976 1.12895 9.85721 1.21152 9.79097 1.28089L5.50595 5.77932C5.37147 5.92066 5.1896 6 5 6C4.8104 6 4.62853 5.92066 4.49405 5.77932L0.209032 1.28089C0.14279 1.21152 0.0902398 1.12895 0.0543536 1.03796C0.0184674 0.946974 0 0.849365 0 0.750779C0 0.652194 0.0184674 0.554585 0.0543536 0.463596C0.0902398 0.372607 0.14279 0.290046 0.209032 0.220677C0.343604 0.0795203 0.525523 0.000314919 0.715067 0.000314919C0.904612 0.000314919 1.08644 0.0795203 1.22101 0.220677L4.99929 4.18863Z" fill="#8A8A8A" />
                                             </svg>
                                         </div>
-
-                                        <div style={{ position: "relative", display: "inline-block" }} >
-                                            <select
-                                                className={`custom-select ${errors.level ? 'input-error' : ''}`}
-                                                value={tipData.level}
-                                                onChange={(e) => setTipData({ ...tipData, level: e.target.value })}
-                                            >
-                                                <option>Level</option>
-                                                {levels.map(l => <option key={l}>{l}</option>)}
-                                            </select>
-                                            <svg
-                                                width="10"
-                                                height="6"
-                                                viewBox="0 0 10 6"
-                                                fill="none"
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                style={{
-                                                    position: "absolute",
-                                                    right: "60px",
-                                                    top: "50%",
-                                                    transform: "translateY(-50%)",
-                                                    pointerEvents: "none"
-                                                }}
-                                            >
-                                                <path d="M4.99929 4.18863L8.77899 0.220677C8.91347 0.0793351 9.09533 0 9.28493 0C9.47453 0 9.65649 0.0793351 9.79097 0.220677C9.85721 0.290046 9.90976 0.372607 9.94565 0.463596C9.98153 0.554585 10 0.652194 10 0.750779C10 0.849365 9.98153 0.946974 9.94565 1.03796C9.90976 1.12895 9.85721 1.21152 9.79097 1.28089L5.50595 5.77932C5.37147 5.92066 5.1896 6 5 6C4.8104 6 4.62853 5.92066 4.49405 5.77932L0.209032 1.28089C0.14279 1.21152 0.0902398 1.12895 0.0543536 1.03796C0.0184674 0.946974 0 0.849365 0 0.750779C0 0.652194 0.0184674 0.554585 0.0543536 0.463596C0.0902398 0.372607 0.14279 0.290046 0.209032 0.220677C0.343604 0.0795203 0.525523 0.000314919 0.715067 0.000314919C0.904612 0.000314919 1.08644 0.0795203 1.22101 0.220677L4.99929 4.18863Z" fill="#8A8A8A" />
-                                            </svg>
-                                            {errors.level && <p className="error-text">{errors.level}</p>}
-                                        </div>
-
                                     </div>
                                 </div>
                                 <div className="course-btn-actions">
                                     <button className='draft-btn'>Save as Draft</button>
                                     <button type="submit" className='create-course-button' onClick={handleNext}>
                                         <DocumentIcon />
-                                        Create Course
+                                        Create Tip
                                     </button>
                                 </div>
                             </form>
@@ -381,6 +349,7 @@ function CreateTip() {
                         title={tipData.title}
                         type={"tip"}
                         onClose={() => setShowSuccessPopup(false)}
+                        id={ idPublishedTip }
                     />
                 )
             }

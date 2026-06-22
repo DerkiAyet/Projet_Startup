@@ -203,12 +203,12 @@ export default function MyPerformance() {
     }
 
     const achievementsOfCurrentLevel = gameProgress
-    ? gameProgress.currentProgress?.achievements?.filter((achievement) =>
-        gameProgress.currentLevel?.missions?.some(
-            (mission) => achievement.missionId === mission._id
+        ? gameProgress.currentProgress?.achievements?.filter((achievement) =>
+            gameProgress.currentLevel?.missions?.some(
+                (mission) => achievement.missionId === mission._id
+            )
         )
-    )
-    : [];
+        : [];
 
     return (
         <div className="ms-container">
@@ -233,7 +233,12 @@ export default function MyPerformance() {
                             <div className="ms-xp-top-row">
                                 <div>
                                     <span className="ms-xp-level-name">{gameProgress.currentLevel?.name}</span>
-                                    <span className="ms-xp-label">Level {gameProgress.currentProgress?.xp} / {gameProgress.nextLevel?.xpRequired} XP</span>
+                                    <span className="ms-xp-label">
+                                        {gameProgress.nextLevel
+                                            ? `Level ${gameProgress.currentProgress?.xp} / ${gameProgress.nextLevel.xpRequired} XP`
+                                            : `Max Level Reached 🏆`
+                                        }
+                                    </span>
                                 </div>
                                 <div className="ms-xp-points-badge">
                                     <span className="ms-xp-points-value">{gameProgress.currentProgress?.points}</span>
@@ -244,13 +249,18 @@ export default function MyPerformance() {
                                 <div
                                     className="ms-xp-fill"
                                     style={{
-                                        width: `${Math.min((gameProgress.currentProgress?.xp / gameProgress.nextLevel?.xpRequired) * 100, 100)}%`
+                                        width: `${gameProgress.nextLevel
+                                            ? Math.min((gameProgress.currentProgress?.xp / gameProgress.nextLevel.xpRequired) * 100, 100)
+                                            : 100}%`
                                     }}
                                 />
                             </div>
                             <div className="ms-xp-bottom-row">
                                 <span className="ms-xp-hint">{gameProgress.currentProgress?.xp} XP earned</span>
-                                <span className="ms-xp-hint">{gameProgress.nextLevel?.xpRequired - gameProgress.currentProgress?.xp} XP to next level</span>
+                                {gameProgress.nextLevel
+                                    ? <span className="ms-xp-hint">{gameProgress.nextLevel.xpRequired - gameProgress.currentProgress?.xp} XP to next level</span>
+                                    : <span className="ms-xp-hint">🎉 You've reached the highest level!</span>
+                                }
                             </div>
                         </div>
                         <img

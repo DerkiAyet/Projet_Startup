@@ -557,7 +557,7 @@ router.get("/quiz-attempts/student/me", async (req, res) => {
 
     try {
         const attempts = await QuizAttemptModel.find({ studentId })
-            .populate("quizId", "title description difficulty")
+            .populate("quizId", "title description difficulty courseId")
             .sort({ createdAt: -1 });
 
         res.status(200).json(attempts);
@@ -636,6 +636,7 @@ router.get('/me/quizes', async (req, res) => {
                     quiz: {
                         _id: quiz._id,
                         teacherId: quiz.teacherId,
+                        courseId: quiz.courseId,
                         title: quiz.title,
                         description: quiz.description,
                         difficulty: quiz.difficulty,

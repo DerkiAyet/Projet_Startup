@@ -42,7 +42,7 @@ router.post('/', upload.single('thumbnail'), async (req, res) => {
             description,
             thumbnail,
             content,
-            category
+            category: JSON.parse(category)
         });
 
         await redis.del(`teacherTips:${teacherId}`)
@@ -112,8 +112,8 @@ router.get('/teacher-tips', async (req, res) => {
         const enrichedTips = await Promise.all(
             tips.map(async (tip) => {
                 try {
-                    let responseCategory = await resolveCategory(tip.category.id)
-                    let responseField = await resolveField(tip.category.subCategory);
+                    const responseCategory = await resolveCategory(tip.category.id)
+                    const responseField = await resolveField(tip.category.subCategory);
 
                     const comments = await CommentModel.find({
                         contentId: tip._id,
@@ -282,6 +282,110 @@ router.get('/recommended/me', async (req, res) => {
         res.status(500).json({ error: "Internal server error" });
     }
 });
+
+router.get('/:id', async (req, res) => {
+    try {
+        const tipId = req.params.id
+        const tip = await TipModel.findById(tipId)
+        if (!tip) return res.status(404).json({ error: "Tip not found." })
+
+        const responseUser = await resolveUser(tip.teacherId);
+        const responseCategory = await resolveCategory(tip.category.id);
+        const responseField = await resolveField(tip.category.subCategory);
+
+        const thumbnail = tip.thumbnail
+            ? `${process.env.GATEWAY_URI}/content/uploads/${tip.thumbnail}`
+            : `${process.env.GATEWAY_URI}/auth/uploads/${responseCategory.subImg}`;
+
+
+        const comments = await CommentModel.find({ contentId: tipId, contentType: "tip" })
+        let enrichedComments;
+        if (comments) {
+            enrichedComments = await Promise.all(
+                comments.map(async (c) => {
+                    const resolvedCommentUser = await resolveUser(c.userId)
+
+                    const replies = c.replies
+                    let enrichedReplies
+                    if (replies) {
+                        enrichedReplies = await Promise.all(
+                            replies.map(async (r) => {
+                                const resolvedUser = await resolveUser(r.userId)
+
+                                return {
+                                    _id: r._id,
+                                    text: r.text,
+                                    likes: r.likes,
+                                    userName: resolvedUser.userName,
+                                    familyName: resolvedUser.familyName,
+                                    givenName: resolvedUser.givenName,
+                                    userImg: resolvedUser.uerImg,
+                                    role: resolvedUser.role
+                                }
+                            })
+                        )
+                    }
+
+                    return {
+                        _id: c._id,
+                        text: c.text,
+                        replies: enrichedReplies,
+                        likes: c.likes,
+                        userName: resolvedCommentUser.userName,
+                        familyName: resolvedCommentUser.familyName,
+                        givenName: resolvedCommentUser.givenName,
+                        userImg: resolvedCommentUser.uerImg,
+                        role: resolvedCommentUser.role,
+                    }
+                })
+            )
+        }
+
+        const finalTip = {
+            tip: {
+                _id: tip._id,
+                teacherId: tip.teacherId,
+                title: tip.title,
+                description: tip.description,
+                thumbnail,
+                level: tip.level,
+                category: {
+                    idSubject: responseCategory.idSubject,
+                    name: responseCategory.name,
+                    color: responseCategory.color
+                },
+                subCategory: responseField
+                    ? {
+                        idSub: responseField.idSub,
+                        name: responseField.name
+                    }
+                    : null,
+                content: tip.content,
+                ratings: tip.ratings,
+                avgRating: tip.averageRating(),
+                comments: enrichedComments,
+                commentsCount: comments.length,
+                visibility: tip.visibility,
+                createdAt: tip.createdAt,
+            },
+            comments: enrichedComments,
+            teacher: {
+                userId: responseUser.id,
+                userName: responseUser.userName,
+                familyName: responseUser.familyName,
+                givenName: responseUser.givenName,
+                userImg: responseUser.uerImg,
+                role: "teacher"
+            } || null
+        }
+
+        res.status(200).json(finalTip)
+
+    } catch (error) {
+        console.log("error: ", error.message)
+        res.status(500).json({ error: error.message });
+    }
+})
 
 //Comments and Rating
 router.get('/:id/comments', async (req, res) => {

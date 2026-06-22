@@ -179,7 +179,7 @@ router.get('/my-progress', async (req, res) => {
                 }
             })
 
-        const nextLevel = await LevelModel.findOne({key: currentLevel.key + 1}).select("coverImg name xpRequired")
+        const nextLevel = await LevelModel.findOne({ key: currentLevel.key + 1 }).select("coverImg name xpRequired")
 
         const result = {
             currentLevel: {
@@ -189,12 +189,13 @@ router.get('/my-progress', async (req, res) => {
             },
             currentProgress: record,
             whatToDo: awaitedMissions,
-            nextLevel: {
+            nextLevel: nextLevel ? {
                 name: nextLevel.name,
                 coverImg: nextLevel.coverImg,
                 xpRequired: nextLevel.xpRequired
-            },
+            } : null,
         }
+        
         await redis.setex(cacheKey, 300, JSON.stringify(result))
         return res.status(200).json(result)
     } catch (error) {

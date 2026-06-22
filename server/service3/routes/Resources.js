@@ -150,6 +150,113 @@ router.get('/me', async (req, res) => {
     }
 })
 
+router.get('/search', async (req, res) => {
+    try {
+        const userId = Number(req.headers['x-user-id'])
+        const userRole = req.headers['x-user-role']
+        let { title, categoryId, categoryName, subCategoryName } = req.query;
+
+        const normalizeList = (value) => {
+            if (!value) return [];
+            if (Array.isArray(value)) return value;
+            return value.split(',').map(v => v.trim()).filter(Boolean);
+        };
+
+        const categoryIds = normalizeList(categoryId);
+        const categoryNames = normalizeList(categoryName);
+        const subCategoryNames = normalizeList(subCategoryName);
+
+        const mongoFilter = { visibility: true };
+
+        const resources = await ResourceModel.find(mongoFilter);
+
+        const enrichedResources = (await Promise.all(
+            resources.map(async (resource) => {
+                const responseUser = await resolveUser(resource.studentId)
+                const responseCategory = await resolveCategory(resource.category.id)
+                const responseField = await resolveField(resource.category.subCategory)
+
+                const thumbnail = resource.thumbnail
+                    ? `${process.env.GATEWAY_URI}/content/uploads/${resource.thumbnail}`
+                    : `${process.env.GATEWAY_URI}/auth/uploads/${responseCategory.subImg}`;
+
+                const comments = await CommentModel.find({ contentId: resource._id, contentType: "resource" })
+                const enrichedComments = await Promise.all(
+                    comments.map(async (c) => {
+                        const responseCommentUser = await resolveUser(c.userId)
+                        return {
+                            _id: c._id,
+                            text: c.text,
+                            userId: responseCommentUser.id,
+                            userName: responseCommentUser.userName,
+                            familyName: responseCommentUser.familyName,
+                            givenName: responseCommentUser.givenName,
+                            userImg: responseCommentUser.userImg,
+                            role: responseCommentUser.role
+                        }
+                    })
+                )
+                return {
+                    _id: resource._id,
+                    title: resource.title,
+                    description: resource.description,
+                    thumbnail,
+                    category: responseCategory,
+                    subCategory: responseField ?? null,
+                    attachments: resource.attachments,
+                    commentsCount: comments.length,
+                    comments: enrichedComments,
+                    avgRating: resource.averageRating(),
+                    ratings: resource.ratings,
+                    viewCount: resource.views.length,
+                    visibility: resource.visibility,
+                    createdAt: resource.createdAt,
+                    student: responseUser
+                }
+            })
+        )).filter(Boolean);
+
+        const hasFilters = title || categoryIds.length > 0 || categoryNames.length > 0 || subCategoryNames.length > 0;
+
+        const filtered = !hasFilters
+            ? enrichedResources
+            : enrichedResources.filter(item => {
+                // AND logic: every provided filter must match
+                if (title && item.title) {
+                    if (!item.title.toLowerCase().includes(title.toLowerCase())) return false;
+                }
+
+                if (categoryIds.length > 0) {
+                    const itemCatId = String(item.category?.idSubject ?? '');
+                    if (!categoryIds.map(String).includes(itemCatId)) return false;
+                }
+
+                if (categoryNames.length > 0 && item.category?.name) {
+                    const match = categoryNames.some(n =>
+                        item.category.name.toLowerCase().includes(n.toLowerCase())
+                    );
+                    if (!match) return false;
+                }
+
+                if (subCategoryNames.length > 0 && item.subCategory?.name) {
+                    const match = subCategoryNames.some(n =>
+                        item.subCategory.name.toLowerCase().includes(n.toLowerCase())
+                    );
+                    if (!match) return false;
+                }
+
+                return true;
+            });
+
+        filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        return res.status(200).json(filtered);
+
+    } catch (err) {
+        console.error("Search error:", err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 router.get('/recommended/me', async (req, res) => {
     try {
         const userId = Number(req.headers['x-user-id'])
@@ -335,7 +442,7 @@ router.get("/:resourceId", async (req, res) => {
                 }
             })
         )
-        return {
+        return res.status(200).json({
             _id: resource._id,
             title: resource.title,
             description: resource.description,
@@ -349,7 +456,8 @@ router.get("/:resourceId", async (req, res) => {
             visibility: resource.visibility,
             createdAt: resource.createdAt,
             student: responseUser
-        }
+        })
+
     } catch (error) {
         console.error("Error occured while fetching the resource: ", error.message)
         return res.status(500).json({ error: "Internal server error" })

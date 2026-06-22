@@ -1,8 +1,7 @@
 import React, { useState } from 'react'
 import '../Styles/AddClassroom.css'
 import { ReactComponent as CloseIcon } from '../../../Assets/icons/TimelineIcons/close.svg'
-import { ReactComponent as EmailIcon } from "../../../Assets/icons/AuthIcons/email-auth-icon.svg"
-import { ReactComponent as ChildIcon } from "../../../Assets/icons/AuthIcons/children-input.svg"
+import { ReactComponent as EditIcon } from '../../../Assets/icons/CourseIcons/edit-course.svg'
 import { motion } from "framer-motion";
 
 import axios from 'axios'
@@ -110,7 +109,7 @@ export const AddClassroomForm = ({ onClose, classroomAdded }) => {
                                     </label>
                                 </div>
                                 <div className={`input-line ${errors.name ? "input-error" : ""}`}>
-                                    <EmailIcon className="input-icon" />
+                                    <EditIcon className="input-icon" />
                                     <input
                                         type="text"
                                         placeholder={"Enter name of your classroom"}
@@ -124,11 +123,11 @@ export const AddClassroomForm = ({ onClose, classroomAdded }) => {
                             <div className="form-input">
                                 <div className="input-label">
                                     <label htmlFor="email">
-                                        Name
+                                        Description
                                     </label>
                                 </div>
                                 <div className={`input-line ${errors.description ? "input-error" : ""}`}>
-                                    <EmailIcon className="input-icon" />
+                                    <EditIcon className="input-icon" />
                                     <input
                                         type="text"
                                         placeholder={"description..."}

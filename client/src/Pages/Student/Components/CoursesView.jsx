@@ -116,16 +116,20 @@ export const CourseDetailPanel = ({ course, onClose, typeView }) => {
                     </ul>
                 </div>}
 
-                <div className="detail-tags">
-                    {course.tags.map((tag, i) => (
-                        <span key={i} className="tag-pill">#{tag}</span>
-                    ))}
-                </div>
+                {typeView !== "Tips" &&
+                    <div className="detail-tags">
+                        {course.tags.map((tag, i) => (
+                            <span key={i} className="tag-pill">#{tag}</span>
+                        ))}
+                    </div>
+                }
 
                 {
                     typeView === "Courses" ?
                         (userAuth.role === "student" ? <button className="enroll-btn" onClick={handleEnroll}>Enroll Now</button> : <button className="enroll-btn" onClick={() => navigate(`/courses/${course._id}?type=course`)}>View Course</button>) :
-                        (userAuth.role === "student" ? <button className="enroll-btn" onClick={goToSolve}>Solve Now</button> : <button className="enroll-btn" onClick={goToSolve}>View Assignment</button>)
+                        typeView === "Assignments" ? (userAuth.role === "student" ? <button className="enroll-btn" onClick={goToSolve}>Solve Now</button> : <button className="enroll-btn" onClick={goToSolve}>View Assignment</button>) :
+                            <button className="enroll-btn" onClick={() => navigate(`/courses/${course._id}?type=tip`)}>View Tip</button>
+
                 }
 
             </div>
@@ -244,7 +248,6 @@ export const CourseCardLine = ({ course, typeView }) => {
 
     return (
         <div className={`course-card-line ${expanded ? 'course-card-line--expanded' : ''}`} onClick={() => setExpanded((prev) => !prev)}>
-            {/* ── Always-visible row ── */}
             <div className="card-row-left">
                 <div className="course-img-row-box">
                     <img src={fixMediaUrl(course.thumbnail)} alt={course.title} />
@@ -279,17 +282,19 @@ export const CourseCardLine = ({ course, typeView }) => {
             </div>
 
 
-            {/* ── Expanded section ── */}
             {expanded && (
                 <div className="card-line-expanded">
                     <div className="expanded-left">
                         <StarRating rating={avg} />
                         <p className="detail-description">{course.description}</p>
-                        <div className="detail-tags">
-                            {course.tags.map((tag, i) => (
-                                <span key={i} className="tag-pill">#{tag}</span>
-                            ))}
-                        </div>
+                        {
+                            typeView !== "Tips" &&
+                            <div className="detail-tags">
+                                {course.tags.map((tag, i) => (
+                                    <span key={i} className="tag-pill">#{tag}</span>
+                                ))}
+                            </div>
+                        }
                     </div>
                     <div className="expanded-right">
                         <div className="detail-lessons">
@@ -306,7 +311,9 @@ export const CourseCardLine = ({ course, typeView }) => {
                         {
                             typeView === "Courses" ?
                                 (userAuth.role === "student" ? <button className="enroll-btn" onClick={handleEnroll}>Enroll Now</button> : <button className="enroll-btn" onClick={() => navigate(`/courses/${course._id}?type=course`)}>View Course</button>) :
-                                (userAuth.role === "student" ? <button className="enroll-btn" onClick={goToSolve}>Solve Now</button> : <button className="enroll-btn" onClick={goToSolve}>View Assignment</button>)
+                                typeView === "Assignments" ? (userAuth.role === "student" ? <button className="enroll-btn" onClick={goToSolve}>Solve Now</button> : <button className="enroll-btn" onClick={goToSolve}>View Assignment</button>) :
+                                    <button className="enroll-btn" onClick={() => navigate(`/courses/${course._id}?type=tip`)}>View Tip</button>
+
                         }
                     </div>
                 </div>
@@ -316,8 +323,8 @@ export const CourseCardLine = ({ course, typeView }) => {
 }
 
 
-function CoursesView({ courses, assignments, searched, loading, query, selectedCats, resources, setResourcePageOpen, setResources }) {
-    const categories = ["Courses", "Assignments", "Quizes", "Tips", "Resource Library"]
+function CoursesView({ courses, assignments, tips, searched, loading, query, selectedCats, resources, setResourcePageOpen, setResources }) {
+    const categories = ["Courses", "Assignments", "Tips", "Resource Library"]
     const [currentCategory, setCurrentCategory] = useState("Courses")
     const [categoryIndex, setCategoryIndex] = useState(0)
     const [viewClicked, setViewClicked] = useState(false)
@@ -403,6 +410,7 @@ function CoursesView({ courses, assignments, searched, loading, query, selectedC
 
                 {currentCategory === "Courses" && <ViewCourses viewMode={viewMode} courses={courses} searched={searched} loading={loading} query={query} categories={selectedCats} />}
                 {currentCategory === "Assignments" && <ViewAssignments viewMode={viewMode} assignments={assignments} searched={searched} loading={loading} query={query} categories={selectedCats} />}
+                {currentCategory === "Tips" && <ViewTips viewMode={viewMode} tips={tips} searched={searched} loading={loading} query={query} categories={selectedCats} />}
                 {currentCategory === "Resource Library" && <ViewResources resources={resources} searched={searched} loading={loading} query={query} categories={selectedCats} handleOpenResource={handleOpenResource} />}
             </div>
         </div>
@@ -503,6 +511,56 @@ const ViewAssignments = ({ viewMode, assignments, searched, loading, query, cate
                         <div className="courses-row-container">
                             {assignments.map((course) => (
                                 <CourseCardLine key={course._id} course={course} typeView={"Assignments"} />
+                            ))}
+                        </div>
+                    )}
+        </>
+    )
+}
+
+const ViewTips = ({ viewMode, tips, searched, loading, query, categories }) => {
+    const [selectedCourse, setSelectedCourse] = useState(null)
+
+    const handleCardClick = (course) => {
+        setSelectedCourse((prev) => (prev?._id === course._id ? null : course))
+    }
+
+    return (
+        <>
+            {
+                searched && !loading && tips.length === 0 ? (
+                    <div className="search-empty-state">
+                        <img src={NotFound} alt="not found" style={{ width: "200px" }} />
+                        <p>No Tips found for <strong>"{query}"</strong>{categories.length > 0 && ` in ${categories}`}
+                        </p>
+                    </div>
+
+                ) :
+                    viewMode === "grid" ? (
+                        <div className={`courses-grid-wrapper ${selectedCourse ? 'has-panel' : ''}`}>
+                            <div className="courses-grid-container">
+                                {tips.map((tip) => (
+                                    <CourseCard
+                                        key={tip._id}
+                                        course={tip}
+                                        onClick={handleCardClick}
+                                        isSelected={selectedCourse?._id === tip._id}
+                                        typeView={"Tips"}
+                                    />
+                                ))}
+                            </div>
+                            {selectedCourse && (
+                                <CourseDetailPanel
+                                    course={selectedCourse}
+                                    onClose={() => setSelectedCourse(null)}
+                                    typeView={"Tips"}
+                                />
+                            )}
+                        </div>
+                    ) : (
+                        <div className="courses-row-container">
+                            {tips.map((tip) => (
+                                <CourseCardLine key={tip._id} course={tip} typeView={"Tips"} />
                             ))}
                         </div>
                     )}

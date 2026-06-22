@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import '../Styles/QuizSolve.css'
+import { useNavigate } from 'react-router-dom'
 
 function QuizSolve({ quiz, attemptId, initialAnswers = {}, onClose, onSave, onSubmit, completedResult }) {
     // answers: { [questionId]: string[] }
@@ -26,7 +27,6 @@ function QuizSolve({ quiz, attemptId, initialAnswers = {}, onClose, onSave, onSu
         return `${m}:${s}`
     }
 
-    /* ── Answer selection ── */
     const toggleAnswer = (questionId, optionValue) => {
         setAnswers(prev => {
             const current = prev[questionId] || []
@@ -45,7 +45,6 @@ function QuizSolve({ quiz, attemptId, initialAnswers = {}, onClose, onSave, onSu
     const answeredCount = questions.filter(q => (answers[q._id] || []).length > 0).length
     const progressPct = questions.length ? (answeredCount / questions.length) * 100 : 0
 
-    /* ── Validate all answered ── */
     const validate = () => {
         const e = {}
         questions.forEach(q => {
@@ -62,8 +61,6 @@ function QuizSolve({ quiz, attemptId, initialAnswers = {}, onClose, onSave, onSu
         return Object.keys(e).length === 0
     }
 
-    /*-- Save Attempt--*/
-
     const handleSave = async () => {
         const payload = questions.map(q => ({
             questionId: q._id,
@@ -78,7 +75,6 @@ function QuizSolve({ quiz, attemptId, initialAnswers = {}, onClose, onSave, onSu
     }
 
 
-    /* ── Submit ── */
     const handleSubmit = async () => {
         if (!validate()) return
 
@@ -100,7 +96,8 @@ function QuizSolve({ quiz, attemptId, initialAnswers = {}, onClose, onSave, onSu
         ? new Date(completedResult.completedAt).toLocaleDateString()
         : null;
 
-    /* ── Result screen ── */
+    const navigate = useNavigate();
+
     if (submitted && result) {
         const pct = Math.round((result.score / result.maxScore) * 100)
         const passed = pct >= 60
@@ -168,7 +165,6 @@ function QuizSolve({ quiz, attemptId, initialAnswers = {}, onClose, onSave, onSu
                             </div>
                         </div>
 
-                        {/* Answer review */}
                         <div className="qs-review">
                             <p className="qs-review-title">Review</p>
                             {questions.map((question, i) => {
@@ -215,18 +211,20 @@ function QuizSolve({ quiz, attemptId, initialAnswers = {}, onClose, onSave, onSu
                         <button className="qs-footer-btn qs-footer-btn--close" onClick={onClose}>
                             Close
                         </button>
+                        <button className="qs-footer-btn qs-footer-btn--submit" onClick={() => { onClose(); navigate(`/courses/${quiz.courseId}?type=course`) }}>
+                            Go to Course
+                        </button>
                     </div>
                 </div>
             </div>
         )
     }
 
-    /* ── Solve screen ── */
+    /* -----------Solve screen------------*/
     return (
         <div className="qs-overlay" onClick={onClose}>
             <div className="qs-modal" onClick={e => e.stopPropagation()}>
 
-                {/* Header */}
                 <div className="qs-modal-header">
                     <div className="qs-modal-header-left">
                         <div className="qs-header-icon">
@@ -257,7 +255,6 @@ function QuizSolve({ quiz, attemptId, initialAnswers = {}, onClose, onSave, onSu
                     </div>
                 </div>
 
-                {/* Progress bar */}
                 <div className="qs-progress-bar-wrap">
                     <div className="qs-progress-bar" style={{ width: `${progressPct}%` }} />
                     <span className="qs-progress-label">{answeredCount}/{questions.length} answered</span>
@@ -265,7 +262,6 @@ function QuizSolve({ quiz, attemptId, initialAnswers = {}, onClose, onSave, onSu
 
                 <div className="qs-body">
 
-                    {/* Sidebar: question list */}
                     <aside className="qs-sidebar">
                         <p className="qs-list-title">Questions</p>
                         {questions.map((q, i) => {
@@ -296,7 +292,6 @@ function QuizSolve({ quiz, attemptId, initialAnswers = {}, onClose, onSave, onSu
                         })}
                     </aside>
 
-                    {/* Editor: question + options */}
                     <section className="qs-editor">
                         <div className="qs-editor-top">
                             <span className="qs-q-badge">Question {activeQuestion + 1}</span>
@@ -333,7 +328,6 @@ function QuizSolve({ quiz, attemptId, initialAnswers = {}, onClose, onSave, onSu
                             })}
                         </div>
 
-                        {/* Nav buttons */}
                         <div className="qs-nav-btns">
                             <button
                                 className="qs-nav-btn"
@@ -367,10 +361,12 @@ function QuizSolve({ quiz, attemptId, initialAnswers = {}, onClose, onSave, onSu
                     </section>
                 </div>
 
-                {/* Footer */}
                 <div className="qs-footer">
                     <button className="qs-footer-btn qs-footer-btn--cancel" onClick={handleSave}>
                         Cancel & Save
+                    </button>
+                    <button className="qs-footer-btn" onClick={() => { onClose(); navigate(`/courses/${quiz.courseId}?type=course`) }}>
+                        Go to Course
                     </button>
                     <div className="qs-footer-info">
                         <span>{answeredCount} of {questions.length} answered</span>
