@@ -1,9 +1,6 @@
 import {
   Text, View, StyleSheet, TouchableOpacity, Alert,
   FlatList,
-  Modal,
-  Pressable,
-  TextInput
 } from "react-native"; import { useRouter } from "expo-router";
 import { useContext, useEffect } from "react";
 import { AuthContext } from "../_layout";
@@ -20,6 +17,7 @@ import { CommentsSection } from "@/components/commentsSection";
 
 export default function Index() {
   const router = useRouter()
+  const { userAuth } = useContext(AuthContext)!
 
   const [posts, setPosts] = useState<Post[]>([]);
 
@@ -38,8 +36,6 @@ export default function Index() {
 
     fetchPosts();
   }, [])
-
-  const { userAuth } = useContext(AuthContext)!
 
   const [profileUri, setProfileUri] = useState<string | null>(null);
 
@@ -217,6 +213,8 @@ export default function Index() {
         data={posts}
         renderItem={renderPost}
         keyExtractor={(item) => item._id}
+        style={{ width: "100%" }}
+        contentContainerStyle={{ paddingBottom: 100 }}
       />
       <CreatePost
         modalVisible={modalVisible}

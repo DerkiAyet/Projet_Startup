@@ -15,6 +15,7 @@ import { AuthContext } from "../_layout";
 
 export default function LoginScreen() {
     const router = useRouter()
+    const { setUserAuth } = useContext(AuthContext)!;
 
     const [userInfos, setUserInfos] = useState({
         identifier: "",
@@ -29,8 +30,6 @@ export default function LoginScreen() {
     const handleFocus = (field: string) => {
         setErrors(prev => ({ ...prev, [field]: "" }));
     };
-
-    const { setUserAuth } = useContext(AuthContext)!;
 
     const handleSubmit = async() => {
         try {

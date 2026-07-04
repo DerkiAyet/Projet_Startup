@@ -81,7 +81,7 @@ export default function InterestsScreen() {
               activeOpacity={0.85}
             >
               <Image
-                source={{ uri: `http://10.0.2.2:8082/auth/uploads/${item.subImg}` }}
+                source={{ uri: `${process.env.EXPO_PUBLIC_API_URL}/auth/uploads/${item.subImg}` }}
                 style={StyleSheet.absoluteFill}
                 contentFit="cover"
               />

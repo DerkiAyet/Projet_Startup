@@ -159,6 +159,7 @@ router.put("/enrollements/:id/lesson-completed/:lessonId", async (req, res) => {
         }
 
         await enrollement.save()
+        await redis.del(`enrollments:${req.headers['x-user-id']}`)
         res.status(200).json(enrollement)
     } catch (error) {
         console.log("error while editing the enrollement", error.message)
@@ -196,8 +197,9 @@ router.put('/solutions/:assignmentId/draft', solutionUpload, async (req, res) =>
         }
 
         const newSolution = await SolvingModel.create({ studentId, assignment: assignmentId, problemsSolved });
-        res.status(200).json(newSolution);
 
+        await redis.del(`solutions:${studentId}`)
+        res.status(200).json(newSolution);
     } catch (error) {
         console.log("error while adding the solution of student", error.message);
         res.status(500).json("Internal server error");
@@ -480,6 +482,7 @@ router.put("/quiz-attempts/:attemptId/save", async (req, res) => {
         attempt.answers = answers;
         await attempt.save();
 
+        await redis.del(`quizAttempts:${studentId}`)
         res.status(200).json(attempt);
 
     } catch (error) {

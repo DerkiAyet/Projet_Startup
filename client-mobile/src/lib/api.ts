@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import { router } from 'expo-router';
 
 const api = axios.create({
-    baseURL: 'http://10.0.2.2:8082',  
+    baseURL: process.env.EXPO_PUBLIC_API_URL,  
     timeout: 10000,
 });
 

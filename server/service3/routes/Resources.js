@@ -10,7 +10,7 @@ const path = require('path')
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        if (file.fieldname === 'attachmentFiles') {
+        if (file.fieldname === 'attachmentFiles') { 
             cb(null, 'uploads/attachments/')
         } else {
             cb(null, 'uploads/images/')
