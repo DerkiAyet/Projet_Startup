@@ -19,7 +19,7 @@ A collaborative learning platform that connects students, teachers, and parents:
 - **Role-based access:** students, teachers, and administrators (with report handling)
 - **Web and mobile apps**
 
-## 🏗️ Architecture
+## Architecture
 
 SnapLearn is built as a set of independent microservices behind an API gateway, communicating through events.
 
