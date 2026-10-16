@@ -5,7 +5,7 @@ A collaborative learning platform that connects students, teachers, and parents:
 
 🔗 **[Live demo](http://snaplearn.ddns.net:3000)**
 
-![SnapLearn](https://youtu.be/fBgdMR0KsB8?si=i-FO2NK578FPjUBU)
+[SnapLearn](https://youtu.be/fBgdMR0KsB8?si=i-FO2NK578FPjUBU)
 
 ## Features
 
@@ -27,17 +27,29 @@ SnapLearn is built as a set of independent microservices behind an API gateway, 
 flowchart LR
     Web[Web app - React] --> GW[API Gateway]
     Mobile[Mobile app - Expo] --> GW
-    GW --> Auth[Auth service]
-    GW --> Posts[Posts service]
-    GW --> Content[Content service]
-    GW --> Class[Classrooms service]
-    GW --> Gami[Gamification service]
-    GW --> Notif[Notifications service]
-    GW --> Bot[Chatbot service]
-    Auth & Posts & Class & Gami & Notif <--> Kafka[(Kafka)]
-    Gami --> Redis[(Redis)]
+    Gw --> Eureka[Eureka Service Registry]
+    Eureka --> Auth[Auth service]
+    Eureka --> Posts[Posts service]
+    Eureka --> Content[Content service]
+    Eureka --> Class[Classrooms service]
+    Eureka --> Gami[Gamification service]
+    Eureka --> Notif[Notifications service]
+    Eureka --> Insights[Insights service]
+    Eureka --> Bot[Chatbot service]
+    Auth & Posts & Content & Class & Gami & Notif <--> Kafka[(Kafka)]
+    Kafka --> Insights
+    Auth --> Redis[(Redis)]
+    Posts --> Redis
+    Content --> Redis
+    Class --> Redis
+    Gami --> Redis
     Auth --> MySQL[(MySQL)]
+    Insights --> MySQL
     Posts --> Mongo[(MongoDB)]
+    Content --> Mongo
+    Notif --> Mongo
+    Gami --> Mongo
+    Class --> Mongo
 ```
 
 | Component | Role |
